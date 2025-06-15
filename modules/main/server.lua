@@ -10,6 +10,51 @@ function InitializeDepartment(id, data, dontSync)
     TriggerClientEvent("pickle_policejob:initializeDepartment", -1, id, department)
 end
 
+function UpdateDepartmentSQL(id, columnId)
+    local department = GetDepartment(id)
+    if not department then return end
+    if columnId == "label" then
+        MySQL.Async.execute("UPDATE pickle_police_departments SET label = @label WHERE id = @id", {
+            label = department.label,
+            id = id,
+        })
+    elseif columnId == "location" then
+        MySQL.Async.execute("UPDATE pickle_police_departments SET location = @location WHERE id = @id", {
+            location = json.encode(department.location),
+            id = id,
+        })
+    elseif columnId == "members" then
+        local members = {}
+        for i=1, #department.members do
+            table.insert(members, RemoveFields(department.members[i], {"onDuty"}))
+        end
+        MySQL.Async.execute("UPDATE pickle_police_departments SET members = @members WHERE id = @id", {
+            members = json.encode(members),
+            id = id,
+        })
+    elseif columnId == "entities" then
+        MySQL.Async.execute("UPDATE pickle_police_departments SET entities = @entities WHERE id = @id", {
+            entities = json.encode(department.entities),
+            id = id,
+        })
+    elseif columnId == "permissions" then
+        MySQL.Async.execute("UPDATE pickle_police_departments SET permissions = @permissions WHERE id = @id", {
+            permissions = json.encode(department.permissions),
+            id = id,
+        })
+    elseif columnId == "ranks" then
+        MySQL.Async.execute("UPDATE pickle_police_departments SET ranks = @ranks WHERE id = @id", {
+            ranks = json.encode(department.ranks),
+            id = id,
+        })
+    elseif columnId == "outfits" then
+        MySQL.Async.execute("UPDATE pickle_police_departments SET outfits = @outfits WHERE id = @id", {
+            outfits = json.encode(department.outfits),
+            id = id,
+        })
+    end
+end
+
 function GetDepartment(id)
     return Departments[id]
 end
@@ -76,6 +121,30 @@ function DoesPlayerHaveEntityPermission(source, id, entityId)
     return false
 end
 
+function SetPlayerDuty(source, onDuty, report)
+    local departmentId, memberData = GetPlayerDepartment(source)
+    if not departmentId then return ShowNotification(source, _L("no_department_permission")) end
+    if onDuty and not memberData.onDuty then
+        memberData.onDuty = os.time()
+        ShowNotification(source, _L("duty_on"))
+    elseif not onDuty and memberData.onDuty then
+        local duration = os.time() - memberData.onDuty
+        memberData.onDutyTime = (memberData.onDutyTime or 0) + duration
+        memberData.onDuty = nil
+        memberData.recentDutyLogs = memberData.recentDutyLogs or {}
+        table.insert(memberData.recentDutyLogs, 1, {
+            report = string.len(report) > 0 and report or nil,
+            finish = os.time(),
+            duration = duration
+        })
+        if #memberData.recentDutyLogs > 10 then
+            table.remove(memberData.recentDutyLogs)
+        end
+        ShowNotification(source, _L("duty_off"))
+        UpdateDepartmentSQL(departmentId, "members")
+    end
+end
+
 RegisterCallback("pickle_policejob:openFrontdesk", function(source, cb, id, entityId)
     local department = GetDepartment(id)
     local departmentId, memberData = GetPlayerDepartment(source)
@@ -87,17 +156,28 @@ RegisterCallback("pickle_policejob:openFrontdesk", function(source, cb, id, enti
     cb({
         departmentId = departmentId,
         memberData = memberData,
+        date = os.date("*t", time),
         time = time,
     })
 end)
 
-RegisterNetEvent("pickle_policejob:toggleDuty", function(id, entityId)
-    
+RegisterNetEvent("pickle_policejob:toggleDuty", function(id, entityId, report)
+    local departmentId, memberData = GetPlayerDepartment(source)
+    if not departmentId or id ~= departmentId or not DoesPlayerHaveEntityPermission(source, id, entityId) then return ShowNotification(source, _L("no_department_permission")) end
+    SetPlayerDuty(source, not memberData.onDuty, report)
 end)
 
 RegisterNetEvent("pickle_policejob:initializePlayer", function()
     local xPlayer = ESX.GetPlayerFromId(source)
     TriggerClientEvent("pickle_policejob:initializeDepartment", -1, Departments)
+end)
+
+AddEventHandler("onPlayerDropped", function(source)
+    local departmentId, memberData = GetPlayerDepartment(source)
+    if not departmentId then return end
+    if memberData.onDuty then
+        SetPlayerDuty(source, false)
+    end
 end)
 
 MySQL.ready(function()

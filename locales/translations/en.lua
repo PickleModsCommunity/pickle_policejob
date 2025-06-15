@@ -7,7 +7,15 @@ Language["en"] = {
     toggle_onduty_description = "Begin your shift and start your patrol.",
     toggle_offduty = "End Shift",
     toggle_offduty_description = "Shift Time: %s",
+    offduty_prompt_title = "End Shift",
+    offduty_prompt_label = "Shift Report:",
+    offduty_prompt_placeholder = "Summary of your shift. (Optional)",
     money = "Money",
     dirty_money = "Dirty Money",
     interact_frontdesk = "Frontdesk",
+    duty_off = "You have ended your shift.",
+    duty_on = "You have started your shift.",
+    duty_log_title = "%s - %s",
+    duty_log_description = "Shift Time: %s",
+
 }

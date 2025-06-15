@@ -1,6 +1,35 @@
 local LocalDepartments = {}
 local CurrentDepartment = nil
 
+function OpenFrontdeskOffdutyPrompt(id, entityId)
+    local input = lib.inputDialog(_L("offduty_prompt_title"), {
+        {type = 'textarea', label = _L("offduty_prompt_label"), placeholder = _L("offduty_prompt_placeholder")},
+    })
+    if not input then 
+        OpenFrontdesk(id, entityId)
+        return 
+    end
+    TriggerServerEvent("pickle_policejob:toggleDuty", id, entityId, input[1])
+end
+
+function OpenFrontdeskDutyLogs(id, entityId, data)
+    local menuId = "pickle_policejob:frontdesk:duty_logs"
+    local options = {}
+    for i=1, #data.memberData.recentDutyLogs do
+        options[#options+1] = {
+            title = _L("duty_log_title", GetFormattedDate(data.memberData.recentDutyLogs[i].finish - data.memberData.recentDutyLogs[i].duration, data.date), GetFormattedDate(data.memberData.recentDutyLogs[i].finish, data.date)),
+            description = _L("duty_log_description", GetFormattedTime(data.memberData.recentDutyLogs[i].duration)),
+            icon = "clipboard-list",
+        }
+    end
+    lib.registerContext({
+        id = menuId,
+        title = _L("view_duty_logs"),
+        options = options
+    })
+    lib.showContext(menuId)
+end
+
 function OpenFrontdesk(id, entityId)
     if OPENING_MENU then return end
     OPENING_MENU = true
@@ -15,7 +44,19 @@ function OpenFrontdesk(id, entityId)
                 description = data.memberData.onDuty and _L("toggle_offduty_description", GetFormattedTime(data.time - data.memberData.onDuty)) or _L("toggle_onduty_description"),
                 icon = data.memberData.onDuty and "stop" or "play",
                 onSelect = function()
-                    TriggerServerEvent("pickle_policejob:toggleDuty", id, entityId)
+                    if data.memberData.onDuty then
+                        OpenFrontdeskOffdutyPrompt(id, entityId)
+                    else
+                        TriggerServerEvent("pickle_policejob:toggleDuty", id, entityId)
+                    end
+                end,
+            }
+            options[#options+1] = {
+                title = _L("view_duty_logs"),
+                description = _L("view_duty_logs_description"),
+                icon = "clipboard-list",
+                onSelect = function()
+                    OpenFrontdeskDutyLogs(id, entityId, data)
                 end,
             }
         end
