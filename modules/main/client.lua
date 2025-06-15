@@ -12,20 +12,45 @@ function OpenFrontdeskOffdutyPrompt(id, entityId)
     TriggerServerEvent("pickle_policejob:toggleDuty", id, entityId, input[1])
 end
 
+function OpenFrontdeskDutyLogEntry(id, entityId, data, index)
+    local log = data.memberData.recentDutyLogs[index]
+    if not log then return ShowNotification("ERR_NO_LOG") end
+    local input = lib.inputDialog(_L("duty_log_entry_title"), {
+        {type = "input", label = _L("duty_log_entry_starttimestamp"), default = log.startTimestamp, disabled = true},
+        {type = "input", label = _L("duty_log_entry_finishtimestamp"), default = log.finishTimestamp, disabled = true},
+        {type = "input", label = _L("duty_log_entry_duration"), default = GetFormattedTime(log.duration), disabled = true},
+        {type = "textarea", label = _L("duty_log_entry_report"), default = log.report or _L("duty_log_entry_report_placeholder"), disabled = true},
+    })
+    OpenFrontdeskDutyLogs(id, entityId, data)
+    return 
+end
+
 function OpenFrontdeskDutyLogs(id, entityId, data)
     local menuId = "pickle_policejob:frontdesk:duty_logs"
     local options = {}
     for i=1, #data.memberData.recentDutyLogs do
         options[#options+1] = {
-            title = _L("duty_log_title", GetFormattedDate(data.memberData.recentDutyLogs[i].finish - data.memberData.recentDutyLogs[i].duration, data.date), GetFormattedDate(data.memberData.recentDutyLogs[i].finish, data.date)),
+            title = data.memberData.recentDutyLogs[i].startTimestamp,
             description = _L("duty_log_description", GetFormattedTime(data.memberData.recentDutyLogs[i].duration)),
             icon = "clipboard-list",
+            onSelect = function()
+                OpenFrontdeskDutyLogEntry(id, entityId, data, i)
+            end,
+        }
+    end
+    if #options == 0 then
+        options[#options+1] = {
+            title = _L("duty_log_no_logs"),
+            disabled = true,
         }
     end
     lib.registerContext({
         id = menuId,
         title = _L("view_duty_logs"),
-        options = options
+        options = options,
+        onExit = function()
+            OpenFrontdesk(id, entityId)
+        end
     })
     lib.showContext(menuId)
 end
@@ -56,10 +81,38 @@ function OpenFrontdesk(id, entityId)
                 description = _L("view_duty_logs_description"),
                 icon = "clipboard-list",
                 onSelect = function()
-                    OpenFrontdeskDutyLogs(id, entityId, data)
+                    SetTimeout(150, function()
+                        OpenFrontdeskDutyLogs(id, entityId, data)
+                    end)
                 end,
             }
         end
+        options[#options+1] = {
+            title = _L("request_officer"),
+            description = _L("request_officer_description"),
+            icon = "phone",
+            onSelect = function()
+                OpenFrontdeskRequestOfficerForm(id, entityId, data)
+            end,
+        }
+        -- if not data.departmentId then
+            options[#options+1] = {
+                title = _L("apply_for_department", Departments[id].label),
+                description = _L("apply_for_department_description"),
+                icon = "clipboard-list",
+                onSelect = function()
+                    OpenFrontdeskApplyForDepartment(id, entityId, data)
+                end,
+            }
+        -- end
+        options[#options+1] = {
+            title = _L("file_report"),
+            description = _L("file_report_description"),
+            icon = "clipboard-list",
+            onSelect = function()
+                OpenFrontdeskFileReport(id, entityId, data)
+            end,
+        }
         if #options == 0 then
             return ShowNotification("ERR_NO_OPTIONS")
         end

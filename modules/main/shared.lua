@@ -13,8 +13,8 @@ function GetFormattedTime(seconds)
     end
 end
 
-function GetFormattedDate(seconds, date)
-    local date = date or os.date("*t", seconds)
+function GetFormattedDate(seconds)
+    local date = os.date("*t", seconds)
     local hour = date.hour
     local ampm = "AM"
     if hour >= 12 then

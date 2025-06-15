@@ -105,10 +105,11 @@ function EnsureDepartmentData(key, data)
     end
 end
 
-function DoesPlayerHaveEntityPermission(source, id, entityId)
+function DoesPlayerHaveEntityPermission(source, id, entityId, onDutyRequired)
     local departmentId, memberData = GetPlayerDepartment(source)
     local entity, entityIndex = GetDepartmentEntity(id, entityId)
     if not entity then return false end
+    if onDutyRequired and (not departmentId or not memberData.onDuty) then return false end
     if not entity.permissions or #entity.permissions == 0 then return true end
     if not memberData or not memberData.permissions or #memberData.permissions == 0 then return false end
     for i=1, #entity.permissions do
@@ -135,6 +136,8 @@ function SetPlayerDuty(source, onDuty, report)
         table.insert(memberData.recentDutyLogs, 1, {
             report = string.len(report) > 0 and report or nil,
             finish = os.time(),
+            finishTimestamp = GetFormattedDate(os.time()),
+            startTimestamp = GetFormattedDate(os.time() - duration),
             duration = duration
         })
         if #memberData.recentDutyLogs > 10 then
@@ -156,7 +159,6 @@ RegisterCallback("pickle_policejob:openFrontdesk", function(source, cb, id, enti
     cb({
         departmentId = departmentId,
         memberData = memberData,
-        date = os.date("*t", time),
         time = time,
     })
 end)
@@ -202,6 +204,7 @@ MySQL.ready(function()
                 permissions = EnsureDepartmentData("permissions", json.decode(v.permissions)),
                 ranks = EnsureDepartmentData("ranks", json.decode(v.ranks)),
                 outfits = EnsureDepartmentData("outfits", json.decode(v.outfits)),
+                misc = EnsureDepartmentData("misc", json.decode(v.misc)),
             }, true)
         end
     end)
