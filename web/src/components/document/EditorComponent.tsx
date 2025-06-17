@@ -3,12 +3,15 @@ import JoditEditor from 'jodit-react';
 import "./styles.css"; 
 
 interface EditorComponentProps {
+    defaultContent?: string;
+    onBlur?: (content: string) => void;
+    onChange?: (content: string) => void;
     config: any;
 }
 
-const EditorComponent: React.FC<EditorComponentProps> = ({ config }) => {
+const EditorComponent: React.FC<EditorComponentProps> = ({ config, defaultContent, onBlur, onChange }) => {
     const editor = useRef(null);
-    const [content, setContent] = useState<string>('');
+    const [content, setContent] = useState<string>(defaultContent || '');
 
     return (
         <div className='w-full h-full'>
@@ -27,8 +30,17 @@ const EditorComponent: React.FC<EditorComponentProps> = ({ config }) => {
                     ...config,
                 }}
                 tabIndex={1} // tabIndex of textarea
-                onBlur={(newContent: string) => setContent(newContent)}
-                onChange={(newContent: string) => {}}
+                onBlur={(newContent: string) => {
+                    setContent(newContent);
+                    if (onBlur) {
+                        onBlur(newContent);
+                    }
+                }}
+                onChange={(newContent: string) => {
+                    if (onChange) {
+                        onChange(newContent);
+                    }
+                }}
             />
         </div>
     );
