@@ -31,4 +31,5 @@ Language["en"] = {
     apply_for_department_description = "Submit an application to join this department.",
     file_report = "File Report / Complaint",
     file_report_description = "File a report for an incident or complaint.",
+    no_options = "There are no options available at this time, come back later in the future.",
 }

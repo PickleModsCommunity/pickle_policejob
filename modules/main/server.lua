@@ -98,8 +98,17 @@ function EnsureDepartmentData(key, data)
                 heading = 0.0,
             }
         else
-            return data
+            return {
+                coords = vector3(data.coords.x, data.coords.y, data.coords.z),
+                heading = data.heading,
+            }
         end
+    elseif key == "entities" then
+        if not data or type(data) ~= "table" then return {} end
+        for i=1, #data do
+            data[i].location = EnsureDepartmentData("location", data[i].location)
+        end
+        return data
     else
         return data or {}
     end
@@ -122,12 +131,22 @@ function DoesPlayerHaveEntityPermission(source, id, entityId, onDutyRequired)
     return false
 end
 
+function ExecuteIntegration(source, integration, ...)
+    if Config.Integrations and Config.Integrations[integration] and Config.Integrations[integration].server then
+        Config.Integrations[integration].server(source, ...)
+        if Config.Integrations[integration].client then
+            TriggerClientEvent("pickle_policejob:integration", source, integration, ...)
+        end
+    end
+end
+
 function SetPlayerDuty(source, onDuty, report)
     local departmentId, memberData = GetPlayerDepartment(source)
     if not departmentId then return ShowNotification(source, _L("no_department_permission")) end
     if onDuty and not memberData.onDuty then
         memberData.onDuty = os.time()
         ShowNotification(source, _L("duty_on"))
+        ExecuteIntegration(source, "duty", departmentId, true)
     elseif not onDuty and memberData.onDuty then
         local duration = os.time() - memberData.onDuty
         memberData.onDutyTime = (memberData.onDutyTime or 0) + duration
@@ -145,17 +164,14 @@ function SetPlayerDuty(source, onDuty, report)
         end
         ShowNotification(source, _L("duty_off"))
         UpdateDepartmentSQL(departmentId, "members")
+        ExecuteIntegration(source, "duty", departmentId, false, report)
     end
 end
 
-RegisterCallback("pickle_policejob:openFrontdesk", function(source, cb, id, entityId)
+RegisterCallback("pickle_policejob:openFrontdesk", function(source, cb, id)
     local department = GetDepartment(id)
     local departmentId, memberData = GetPlayerDepartment(source)
     local time = os.time()
-    if not DoesPlayerHaveEntityPermission(source, id, entityId) then 
-        cb(nil) 
-        return ShowNotification(source, _L("no_department_permission")) 
-    end
     cb({
         departmentId = departmentId,
         memberData = memberData,

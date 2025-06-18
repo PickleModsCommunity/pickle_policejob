@@ -87,15 +87,17 @@ function OpenFrontdesk(id, entityId)
                 end,
             }
         end
-        options[#options+1] = {
-            title = _L("request_officer"),
-            description = _L("request_officer_description"),
-            icon = "phone",
-            onSelect = function()
-                OpenFrontdeskRequestOfficerForm(id, entityId, data)
-            end,
-        }
-        -- if not data.departmentId then
+        if Config.Frontdesk.requestOfficer.enabled then
+            options[#options+1] = {
+                title = _L("request_officer"),
+                description = _L("request_officer_description"),
+                icon = "phone",
+                onSelect = function()
+                    OpenFrontdeskRequestOfficerForm(id, entityId, data)
+                end,
+            }
+        end
+        if Config.Frontdesk.applyForDepartment.enabled then
             options[#options+1] = {
                 title = _L("apply_for_department", Departments[id].label),
                 description = _L("apply_for_department_description"),
@@ -104,17 +106,19 @@ function OpenFrontdesk(id, entityId)
                     OpenFrontdeskApplyForDepartment(id, entityId, data)
                 end,
             }
-        -- end
-        options[#options+1] = {
+        end
+        if Config.Frontdesk.fileReport.enabled then
+            options[#options+1] = {
             title = _L("file_report"),
-            description = _L("file_report_description"),
-            icon = "clipboard-list",
-            onSelect = function()
-                OpenFrontdeskFileReport(id, entityId, data)
-            end,
-        }
+                description = _L("file_report_description"),
+                icon = "clipboard-list",
+                onSelect = function()
+                    OpenFrontdeskFileReport(id, entityId, data)
+                end,
+            }
+        end
         if #options == 0 then
-            return ShowNotification("ERR_NO_OPTIONS")
+            return ShowNotification(_L("no_options"))
         end
         lib.registerContext({
             id = menuId,
@@ -130,8 +134,8 @@ function EnsureDepartment(id)
     local localDepartment = {
         entities = {},
     }
-    for i=1, #Config.Departments[id].entities do
-        local entity = Config.Departments[id].entities[i]
+    for i=1, #Departments[id].entities do
+        local entity = Departments[id].entities[i]
         if entity.type == "frontdesk" then
             localDepartment.entities[#localDepartment.entities+1] = {
                 id = entity.id,
@@ -148,6 +152,16 @@ function EnsureDepartment(id)
         end
     end
 end
+
+function ExecuteIntegration(integration, ...)
+    if Config.Integrations and Config.Integrations[integration] and Config.Integrations[integration].client then
+        Config.Integrations[integration].client(...)
+    end
+end
+
+RegisterNetEvent("pickle_policejob:integration", function(integration, ...)
+    ExecuteIntegration(integration, ...)
+end)
 
 RegisterNetEvent("pickle_policejob:initializeDepartment", function(id, department)
     if type(id) == "table" then

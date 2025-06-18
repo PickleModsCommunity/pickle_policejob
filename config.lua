@@ -76,54 +76,60 @@ Config.DefaultDepartment = {
     }
 }
 
-Config.Departments = {
-    [11] = {
-        -- Blaine County Sheriff's Office
-        label = "Blaine County Sheriff's Office",
-        location = {
-            coords = vector3(1852.9951, 3688.9219, 33.2671),
-            heading = 206.4117,
-        },
-        members = {
-            {
-                rankId = 1,
-                identifier = "char1:7817bde6206cb72577821aa3369e8d15f688138a",
-                name = "Joe Biden",
-                totalDutyTime = 0,
-                recentDutyLogs = {},
-                permissions = {"Air Certified", "Rifle Certified"}
-            }
-        },
-        permissions = Config.DefaultDepartment.permissions,
-        ranks = Config.DefaultDepartment.ranks,
-        outfits = {
-            {
-                name = "Cadet Uniform",
-                gender = "male",
-                outfit = {}
-            }
-        },
-        entities = {
-            {
-                id = 1,
-                type = "frontdesk",
-                location = {
-                    coords = vector3(1852.9951, 3688.9219, 33.2671),
-                    heading = 208.5152,
-                },
-                permissions = {},
-                ped = "s_m_y_sheriff_01",
+Config.Frontdesk = {
+    requestOfficer = {
+        enabled = false,
+    },
+    applyForDepartment = {
+        enabled = false,
+    },
+    fileReport = {
+        enabled = false,
+    },
+}
+
+Config.Integrations = {
+    duty = {
+        client = function(departmentId, isOnDuty, report)
+        end,
+        server = function(source, departmentId, isOnDuty, report)
+        end,
+    },
+}
+
+Config.DocumentTemplates = {
+    -- Feel free to change these as you wish, but note we will not support any issues that arise from your changes as this is considered a customisation.
+
+    -- SHARED VARIABLES:
+    -- {department} - The name of the officer's department.
+    -- {name} - The name of the officer.
+    -- {rank} - The rank of the officer.
+
+    ["shift_report"] = {
+        -- AVAILABLE VARIABLES:
+        -- {shiftStart} - The start date & time of the shift.
+        -- {shiftEnd} - The end date & time of the shift.
+        -- {duration} - The duration of the shift.
+        title = "{department}", -- The top title of the document.
+        subtitle = "SHIFT REPORT", -- The subtitle of the document.
+        header = {
+            showImage = true, -- Whether to show the image of the department at the top of the document.
+            leftInfo = {
+                { label = "<span class='font-bold'>{name}</span>" },
+                { label = "{rank}" },
             },
-            {
-                id = 2,
-                type = "frontdesk",
-                location = {
-                    coords = vector3(1856.8533, 3689.6973, 33.2670),
-                    heading = 214.1353,
-                },
-                permissions = {"SWAT"},
-                ped = "s_m_y_sheriff_01",
-            }
+            rightInfo = {
+                { label = "<span class='font-bold'>Shift Start</span>" },
+                { label = "{shiftStart}" },
+                { label = "<span class='font-bold'>Shift End</span>" },
+                { label = "{shiftEnd}" },
+                { label = "<span class='font-bold'>Shift Duration</span>" },
+                { label = "{duration}" },
+            },
+        },
+        content = {
+            { label = "<span class='font-bold'>{name}</span>" },
+            { label = "{rank}" },
         }
     }
 }
