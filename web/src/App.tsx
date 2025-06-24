@@ -1,9 +1,59 @@
+import ArmoryContainer from "./components/armory/Armory"
 import DocumentContainer from "./components/document/Document"
+import { Config, useConfig } from "./providers/config";
+import { Translate } from "./providers/locale/Locale";
+
+export function GetItemLabel({item} : {item: string}) {
+  const { config } = useConfig();
+  if (item == "money" || item == "dirty_money") {
+    return <Translate id={item} />;
+  }
+  const itemLabel = config.items[item]?.label;
+  if (!itemLabel) {
+    return item;
+  }
+  return itemLabel;
+}
+
+export function GetItemImage(item: string) {
+  const { config } = useConfig();
+  return config.imageDirectory ? `${config.imageDirectory}/${item}.png` : `/nui/images/${item}.png`;
+}
+
+export function DisplayCurrency({value} : {value: number}) {
+  const {config} = useConfig();
+  return GetCurrencyString(value, config);
+}
+
+export function GetCurrencyString(value: number, config: Config) {
+  return value.toLocaleString(config.countryCode || "en-US", {style: "currency", currency: config.currency || "USD", minimumFractionDigits: 0, maximumFractionDigits: 0});
+}
+
+export function AppControls({controls} : {controls?: {key: string, label: any}[]}) {
+    const controlsList = controls || [
+        {key: "ESC", label: <Translate id="controls_exit" />},
+    ];
+    return (
+        <div className="bg-background/95 p-2 absolute top-[20px] left-[20px] flex items-center gap-2 rounded-md">
+            {controlsList.map((control, index) => (
+                <div className="flex items-center justify-center gap-2">
+                    <div className="relative font-bold text-sm w-[28px] h-[28px] text-black rounded-md bg-white">
+                        <div className="absolute top-[50%] left-[50%] z-1" style={{transform: "translate(-50%, -50%)"}}>
+                            {control.key}
+                        </div>
+                    </div>
+                    <div className="font-bold text-xl text-primary">{control.label}</div>
+                </div>
+            ))}
+        </div>
+    )
+}
 
 function App() {
   return (
     <div className="w-screen h-screen absolute text-primary top-0 left-0">
       <DocumentContainer />
+      <ArmoryContainer />
     </div>
   )
 }
