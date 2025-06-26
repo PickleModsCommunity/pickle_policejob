@@ -25,6 +25,10 @@ const ConfigContext = createContext<ConfigContextProps | undefined>(undefined);
 export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [config, setConfig] = useState<Config>({
         locale: {
+            "page_homepage": "Homepage",
+            "page_roster": "Roster",
+            "page_evidence": "Evidence",
+            "page_settings": "Settings",
             "purchase": "Purchase",
             "free": "Free",
             "armory_desc": "Hover over the items to obtain them from the armory.",

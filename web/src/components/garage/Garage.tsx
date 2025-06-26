@@ -354,58 +354,7 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
 }
 
 export function GarageContainer() {
-    const [garageInfo, setGarageInfo] = useState<GarageInfo | null>({
-        vehicles: [
-            {
-                label: "Crown Vincent",
-                image: "https://docs.fivem.net/vehicles/police.webp",
-                price: 0,
-                permissions: [],
-            },
-            {
-                label: "Crown Vance",
-                image: "https://docs.fivem.net/vehicles/police2.webp",
-                price: 20000,
-                permissions: [],
-            },
-            {
-                label: "Crown Vic",
-                image: "https://docs.fivem.net/vehicles/police3.webp", 
-                price: 10000,
-                permissions: [],
-            },
-            {
-                label: "Police SUV",
-                image: "https://docs.fivem.net/vehicles/police4.webp",
-                price: 12000, 
-                permissions: [],
-            },
-            {
-                label: "Crown Vincent",
-                image: "https://docs.fivem.net/vehicles/police.webp",
-                price: 10000,
-                permissions: [],
-            },
-            {
-                label: "Crown Vance",
-                image: "https://docs.fivem.net/vehicles/police2.webp",
-                price: 10000,
-                permissions: [],
-            },
-            {
-                label: "Crown Vic",
-                image: "https://docs.fivem.net/vehicles/police3.webp", 
-                price: 10000,
-                permissions: [],
-            },
-            {
-                label: "Police SUV",
-                image: "https://docs.fivem.net/vehicles/police4.webp",
-                price: 12000, 
-                permissions: [],
-            },
-        ],
-    });
+    const [garageInfo, setGarageInfo] = useState<GarageInfo | null>(null);
     useNuiEvent("updateGarageInfo", (data: any) => {
         setGarageInfo(data.garageInfo);
     });

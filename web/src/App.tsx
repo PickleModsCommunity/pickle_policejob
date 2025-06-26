@@ -1,4 +1,5 @@
 import ArmoryContainer from "./components/armory/Armory"
+import ComputerContainer from "./components/computer/Computer";
 import DocumentContainer from "./components/document/Document"
 import { GarageContainer } from "./components/garage/Garage";
 import { Config, useConfig } from "./providers/config";
@@ -56,6 +57,7 @@ function App() {
       <DocumentContainer />
       <ArmoryContainer />
       <GarageContainer />
+      <ComputerContainer />
     </div>
   )
 }

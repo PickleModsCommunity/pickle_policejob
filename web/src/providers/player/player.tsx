@@ -4,6 +4,7 @@ import { useNuiEvent } from "@/providers/nui/useNui";
 type PlayerPermissions = string[];
 
 type PlayerData = {
+    name: string;
     permissions: PlayerPermissions;
 };
 
@@ -18,6 +19,7 @@ const PlayerContext = createContext<PlayerContextProps | undefined>(undefined);
 
 export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [player, setPlayer] = useState<PlayerData>({
+        name: "John Doe",
         permissions: [],
     });
 
@@ -66,6 +68,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     useEffect(() => {
         setTimeout(() => {
             setPlayer({
+                name: "John Doe",
                 permissions: ["Rifle Certified"],
             });
         }, 4000);
