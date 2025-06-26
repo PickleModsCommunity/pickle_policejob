@@ -11,7 +11,7 @@ export function useLocale() {
     };
 }
 
-export function Translate({id, args = []} : {id: string, args?: any[]}) {
+export function Translate({id, args = [], callback} : {id: string, args?: any[], callback?: (rawText: string) => string}) {
     const locale = useLocale();
-    return locale(id, ...(args || []));
+    return callback ? callback(locale(id, ...(args || []))) : locale(id, ...(args || []));
 }
