@@ -42,6 +42,8 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "template": "Template",
             "no_template": "No Template",
             "add_template": "Add Template",
+            "permissions": "Permissions",
+            "add_permission": "Add Permission",
         },
         imageDirectory: undefined,
         identifier: "ERR_NO_IDENTIFIER",

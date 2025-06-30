@@ -38,7 +38,7 @@ export function AppControls({controls} : {controls?: {key: string, label: any}[]
     return (
         <div className="bg-background/95 p-2 absolute top-[20px] left-[20px] flex items-center gap-2 rounded-md">
             {controlsList.map((control, index) => (
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-center gap-2" key={index}>
                     <div className="relative font-bold text-sm w-[28px] h-[28px] text-black rounded-md bg-white">
                         <div className="absolute top-[50%] left-[50%] z-1" style={{transform: "translate(-50%, -50%)"}}>
                             {control.key}
