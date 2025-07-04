@@ -1,9 +1,11 @@
 import { useNuiEvent } from "@/providers/nui/useNui";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import Table from "../table/Table";
 import { Translate } from "@/providers/locale/Locale";
 import { Button } from "../ui/button";
-import { EyeIcon, PlusIcon, X } from "lucide-react";
+import { Check, EyeIcon, PlusIcon, X } from "lucide-react";
+import ComputerContext, { useComputer } from "./Computer";
+import { usePlayer } from "@/providers/player/player";
 
 type DutyLog = {
     duration: number;
@@ -13,7 +15,7 @@ type DutyLog = {
     report?: string;
 }
 
-type DepartmentMember = {
+export type DepartmentMember = {
     identifier: string;
     name: string;
     rankId: number;
@@ -59,12 +61,22 @@ export function GetStopwatchTime(time: number) {
     )
 }
 
-function SelectedMemberModal({member, onClose, isModalVisible}: {member: DepartmentMember, onClose: () => void, isModalVisible: boolean}) {
-    const department = {
-        label: "Los Santos Police Department",
-        ranks: [{"rankId":1,"label":"Chief"},{"rankId":2,"label":"Lieutenant"},{"label":"Sergeant","rankId":3,"managingRankIds":[2]},{"label":"Officer","rankId":4,"managingRankIds":[2,3]},{"label":"Recruit","rankId":5,"managingRankIds":[2,3]}],
-        permissions: {"Air Certified":{"managingRankIds":[2,3]},"Field Training Officer":{"managingRankIds":[2,3]},"Rifle Certified":{"managingRankIds":[2,3]}}
-    }
+export function CanRankManageRank(rankId: number, managingRankId: number) {
+    const { department } = useComputer();
+    if (rankId === managingRankId) return false;
+    const rank = department.ranks.find((rank) => rank.rankId === rankId);
+    if (!rank) return false;
+    if (department.ranks[0].rankId === rankId) return true;
+    return rank.managingRankIds.includes(managingRankId);
+}
+
+function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {memberIdentifier: string, onClose: () => void, isModalVisible: boolean}) {
+    const { department, setDepartment, openWindow } = useComputer();
+    const { player } = usePlayer();
+    const [isAddingPermission, setIsAddingPermission] = useState(false);
+    const [selectedPermission, setSelectedPermission] = useState("");
+    const member = department.members.find((m) => m.identifier === memberIdentifier);
+    if (!member) return null;
     return (
         <div className={`absolute inset-0 bg-background/50 backdrop-blur-sm z-[50] flex items-center justify-center transition-opacity duration-200 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
             <div className={`bg-background/95 w-[75%] h-[75%] shadow-lg transition-all duration-200 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
@@ -76,216 +88,231 @@ function SelectedMemberModal({member, onClose, isModalVisible}: {member: Departm
                         <X/>
                     </div>
                 </div>
-                <div className="w-full h-[calc(100%-30px)] p-2">
-                    <div className="flex flex-row items-center justify-between gap-2">
-                        <div className="flex flex-col items-center gap-2">
-                            <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random&color=fff&size=128`} alt={member.name} className="w-32 h-32 rounded-full" />
+                <div className="w-full h-[calc(100%-30px)] p-2 overflow-y-auto">
+                    <div className="flex flex-col gap-2">
+                        <div className="flex flex-row items-start justify-between gap-4">
                             <div className="flex flex-col items-center gap-2">
-                                <h2 className="text-2xl font-bold text-primary">{member.name}</h2>
-                                <p className="text-muted-foreground">{department.ranks.find((rank) => rank.rankId === member.rankId)?.label || "Unknown"}</p>
+                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random&color=fff&size=128`} alt={member.name} className="w-32 h-32 rounded-full" draggable={false}/>
+                                <div className="flex flex-col items-center gap-2">
+                                    <h2 className="text-2xl font-bold text-primary whitespace-nowrap">{member.name}</h2>
+                                    {/* <p className="text-muted-foreground whitespace-nowrap">{department.ranks.find((rank) => rank.rankId === member.rankId)?.label || "Unknown"}</p> */}
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex flex-col items-start gap-2">
-                            <div className="text-xl font-bold text-primary"><Translate id="permissions" /></div>
-                            <div className="grid grid-cols-3 gap-2  select-none">
-                                {member.permissions.map((permission) => (
-                                    <div className="relative">
-                                        <div className="bg-secondary rounded-md p-2 font-semibold text-sm text-center">{permission}</div>
-                                        <div className="absolute inset-0 bg-red-500/95 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer">
-                                            <X className="w-4 h-4 text-white" />
-                                        </div>
+                            <div className="flex flex-col gap-2 relative w-full">
+                                <div className="text-xl font-bold text-primary"><Translate id="info" /></div>
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex flex-row gap-2 ">
+                                        <div className="text-sm font-semibold"><Translate id="total_on_duty" />:</div>
+                                        <div className="text-sm text-muted-foreground">{GetStopwatchTime(member.onDutyTime)}</div>
                                     </div>
-                                ))}
-                                <div className="bg-secondary rounded-md p-2 font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer hover:bg-secondary/80 transition-all duration-200"><PlusIcon className="w-4 h-4" /> <Translate id="add_permission" /></div>
+                                    <div className="flex flex-row gap-2">
+                                        <div className="text-sm font-semibold"><Translate id="last_shift" />:</div>
+                                        <div className="text-sm text-muted-foreground">{member.recentDutyLogs.length > 0 ? new Date((member.recentDutyLogs[0].finish - member.recentDutyLogs[0].duration) * 1000).toLocaleString() : "Never"}</div>
+                                    </div>
+                                    <div className="flex flex-row gap-2 items-center">
+                                        <div className="text-sm font-semibold"><Translate id="rank" />:</div>
+                                        {CanRankManageRank(player.rankId, member.rankId) ? (
+                                        <select className="w-full bg-background text-sm p-1 rounded border border-border" value={member.rankId} onChange={(e) => {
+                                            setDepartment({
+                                                ...department,
+                                                members: department.members.map(m => m.identifier === member.identifier ? { ...m, rankId: parseInt(e.target.value) } : m),
+                                            });
+                                        }}>
+                                            <option key={member.rankId} value={member.rankId}>{department.ranks.find((rank) => rank.rankId === member.rankId)?.label || "Unknown"}</option>
+                                            {department.ranks.map((rank) => (rank.rankId !== member.rankId && CanRankManageRank(player.rankId, rank.rankId)) && (
+                                                    <option key={rank.rankId} value={rank.rankId}>{rank.label}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <>
+                                            <div className="text-sm text-muted-foreground">{department.ranks.find((rank) => rank.rankId === member.rankId)?.label || "Unknown"}</div>
+                                            {player.rankId}
+                                            {member.rankId}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="text-xl font-bold text-primary"><Translate id="permissions" /></div>
+                                <div className="grid grid-cols-3 gap-2  select-none">
+                                    {Object.keys(department.permissions).map((permission) => member.permissions.includes(permission) && (
+                                        <div key={permission} className="relative">
+                                            <div className="bg-secondary relative rounded-md p-2 font-semibold text-sm text-center">
+                                                {permission}
+                                                <div className="absolute inset-0 bg-red-500/95 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer" onClick={() => {
+                                                    setDepartment({
+                                                        ...department,
+                                                        members: department.members.map(m => m.identifier === member.identifier ? { ...m, permissions: m.permissions.filter(p => p !== permission) } : m),
+                                                    });
+                                                }}>
+                                                    <X className="w-4 h-4 text-white" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {isAddingPermission ? (
+                                        <div className="bg-secondary rounded-md p-2">
+                                            <select 
+                                                className="w-full bg-background text-sm p-1 rounded border border-border"
+                                                value={selectedPermission}
+                                                onChange={(e) => setSelectedPermission(e.target.value)}
+                                            >
+                                                <option value="">Select permission...</option>
+                                                {Object.keys(department.permissions)
+                                                    .filter(permission => !member.permissions.includes(permission))
+                                                    .map(permission => (
+                                                        <option key={permission} value={permission}>
+                                                            {permission}
+                                                        </option>
+                                                    ))
+                                                }
+                                            </select>
+                                            <div className="flex gap-1 mt-2">
+                                                <button 
+                                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
+                                                    onClick={() => {
+                                                        if (selectedPermission) {
+                                                            setDepartment({
+                                                                ...department,
+                                                                members: department.members.map(m => 
+                                                                    m.identifier === member.identifier 
+                                                                        ? { ...m, permissions: [...m.permissions, selectedPermission] }
+                                                                        : m
+                                                                )
+                                                            });
+                                                            setSelectedPermission("");
+                                                            setIsAddingPermission(false);
+                                                        }
+                                                    }}
+                                                >
+                                                    <Check className="w-3 h-3" />
+                                                    Save
+                                                </button>
+                                                <button 
+                                                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
+                                                    onClick={() => {
+                                                        setSelectedPermission("");
+                                                        setIsAddingPermission(false);
+                                                    }}
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div 
+                                            className="bg-secondary rounded-md p-2 font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer hover:bg-secondary/80 transition-all duration-200"
+                                            onClick={() => setIsAddingPermission(true)}
+                                        >
+                                            <PlusIcon className="w-4 h-4" /> 
+                                            <Translate id="add_permission" />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-
+                        <div className="flex flex-col gap-2">
+                            <div className="text-xl font-bold text-primary"><Translate id="recent_duty_logs" /></div>
+                            <Table maxHeight={"280px"} sortFunction={(data, sortKey, sortDirection) => {
+                                return data.sort((a, b) => {
+                                    if (sortKey === "startTimestamp") {
+                                        return sortDirection === 'desc' ? new Date(a.startTimestamp).getTime() - new Date(b.startTimestamp).getTime() : new Date(b.startTimestamp).getTime() - new Date(a.startTimestamp).getTime();
+                                    } else if (sortKey === "finishTimestamp") {
+                                        return sortDirection === 'desc' ? new Date(a.finishTimestamp).getTime() - new Date(b.finishTimestamp).getTime() : new Date(b.finishTimestamp).getTime() - new Date(a.finishTimestamp).getTime();
+                                    } else if (sortKey === "duration") {
+                                        return sortDirection === 'desc' ? (a.rawDuration) - (b.rawDuration) : (b.rawDuration) - (a.rawDuration);
+                                    }
+                                    return 0;
+                                });
+                            }} data={member.recentDutyLogs.map((log, index) => ({
+                                ...log,
+                                duration: GetStopwatchTime(log.duration),
+                                rawDuration: log.duration,
+                                startTimestamp: new Date(log.startTimestamp).toLocaleString(),
+                                finishTimestamp: new Date(log.finishTimestamp).toLocaleString(),
+                                action: (<div className="flex items-center gap-2">
+                                    <Button variant="outline" size="icon" onClick={() => {
+                                        openWindow("file", {
+                                            title: department.label.toUpperCase(),
+                                            subtitle: "SHIFT REPORT",
+                                            header: {
+                                                title: department.label.toUpperCase(),
+                                                subtitle: "SHIFT REPORT",
+                                                image: "/nui/images/LSPD.webp",
+                                                leftInfo: [
+                                                    { label: "<span class='font-bold'>Pickle Rick</span>"},
+                                                    { label: "Chief of Police"},
+                                                ],
+                                                rightInfo: [
+                                                    { label: "<span class='font-bold'>Shift Start</span>"},
+                                                    { label: "01/01/2000 12:41 PM"},
+                                                    { label: "<span class='font-bold'>Shift End</span>"},
+                                                    { label: "01/01/2000 12:41 PM"},
+                                                ],
+                                            },
+                                            subContent: [
+                                                { label: "<span class='font-bold'>{name}</span>" },
+                                                { label: "{rank}" },
+                                            ],
+                                            enableContent: true,
+                                            content: log.report || "",
+                                            onDocumentSave: (content: any) => {
+                                                console.log("SAVED", index, content);
+                                                setDepartment({
+                                                    ...department,
+                                                    members: department.members.map(m => m.identifier === member.identifier ? { 
+                                                        ...m, 
+                                                        recentDutyLogs: m.recentDutyLogs.map((log, logIndex) => logIndex === index ? { 
+                                                            ...log, 
+                                                            report: content 
+                                                        } : log) 
+                                                    } : m),
+                                                });
+                                            }
+                                        })
+                                    }}>
+                                        <EyeIcon className="w-4 h-4"/>
+                                    </Button>
+                                </div>)
+                            }))} columns={[
+                                {
+                                    key: "startTimestamp",
+                                    header: "Start Time",
+                                    sortable: true,
+                                },
+                                {
+                                    key: "finishTimestamp",
+                                    header: "Finish Time",
+                                    sortable: true,
+                                },
+                                {
+                                    key: "duration",
+                                    header: "Duration",
+                                    sortable: true,
+                                },
+                                {
+                                    key: "action",
+                                    header: "",
+                                    sortable: false,
+                                }
+                            ]} />
+                            {member.recentDutyLogs.length <= 0 && (
+                                <div className="text-sm text-muted-foreground text-center">
+                                    <Translate id="no_recent_duty_logs" />
+                                </div>
+                            )}
+                        </div>
+                    </div>     
                 </div>
             </div>
         </div>
     )
 }
 
-export default function RosterPage() {
-    const department = {
-        label: "Los Santos Police Department",
-        ranks: [{"rankId":1,"label":"Chief"},{"rankId":2,"label":"Lieutenant"},{"label":"Sergeant","rankId":3,"managingRankIds":[2]},{"label":"Officer","rankId":4,"managingRankIds":[2,3]},{"label":"Recruit","rankId":5,"managingRankIds":[2,3]}],
-        permissions: {"Air Certified":{"managingRankIds":[2,3]},"Field Training Officer":{"managingRankIds":[2,3]},"Rifle Certified":{"managingRankIds":[2,3]}}
-    }
-    const [membersInfo, setMembersInfo] = useState<DepartmentMember[] | null>([
-        {
-            "identifier": "char1:eeee",
-            "name": "Michael Rodriguez",
-            "rankId": 4,
-            "recentDutyLogs": [],
-            "permissions": [],
-            "onDutyTime": 22,
-        },
-        {
-            "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138b",
-            "name": "Sarah Johnson",
-            "rankId": 2,
-            "recentDutyLogs": [],
-            "permissions": [],
-            "onDutyTime": 256,
-        },
-        {
-            "identifier": "char1:eeee",
-            "name": "David Chen",
-            "rankId": 4,
-            "recentDutyLogs": [],
-            "permissions": [],
-            "onDutyTime": 12020,
-        },
-        {
-            "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138b",
-            "name": "Emily Thompson",
-            "rankId": 2,
-            "recentDutyLogs": [],
-            "permissions": [],
-            "onDutyTime": 42001,
-        },
-        {
-            "identifier": "char1:eeee",
-            "name": "James Wilson",
-            "rankId": 4,
-            "recentDutyLogs": [],
-            "permissions": [],
-            "onDutyTime": 2233,
-        },
-        {
-            "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138b",
-            "name": "Lisa Martinez",
-            "rankId": 2,
-            "recentDutyLogs": [],
-            "permissions": [],
-            "onDutyTime": 54321,
-        },
-        {
-            "identifier": "char1:eeee",
-            "name": "Robert Kim",
-            "rankId": 4,
-            "recentDutyLogs": [],
-            "permissions": [],
-            "onDutyTime": 2222,
-        },
-        {
-            "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138b",
-            "name": "Jennifer Davis",
-            "rankId": 2,
-            "recentDutyLogs": [],
-            "permissions": [],
-            "onDutyTime": 1123,
-        },
-        {
-            "identifier": "char1:eeee",
-            "name": "Christopher Lee",
-            "rankId": 4,
-            "recentDutyLogs": [],
-            "permissions": [],
-            "onDutyTime": 52431,
-        },
-        {
-            "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138b",
-            "name": "Amanda Garcia",
-            "rankId": 2,
-            "recentDutyLogs": [
-                {
-                    "duration": 8,
-                    "finishTimestamp": "06\/19\/2025 05:04 PM",
-                    "startTimestamp": "06\/19\/2025 05:04 PM",
-                    "finish": 1760374288
-                },
-            ],
-            "permissions": [],
-            "onDutyTime": 2442,
-        },
-        {
-            "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138a",
-            "name": "Marcus Williams",
-            "rankId": 1,
-            "recentDutyLogs": [
-                {
-                    "duration": 8,
-                    "finishTimestamp": "06\/19\/2025 05:04 PM",
-                    "startTimestamp": "06\/19\/2025 05:04 PM",
-                    "finish": 1750374288
-                },
-                {
-                    "duration": 18,
-                    "finishTimestamp": "06\/18\/2025 02:20 PM",
-                    "startTimestamp": "06\/18\/2025 02:20 PM",
-                    "finish": 1750278018
-                },
-                {
-                    "duration": 7,
-                    "finishTimestamp": "06\/18\/2025 07:25 AM",
-                    "startTimestamp": "06\/18\/2025 07:25 AM",
-                    "finish": 1750253124
-                },
-                {
-                    "duration": 23,
-                    "startTimestamp": "06\/17\/2025 11:59 AM",
-                    "report": "Aoaoaoaoaoaooooooooo\n\n\nW\nW\nW\n\nW\nW\nW\nW\nW\nW\nW\nW\n\nW",
-                    "finishTimestamp": "06\/17\/2025 11:59 AM",
-                    "finish": 1750183198
-                },
-                {
-                    "duration": 7,
-                    "startTimestamp": "06\/17\/2025 11:41 AM",
-                    "report": "Aaaaaa",
-                    "finishTimestamp": "06\/17\/2025 11:41 AM",
-                    "finish": 1750182092
-                },
-                {
-                    "duration": 16,
-                    "startTimestamp": "06\/17\/2025 11:20 AM",
-                    "report": "I am tired\n",
-                    "finishTimestamp": "06\/17\/2025 11:20 AM",
-                    "finish": 1750180829
-                },
-                {
-                    "duration": 6,
-                    "finishTimestamp": "06\/17\/2025 04:29 AM",
-                    "startTimestamp": "06\/17\/2025 04:29 AM",
-                    "finish": 1750156199
-                },
-                {
-                    "duration": 72441,
-                    "finishTimestamp": "06\/16\/2025 08:01 AM",
-                    "startTimestamp": "06\/15\/2025 11:53 AM",
-                    "finish": 1750082474
-                },
-                {
-                    "duration": 7,
-                    "finishTimestamp": "06\/15\/2025 08:04 AM",
-                    "startTimestamp": "06\/15\/2025 08:04 AM",
-                    "finish": 1749996260
-                },
-                {
-                    "duration": 260,
-                    "finishTimestamp": "06\/15\/2025 08:03 AM",
-                    "startTimestamp": "06\/15\/2025 07:58 AM",
-                    "finish": 1749996181
-                }
-            ],
-            "permissions": [
-                "Air Certified",
-                "Rifle Certified",
-                "S.W.A.T.",
-                "Field Training Officer",
-                "Public Relations",
-            ],
-            "onDutyTime": 72932,
-        },
-    ]);
-    const [selectedMember, setSelectedMember] = useState<DepartmentMember | null>(null);
-    const [isModalVisible, setIsModalVisible] = useState(false);
-    
-    useNuiEvent("updateRosterInfo", (data: any) => {
-        setMembersInfo(data.membersInfo);
-    });
+function Roster() {
+    const { department } = useComputer();
+    const [selectedMember, setSelectedMember] = useState<DepartmentMember | null>(department.members[department.members.length - 1]);
+    const [isModalVisible, setIsModalVisible] = useState(true);
 
     const handleMemberSelect = (member: DepartmentMember) => {
         setSelectedMember(member);
@@ -300,14 +327,12 @@ export default function RosterPage() {
             setSelectedMember(null);
         }, 200);
     };
-
     return (
-        <div className="relative w-full h-full" style={{
-        }}>
+        <>
             {selectedMember && (
-                <SelectedMemberModal member={selectedMember} onClose={handleMemberDeselect} isModalVisible={isModalVisible} />
+                <SelectedMemberModal memberIdentifier={selectedMember.identifier} onClose={handleMemberDeselect} isModalVisible={isModalVisible} />
             )}
-            <Table maxHeight="100%" defaultSortKey="rank" data={membersInfo?.map((member) => ({
+            <Table maxHeight="100%" defaultSortKey="rank" data={department.members?.map((member) => ({
                 ...member,
                 rank: department.ranks.find((rank) => rank.rankId === member.rankId)?.label || "Unknown",
                 onDutyTimeDisplay: GetStopwatchTime(member.onDutyTime),
@@ -366,6 +391,15 @@ export default function RosterPage() {
                     return sortDirection === 'desc' ? -comparison : comparison;
                 });
             }} />
+        </>
+    )
+}
+
+export default function RosterPage() {
+    return (
+        <div className="relative w-full h-full" style={{
+        }}>
+            <Roster/>
         </div>
     )
 }

@@ -1,18 +1,3 @@
-.jodit-workplace, .jodit-container {
-    background-color: transparent !important;
+.quill.active > .ql-container {
     border: none !important;
-}
-
-.jodit-container {
-    width: 100% !important;
-    height: 100% !important;
-}
-
-.jodit-workplace {
-    height: calc(100% - 76px) !important;
-    width: 100% !important;
-}
-
-.jodit-add-new-line {
-    display: none !important;
 }

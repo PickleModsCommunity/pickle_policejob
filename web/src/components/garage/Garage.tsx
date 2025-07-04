@@ -354,7 +354,16 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
 }
 
 export function GarageContainer() {
-    const [garageInfo, setGarageInfo] = useState<GarageInfo | null>(null);
+    const [garageInfo, setGarageInfo] = useState<GarageInfo | null>({
+        vehicles: [
+            {
+                label: "Test",
+                image: "/nui/images/vehicles/test.png",
+                price: 1000,
+                permissions: ["Rifle Certified"],
+            }
+        ]
+    });
     useNuiEvent("updateGarageInfo", (data: any) => {
         setGarageInfo(data.garageInfo);
     });

@@ -5,6 +5,8 @@ type PlayerPermissions = string[];
 
 type PlayerData = {
     name: string;
+    departmentId: number;
+    rankId: number;
     permissions: PlayerPermissions;
 };
 
@@ -20,6 +22,8 @@ const PlayerContext = createContext<PlayerContextProps | undefined>(undefined);
 export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [player, setPlayer] = useState<PlayerData>({
         name: "John Doe",
+        departmentId: 11,
+        rankId: 1,
         permissions: [],
     });
 
@@ -68,7 +72,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     useEffect(() => {
         setTimeout(() => {
             setPlayer({
-                name: "John Doe",
+                ...player,
                 permissions: ["Rifle Certified"],
             });
         }, 4000);

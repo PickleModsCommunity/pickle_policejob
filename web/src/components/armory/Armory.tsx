@@ -157,7 +157,20 @@ function Armory({armoryInfo}: {armoryInfo: ArmoryInfo}) {
 }
 
 export default function ArmoryContainer() {
-    const [armoryInfo, setArmoryInfo] = useState<ArmoryInfo | null>(null);
+    const [armoryInfo, setArmoryInfo] = useState<ArmoryInfo | null>(
+        {
+            items: [
+                {
+                    label: "AR-15",
+                    image: "/nui/images/weapons/ar15.png",
+                    name: "weapon_ar15",
+                    count: 1,
+                    price: 1000,
+                    permissions: ["Rifle Certified"],
+                }
+            ]
+        }
+    );
     useNuiEvent("updateArmoryInfo", (data: any) => {
         setArmoryInfo(data.armoryInfo);
     });
@@ -165,7 +178,9 @@ export default function ArmoryContainer() {
         armoryInfo && (
             <div className="dark w-screen h-screen absolute text-primary top-0 left-0 bg-gray-900 flex items-center justify-center">
                 <AppControls />
-                <Armory armoryInfo={armoryInfo} />
+                <Armory armoryInfo={{
+                    items: armoryInfo.items,
+                }} />
             </div>
         )
     )

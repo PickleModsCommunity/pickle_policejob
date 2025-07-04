@@ -1,9 +1,9 @@
-export default function EvidencePage() {
+export default function EvidencePage({ data }: { data?: any }) {
     return (
         <div className="w-full h-full" style={{
             background: "red"
         }}>
-            BBBBB
+            {data?.report}
         </div>
     )
 }
