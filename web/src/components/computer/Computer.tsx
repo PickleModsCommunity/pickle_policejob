@@ -63,15 +63,15 @@ function Computer({info}: {info: ComputerInfo}) {
     const [department, setDepartment] = useState<Department>({
         id: 11,
         label: "Los Santos Police Department",
-        ranks: [{"rankId":1,"label":"Chief", "managingRankIds":[]},{"rankId":2,"label":"Lieutenant", "managingRankIds":[1]},{"rankId":3,"label":"Sergeant","managingRankIds":[1,2]},{"rankId":4,"label":"Officer","managingRankIds":[1,2,3]},{"rankId":5,"label":"Recruit","managingRankIds":[1,2,3]}],
-        permissions: {"Air Certified":{"managingRankIds":[2,3]},"Field Training Officer":{"managingRankIds":[2,3]},"Rifle Certified":{"managingRankIds":[2,3]}},
+        ranks: [{"rankId":1,"label":"Chief", "managingRankIds":[]},{"rankId":2,"label":"Lieutenant", "managingRankIds":[]},{"rankId":3,"label":"Sergeant","managingRankIds":[2]},{"rankId":4,"label":"Officer","managingRankIds":[1,2,3]},{"rankId":5,"label":"Recruit","managingRankIds":[1,2,3]}],
+        permissions: {"Air Certified":{"managingRankIds":[2]},"Field Training Officer":{"managingRankIds":[2,3]},"Rifle Certified":{"managingRankIds":[2,3]}},
         members: [
             {
                 "identifier": "char1:eeee",
                 "name": "Michael Rodriguez",
                 "rankId": 4,
                 "recentDutyLogs": [],
-                "permissions": [],
+                "permissions": ["Rifle Certified", "Field Training Officer"],
                 "onDutyTime": 22,
             },
             {
@@ -79,11 +79,11 @@ function Computer({info}: {info: ComputerInfo}) {
                 "name": "Sarah Johnson",
                 "rankId": 2,
                 "recentDutyLogs": [],
-                "permissions": [],
+                "permissions": ["Rifle Certified", "Air Certified", "Field Training Officer"],
                 "onDutyTime": 256,
             },
             {
-                "identifier": "char1:eeee",
+                "identifier": "char1:eeee2",
                 "name": "David Chen",
                 "rankId": 4,
                 "recentDutyLogs": [],
@@ -91,7 +91,7 @@ function Computer({info}: {info: ComputerInfo}) {
                 "onDutyTime": 12020,
             },
             {
-                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138b",
+                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138c",
                 "name": "Emily Thompson",
                 "rankId": 2,
                 "recentDutyLogs": [],
@@ -99,7 +99,7 @@ function Computer({info}: {info: ComputerInfo}) {
                 "onDutyTime": 42001,
             },
             {
-                "identifier": "char1:eeee",
+                "identifier": "char1:eeee3",
                 "name": "James Wilson",
                 "rankId": 4,
                 "recentDutyLogs": [],
@@ -107,7 +107,7 @@ function Computer({info}: {info: ComputerInfo}) {
                 "onDutyTime": 2233,
             },
             {
-                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138b",
+                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138d",
                 "name": "Lisa Martinez",
                 "rankId": 2,
                 "recentDutyLogs": [],
@@ -115,7 +115,7 @@ function Computer({info}: {info: ComputerInfo}) {
                 "onDutyTime": 54321,
             },
             {
-                "identifier": "char1:eeee",
+                "identifier": "char1:eeee4",
                 "name": "Robert Kim",
                 "rankId": 4,
                 "recentDutyLogs": [],
@@ -123,7 +123,7 @@ function Computer({info}: {info: ComputerInfo}) {
                 "onDutyTime": 2222,
             },
             {
-                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138b",
+                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138e",
                 "name": "Jennifer Davis",
                 "rankId": 2,
                 "recentDutyLogs": [],
@@ -131,7 +131,7 @@ function Computer({info}: {info: ComputerInfo}) {
                 "onDutyTime": 1123,
             },
             {
-                "identifier": "char1:eeee",
+                "identifier": "char1:eeee5",
                 "name": "Christopher Lee",
                 "rankId": 4,
                 "recentDutyLogs": [],
@@ -139,7 +139,7 @@ function Computer({info}: {info: ComputerInfo}) {
                 "onDutyTime": 52431,
             },
             {
-                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138b",
+                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138f",
                 "name": "Amanda Garcia",
                 "rankId": 2,
                 "recentDutyLogs": [
@@ -223,11 +223,6 @@ function Computer({info}: {info: ComputerInfo}) {
                     }
                 ],
                 "permissions": [
-                    "Air Certified",
-                    "Rifle Certified",
-                    "S.W.A.T.",
-                    "Field Training Officer",
-                    "Public Relations",
                 ],
                 "onDutyTime": 72932,
             },
@@ -440,7 +435,7 @@ function Computer({info}: {info: ComputerInfo}) {
                                     </div>
                                 </div>
                             </div>
-                            <div className="w-full h-[calc(100%-30px)]">
+                            <div className="w-full h-[calc(100%-30px)] relative">
                                 {window.programId === "homepage" && <HomePage />}
                                 {window.programId === "roster" && <RosterPage />}
                                 {window.programId === "evidence" && <EvidencePage data={window.data} />}

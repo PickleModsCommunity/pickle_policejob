@@ -3,7 +3,7 @@ import { useContext, useState } from "react";
 import Table from "../table/Table";
 import { Translate } from "@/providers/locale/Locale";
 import { Button } from "../ui/button";
-import { Check, EyeIcon, PlusIcon, X } from "lucide-react";
+import { Check, DoorOpen, Edit, EyeIcon, LogOut, Pencil, PlusIcon, SaveIcon, Trash, X } from "lucide-react";
 import ComputerContext, { useComputer } from "./Computer";
 import { usePlayer } from "@/providers/player/player";
 
@@ -22,6 +22,12 @@ export type DepartmentMember = {
     recentDutyLogs: DutyLog[];
     permissions: string[];
     onDutyTime: number;
+}
+
+export type DepartmentRank = {
+    rankId: number;
+    label: string;
+    managingRankIds: number[];
 }
 
 export function GetStopwatchTime(time: number) {
@@ -61,13 +67,37 @@ export function GetStopwatchTime(time: number) {
     )
 }
 
-export function CanRankManageRank(rankId: number, managingRankId: number) {
+export function CanRankManageRank(managingRankId: number, rankId: number) {
     const { department } = useComputer();
     if (rankId === managingRankId) return false;
     const rank = department.ranks.find((rank) => rank.rankId === rankId);
     if (!rank) return false;
-    if (department.ranks[0].rankId === rankId) return true;
-    return rank.managingRankIds.includes(managingRankId);
+    if (department.ranks[0].rankId === managingRankId) {
+        return true;
+    }
+    if (!rank.managingRankIds.includes(managingRankId)) {
+        return false;
+    }
+    for (let i = 0; i < department.ranks.length; i++) {
+        if (department.ranks[i].rankId === managingRankId) {
+            break;
+        }
+        if (department.ranks[i].rankId === rankId) {
+            return false;
+        }
+    }
+    return true;
+}
+
+export function CanRankManagePermission(managingRankId: number, permission: string) {
+    const { department } = useComputer();
+    return department.permissions[permission].managingRankIds.includes(managingRankId);
+}
+
+export type Player = {
+    name: string;
+    source: string;
+    identifier: string;
 }
 
 function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {memberIdentifier: string, onClose: () => void, isModalVisible: boolean}) {
@@ -75,7 +105,14 @@ function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {membe
     const { player } = usePlayer();
     const [isAddingPermission, setIsAddingPermission] = useState(false);
     const [selectedPermission, setSelectedPermission] = useState("");
+    const [isFiringMember, setIsFiringMember] = useState(false);
     const member = department.members.find((m) => m.identifier === memberIdentifier);
+    let memberPermissions = [];
+    for (let i = 0; i < Object.keys(department.permissions).length; i++) {
+        if (member?.permissions.includes(Object.keys(department.permissions)[i])) {
+            memberPermissions.push(Object.keys(department.permissions)[i]);
+        }
+    }
     if (!member) return null;
     return (
         <div className={`absolute inset-0 bg-background/50 backdrop-blur-sm z-[50] flex items-center justify-center transition-opacity duration-200 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
@@ -84,21 +121,42 @@ function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {membe
                     <div className="flex items-center justify-center gap-2 pl-2">
                         <div className="font-semibold text-sm text-white">{member.name}</div>
                     </div>
-                    <div className="flex items-center justify-center gap-2 hover:bg-red-500 transition-all duration-300 h-[30px] w-[30px] cursor-pointer" onClick={onClose}>
+                    <div className="flex items-center justify-center gap-2 hover:bg-destructive/50 transition-all duration-300 h-[30px] w-[30px] cursor-pointer" onClick={onClose}>
                         <X/>
                     </div>
                 </div>
                 <div className="w-full h-[calc(100%-30px)] p-2 overflow-y-auto">
                     <div className="flex flex-col gap-2">
-                        <div className="flex flex-row items-start justify-between gap-4">
+                        <div className="flex flex-row items-center gap-4">
                             <div className="flex flex-col items-center gap-2">
-                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random&color=fff&size=128`} alt={member.name} className="w-32 h-32 rounded-full" draggable={false}/>
+                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random&color=fff&size=128`} alt={member.name} className="w-20 h-20 rounded-full" draggable={false}/>
                                 <div className="flex flex-col items-center gap-2">
-                                    <h2 className="text-2xl font-bold text-primary whitespace-nowrap">{member.name}</h2>
+                                    <h2 className="text-lg font-bold text-primary whitespace-nowrap">{member.name}</h2>
+                                    {CanRankManageRank(player.rankId, member.rankId) && (
+                                        <div className="w-full whitespace-nowrap flex items-center justify-center gap-2 bg-destructive hover:bg-destructive/80 transition-colors duration-200 cursor-pointer rounded-md p-1 font-semibold text-xs text-center" onClick={() => {
+                                            if (isFiringMember) {
+                                                setIsFiringMember(false);
+                                                setDepartment({
+                                                    ...department,
+                                                    members: department.members.filter(m => m.identifier !== member.identifier),
+                                                });
+                                                onClose();
+                                            } else {
+                                                setIsFiringMember(true);
+                                            }
+                                        }}>
+                                            <LogOut className="w-3 h-3" />
+                                            {isFiringMember ? (
+                                                <Translate id="confirm_fire_member" />
+                                            ) : (
+                                                <Translate id="fire_member" />
+                                            )}
+                                        </div>
+                                    )}
                                     {/* <p className="text-muted-foreground whitespace-nowrap">{department.ranks.find((rank) => rank.rankId === member.rankId)?.label || "Unknown"}</p> */}
                                 </div>
                             </div>
-                            <div className="flex flex-col gap-2 relative w-full">
+                            <div className="flex flex-col gap-2 relative">
                                 <div className="text-xl font-bold text-primary"><Translate id="info" /></div>
                                 <div className="flex flex-col gap-2">
                                     <div className="flex flex-row gap-2 ">
@@ -120,94 +178,99 @@ function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {membe
                                         }}>
                                             <option key={member.rankId} value={member.rankId}>{department.ranks.find((rank) => rank.rankId === member.rankId)?.label || "Unknown"}</option>
                                             {department.ranks.map((rank) => (rank.rankId !== member.rankId && CanRankManageRank(player.rankId, rank.rankId)) && (
-                                                    <option key={rank.rankId} value={rank.rankId}>{rank.label}</option>
-                                                ))}
+                                                <option key={rank.rankId} value={rank.rankId}>{rank.label}</option>
+                                            ))}
                                             </select>
                                         ) : (
-                                            <>
                                             <div className="text-sm text-muted-foreground">{department.ranks.find((rank) => rank.rankId === member.rankId)?.label || "Unknown"}</div>
-                                            {player.rankId}
-                                            {member.rankId}
-                                            </>
                                         )}
                                     </div>
-                                </div>
-                                <div className="text-xl font-bold text-primary"><Translate id="permissions" /></div>
-                                <div className="grid grid-cols-3 gap-2  select-none">
-                                    {Object.keys(department.permissions).map((permission) => member.permissions.includes(permission) && (
-                                        <div key={permission} className="relative">
-                                            <div className="bg-secondary relative rounded-md p-2 font-semibold text-sm text-center">
-                                                {permission}
-                                                <div className="absolute inset-0 bg-red-500/95 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer" onClick={() => {
-                                                    setDepartment({
-                                                        ...department,
-                                                        members: department.members.map(m => m.identifier === member.identifier ? { ...m, permissions: m.permissions.filter(p => p !== permission) } : m),
-                                                    });
-                                                }}>
-                                                    <X className="w-4 h-4 text-white" />
+                                    <div className="flex flex-row gap-2">
+                                        <div className="grid grid-cols-3 gap-2 select-none">
+                                            {memberPermissions.map((permission) => (
+                                                <div key={permission} className="relative">
+                                                    <div className="bg-secondary relative rounded-md p-1 font-semibold text-xs text-center">
+                                                        {permission}
+                                                        {(CanRankManageRank(player.rankId, member.rankId) && CanRankManagePermission(player.rankId, permission)) && (
+                                                            <div className="absolute inset-0 bg-destructive/95 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer" onClick={() => {
+                                                                setDepartment({
+                                                                    ...department,
+                                                                    members: department.members.map(m => m.identifier === member.identifier ? { ...m, permissions: m.permissions.filter(p => p !== permission) } : m),
+                                                                });
+                                                            }}>
+                                                                <X className="w-4 h-4 text-white" />
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {isAddingPermission ? (
-                                        <div className="bg-secondary rounded-md p-2">
-                                            <select 
-                                                className="w-full bg-background text-sm p-1 rounded border border-border"
-                                                value={selectedPermission}
-                                                onChange={(e) => setSelectedPermission(e.target.value)}
-                                            >
-                                                <option value="">Select permission...</option>
-                                                {Object.keys(department.permissions)
-                                                    .filter(permission => !member.permissions.includes(permission))
-                                                    .map(permission => (
-                                                        <option key={permission} value={permission}>
-                                                            {permission}
-                                                        </option>
-                                                    ))
-                                                }
-                                            </select>
-                                            <div className="flex gap-1 mt-2">
-                                                <button 
-                                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
-                                                    onClick={() => {
-                                                        if (selectedPermission) {
-                                                            setDepartment({
-                                                                ...department,
-                                                                members: department.members.map(m => 
-                                                                    m.identifier === member.identifier 
-                                                                        ? { ...m, permissions: [...m.permissions, selectedPermission] }
-                                                                        : m
-                                                                )
-                                                            });
-                                                            setSelectedPermission("");
-                                                            setIsAddingPermission(false);
+                                            ))}
+                                            {CanRankManageRank(player.rankId, member.rankId) && (
+                                            isAddingPermission ? (
+                                                <div className="bg-secondary rounded-md p-1">
+                                                    <select 
+                                                        className="w-full bg-background text-xs p-1 rounded border border-border"
+                                                        value={selectedPermission}
+                                                        onChange={(e) => setSelectedPermission(e.target.value)}
+                                                    >
+                                                        <option value="">Select permission...</option>
+                                                        {Object.keys(department.permissions)
+                                                            .filter(permission => !member.permissions.includes(permission) && CanRankManagePermission(player.rankId, permission))
+                                                            .map(permission => (
+                                                                <option key={permission} value={permission}>
+                                                                    {permission}
+                                                                </option>
+                                                            ))
                                                         }
-                                                    }}
+                                                    </select>
+                                                    <div className="flex gap-1 mt-2">
+                                                        <button 
+                                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
+                                                            onClick={() => {
+                                                                if (selectedPermission) {
+                                                                    setDepartment({
+                                                                        ...department,
+                                                                        members: department.members.map(m => 
+                                                                            m.identifier === member.identifier 
+                                                                                ? { ...m, permissions: [...m.permissions, selectedPermission] }
+                                                                                : m
+                                                                        )
+                                                                    });
+                                                                    setSelectedPermission("");
+                                                                    setIsAddingPermission(false);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Check className="w-3 h-3" />
+                                                            Save
+                                                        </button>
+                                                        <button 
+                                                            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
+                                                            onClick={() => {
+                                                                setSelectedPermission("");
+                                                                setIsAddingPermission(false);
+                                                            }}
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div 
+                                                    className="bg-secondary rounded-md p-1 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer hover:bg-secondary/80 transition-colors duration-200"
+                                                    onClick={() => setIsAddingPermission(true)}
                                                 >
-                                                    <Check className="w-3 h-3" />
-                                                    Save
-                                                </button>
-                                                <button 
-                                                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
-                                                    onClick={() => {
-                                                        setSelectedPermission("");
-                                                        setIsAddingPermission(false);
-                                                    }}
-                                                >
-                                                    <X className="w-3 h-3" />
-                                                    Cancel
-                                                </button>
-                                            </div>
+                                                    <PlusIcon className="w-4 h-4" /> 
+                                                    <Translate id="add_permission" />
+                                                </div>
+                                            ))}
+                                            {(!CanRankManageRank(player.rankId, member.rankId) && memberPermissions.length === 0) && (
+                                                <div className="text-sm text-muted-foreground w-full whitespace-nowrap">
+                                                    <Translate id="no_permissions" />
+                                                </div>
+                                            )}
                                         </div>
-                                    ) : (
-                                        <div 
-                                            className="bg-secondary rounded-md p-2 font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer hover:bg-secondary/80 transition-all duration-200"
-                                            onClick={() => setIsAddingPermission(true)}
-                                        >
-                                            <PlusIcon className="w-4 h-4" /> 
-                                            <Translate id="add_permission" />
-                                        </div>
-                                    )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -309,10 +372,210 @@ function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {membe
     )
 }
 
+function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, onClose: () => void, isModalVisible: boolean}) {
+    const { department, setDepartment } = useComputer();
+    const rank = department.ranks.find((rank) => rank.rankId === rankId);
+    const rankIndex = department.ranks.findIndex((rank) => rank.rankId === rankId);
+    if (!rank) return null;
+    const [inputLabel, setInputLabel] = useState(rank.label || "");
+    const [isEditingLabel, setIsEditingLabel] = useState(false);
+    const [isAddingManagingRank, setIsAddingManagingRank] = useState(false);
+    const [selectedManagingRank, setSelectedManagingRank] = useState<number | null>(null);
+    const [isDeletingRank, setIsDeletingRank] = useState(false);
+    let managingRankIds: number[] = [];
+    for (let i = 0; i < rank.managingRankIds.length; i++) {
+        managingRankIds.push(rank.managingRankIds[i]);
+    }
+    return (
+        <div className={`absolute inset-0 bg-background/50 backdrop-blur-sm z-[50] flex items-center justify-center transition-opacity duration-200 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="bg-background/95 w-[75%] h-[75%] shadow-lg transition-all duration-200">
+                <div className="relative w-full h-[30px] bg-secondary flex items-center justify-between select-none">
+                    <div className="flex items-center justify-center gap-2 pl-2">
+                        <div className="font-semibold text-sm text-white">{rank.label || "Unknown"}</div>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 hover:bg-destructive/50 transition-all duration-300 h-[30px] w-[30px] cursor-pointer" onClick={onClose}>
+                        <X/>
+                    </div>
+                </div>
+                <div className="w-full h-[calc(100%-30px)] p-2 overflow-y-auto">
+                    <div className="flex flex-col gap-2">
+                        <div className="flex flex-row items-center gap-4">
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex flex-row gap-2 items-center">
+                                        <div className="text-sm font-semibold"><Translate id="label" />:</div>
+                                        {isEditingLabel ? (
+                                            <input type="text" className="text-sm bg-secondary px-2 rounded-md" value={inputLabel} onChange={(e) => setInputLabel(e.target.value)} />
+                                        ) : (
+                                            <div className="text-sm">{rank.label || "Unknown"}</div>
+                                        )}
+                                        <div className="cursor-pointer" onClick={() => {
+                                            setIsEditingLabel(!isEditingLabel)
+                                            if (isEditingLabel) {
+                                                setDepartment({
+                                                    ...department,
+                                                    ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, label: inputLabel } : rank),
+                                                });
+                                            }
+                                        }}>
+                                            {isEditingLabel ? (
+                                                <SaveIcon className="w-4 h-4" />
+                                            ) : (
+                                                <Edit className="w-4 h-4" />
+                                            )}
+                                        </div>
+                                    </div>
+                                    {rankIndex !== 0 && (
+                                        <div className="w-full select-none whitespace-nowrap flex items-center justify-center gap-2 bg-destructive hover:bg-destructive/80 transition-colors duration-200 cursor-pointer rounded-md p-1 font-semibold text-xs text-center" onClick={() => {
+                                            if (isDeletingRank) {
+                                                let newRanks = department.ranks.filter(r => r.rankId !== rankId);
+                                                let newMembers = [];
+                                                if (newRanks.length <= 1) {
+                                                    for (let i = 0; i < department.members.length; i++) {
+                                                        if (department.members[i].rankId !== rankId) {
+                                                            newMembers.push(department.members[i]);
+                                                        }
+                                                    }
+                                                }
+                                                else {
+                                                    newMembers = department.members.map(m => m.rankId === rankId ? {
+                                                        ...m,
+                                                        rankId: newRanks[newRanks.length - 1].rankId,
+                                                    } : m);
+                                                }
+                                                setIsDeletingRank(false);
+                                                setDepartment({
+                                                    ...department,
+                                                    ranks: newRanks,
+                                                    members: newMembers,
+                                                });
+                                                onClose();
+                                            } else {
+                                                setIsDeletingRank(true);
+                                            }
+                                        }}>
+                                            <Trash className="w-3 h-3" />
+                                            {isDeletingRank ? (
+                                                <Translate id="confirm_delete_rank" />
+                                            ) : (
+                                                <Translate id="delete_rank" />
+                                            )}
+                                        </div>    
+                                    )}
+                                    {department.ranks[0].rankId !== rankId && (
+                                        <div className="flex flex-col gap-2">
+                                            <div className="text-sm font-semibold"><Translate id="managing_ranks" />:</div>
+                                            <div className="grid grid-cols-5 gap-2">
+                                                {managingRankIds.map((targetRankId) => (
+                                                    <div key={targetRankId}>
+                                                        <div className="relative text-sm bg-secondary rounded-md p-1 text-center px-2">
+                                                            {department.ranks.find((rank) => rank.rankId === targetRankId)?.label || "Unknown"}
+                                                            <div className="absolute inset-0 bg-destructive/95 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer" onClick={() => {
+                                                                let newManagingRankIds = managingRankIds.filter(id => id !== targetRankId);
+                                                                setDepartment({
+                                                                    ...department,
+                                                                    ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, managingRankIds: newManagingRankIds } : rank),
+                                                                });
+                                                            }}>
+                                                                <X className="w-4 h-4 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {isAddingManagingRank ? (
+                                                <div className="bg-secondary rounded-md p-1">
+                                                    <select 
+                                                        className="w-full bg-background text-xs p-1 rounded border border-border"
+                                                        value={selectedManagingRank || ""}
+                                                        onChange={(e) => setSelectedManagingRank(parseInt(e.target.value))}
+                                                    >
+                                                        <option value="">Select rank...</option>
+                                                        {department.ranks.map((targetRank, targetRankIndex) => (rankIndex > targetRankIndex && targetRankIndex !== 0) && (
+                                                            <option key={targetRankIndex} value={targetRank.rankId}>
+                                                                {targetRank.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="flex gap-1 mt-2">
+                                                        <button 
+                                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
+                                                            onClick={() => {
+                                                                if (selectedManagingRank) {
+                                                                    let newManagingRankIds = [...managingRankIds, selectedManagingRank];
+                                                                    setDepartment({
+                                                                        ...department,
+                                                                        ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, managingRankIds: newManagingRankIds } : rank),
+                                                                    });
+                                                                    setSelectedManagingRank(null);
+                                                                    setIsAddingManagingRank(false);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Check className="w-3 h-3" />
+                                                            Save
+                                                        </button>
+                                                        <button 
+                                                            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
+                                                            onClick={() => {
+                                                                setSelectedManagingRank(null);
+                                                                setIsAddingManagingRank(false);
+                                                            }}
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-sm cursor-pointer bg-secondary rounded-md p-1 text-center flex items-center justify-center gap-1 whitespace-nowrap" onClick={() => {
+                                                    setIsAddingManagingRank(true);
+                                                }}>
+                                                    <PlusIcon className="w-4 h-4" />
+                                                    <Translate id="add_rank_manager" />
+                                                </div>
+                                            )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 function Roster() {
-    const { department } = useComputer();
-    const [selectedMember, setSelectedMember] = useState<DepartmentMember | null>(department.members[department.members.length - 1]);
-    const [isModalVisible, setIsModalVisible] = useState(true);
+    const { department, setDepartment } = useComputer();
+    const [selectedMember, setSelectedMember] = useState<DepartmentMember | null>(null);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [section, setSection] = useState("roster");
+    const [draggedRank, setDraggedRank] = useState<number | null>(null);
+    const [dragOverRank, setDragOverRank] = useState<number | null>(null);
+    const [selectedRank, setSelectedRank] = useState<number | null>(0);
+    const [rankLabel, setRankLabel] = useState("");
+    const [isCreatingRank, setIsCreatingRank] = useState(false);
+    const [isAddingMember, setIsAddingMember] = useState(false);
+    const [memberIdentifier, setMemberIdentifier] = useState(-1);
+    const [nearbyPlayers, setNearbyPlayers] = useState<Player[]>([
+        {
+            name: "John Doe",
+            identifier: "ident:A",
+            source: "1",
+        },
+        {
+            name: "Jane Doe",
+            identifier: "ident:B",
+            source: "2",
+        },
+        {
+            name: "John Doe",
+            identifier: "ident:C",
+            source: "3",
+        },
+    ]);
 
     const handleMemberSelect = (member: DepartmentMember) => {
         setSelectedMember(member);
@@ -327,71 +590,259 @@ function Roster() {
             setSelectedMember(null);
         }, 200);
     };
+
+    const handleDragStart = (e: React.DragEvent, index: number) => {
+        setDraggedRank(index);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        setDragOverRank(index);
+    };
+
+    const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+        e.preventDefault();
+        if (draggedRank !== null && draggedRank !== dropIndex) {
+            // Prevent rank 0 from being moved to a lower position
+            if (draggedRank === 0 && dropIndex > 0) {
+                return;
+            }
+            
+            // Prevent other ranks from becoming rank 0 (position 0)
+            if (dropIndex === 0 && draggedRank > 0) {
+                return;
+            }
+            
+            const newRanks = [...department.ranks];
+            const [draggedItem] = newRanks.splice(draggedRank, 1);
+            newRanks.splice(dropIndex, 0, draggedItem);
+            
+            setDepartment({
+                ...department,
+                ranks: newRanks,
+            });
+        }
+        setDraggedRank(null);
+        setDragOverRank(null);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedRank(null);
+        setDragOverRank(null);
+    };
+
+    const handleRankSelect = (rankId: number) => {
+        setSelectedRank(rankId);
+        setTimeout(() => {
+            setIsModalVisible(true);
+        }, 10);
+    };
+
+    const handleRankDeselect = () => {
+        setIsModalVisible(false);
+        setTimeout(() => {
+            setSelectedRank(null);
+        }, 200);
+    };
+
     return (
-        <>
+        <div className="relative h-full flex flex-col gap-0">
             {selectedMember && (
                 <SelectedMemberModal memberIdentifier={selectedMember.identifier} onClose={handleMemberDeselect} isModalVisible={isModalVisible} />
             )}
-            <Table maxHeight="100%" defaultSortKey="rank" data={department.members?.map((member) => ({
-                ...member,
-                rank: department.ranks.find((rank) => rank.rankId === member.rankId)?.label || "Unknown",
-                onDutyTimeDisplay: GetStopwatchTime(member.onDutyTime),
-                lastShift: member.recentDutyLogs.length > 0 ? new Date((member.recentDutyLogs[0].finish - member.recentDutyLogs[0].duration) * 1000).toLocaleString() : "Never",
-                action: (<div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={() => handleMemberSelect(member)} >
-                        <EyeIcon className="w-4 h-4"/>
-                    </Button>
-                </div>)
-            })) || []} columns={
-                [
-                    {
-                        key: "name",
-                        header: "Name",
-                        sortable: true,
-                    },
-                    {
-                        key: "rank",
-                        header: "Rank",
-                        sortable: true,
-                    },
-                    {
-                        key: "lastShift",
-                        header: "Last Shift",
-                        sortable: true,
-                    },
-                    {
-                        key: "onDutyTimeDisplay",
-                        header: "On Duty Time",
-                        sortable: true,
-                    },
-                    {
-                        key: "action",
-                        header: "",
-                        sortable: false,
-                    }
-                ]
-            } sortFunction={(data, sortKey, sortDirection) => {
-                return data.sort((a, b) => {
-                    let comparison = 0;
-                    
-                    if (sortKey === "name") {
-                        comparison = a.name.localeCompare(b.name);
-                    } else if (sortKey === "rank") {
-                        comparison = a.rankId - b.rankId;
-                    } else if (sortKey === "onDutyTimeDisplay") {
-                        comparison = a.onDutyTime - b.onDutyTime;
-                    } else if (sortKey === "lastShift") {
-                        if (a.recentDutyLogs.length > 0 && b.recentDutyLogs.length > 0) {
-                            comparison = a.recentDutyLogs[0].finish - b.recentDutyLogs[0].finish;
-                        } else {
-                            comparison = a.recentDutyLogs.length - b.recentDutyLogs.length;
+            {selectedRank ? (
+                <SelectedRankModal rankId={selectedRank} onClose={handleRankDeselect} isModalVisible={isModalVisible} />
+            ) : null}
+            <div className="w-full p-2 select-none flex flex-col gap-2">
+                <div className="font-semibold text-lg text-primary w-full flex flex-row gap-0 bg-secondary py-1 px-1 gap-1 rounded-md">
+                    <div className={`px-4 cursor-pointer hover:bg-white/10 transition-all duration-200 rounded-md ${section === "roster" ? "bg-white/10" : ""}`} onClick={() => setSection("roster")}>
+                        <Translate id="roster" />
+                    </div>
+                    <div className={`px-4 cursor-pointer hover:bg-white/10 transition-all duration-200 rounded-md ${section === "ranks" ? "bg-white/10" : ""}`} onClick={() => setSection("ranks")}>
+                        <Translate id="ranks" />
+                    </div>
+                </div>
+                {section === "roster" && (
+                    <div className="w-full bg-secondary flex items-center justify-center select-none rounded-md h-[40px]" style={{
+                        cursor: !isAddingMember ? "pointer" : "default",
+                    }} onClick={() => {
+                        if (!isAddingMember) {
+                            setIsAddingMember(true);
                         }
-                    }
-                    
-                    return sortDirection === 'desc' ? -comparison : comparison;
-                });
-            }} />
-        </>
+                    }}>
+                        {isAddingMember ? (
+                            <div className="flex items-center justify-center gap-2">
+                                <select className="text-sm bg-background/75 px-2 rounded-md" value={memberIdentifier} onChange={(e) => setMemberIdentifier(parseInt(e.target.value))}>
+                                    {nearbyPlayers.map((player, index) => (
+                                        <option key={index} value={index}>[{player.source}]: {player.name}</option>
+                                    ))}
+                                </select>
+                                <Button variant="outline" size="icon" onClick={() => {
+                                    setIsAddingMember(false);
+                                    setDepartment({
+                                        ...department,
+                                        members: [...department.members, {
+                                            identifier: nearbyPlayers[memberIdentifier].identifier,
+                                            name: nearbyPlayers[memberIdentifier].name,
+                                            rankId: department.ranks[department.ranks.length - 1].rankId,
+                                            recentDutyLogs: [],
+                                            permissions: [],
+                                            onDutyTime: 0,
+                                        }],
+                                    });
+                                }}>
+                                    <SaveIcon className="w-4 h-4" />
+                                </Button>
+                                <Button variant="outline" size="icon" onClick={() => {
+                                    setIsAddingMember(false);
+                                }}>
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center gap-0">
+                                <PlusIcon className="w-4 h-4" />
+                                <div className="font-semibold text-md text-white rounded-md"><Translate id="add_member" /></div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+            {section === "roster" && (
+                <Table maxHeight="100%" defaultSortKey="rank" data={department.members?.map((member) => ({
+                    ...member,
+                    rank: department.ranks.find((rank) => rank.rankId === member.rankId)?.label || "Unknown",
+                    rankIndex: department.ranks.findIndex((rank) => rank.rankId === member.rankId),
+                    onDutyTimeDisplay: GetStopwatchTime(member.onDutyTime),
+                    lastShift: member.recentDutyLogs.length > 0 ? new Date((member.recentDutyLogs[0].finish - member.recentDutyLogs[0].duration) * 1000).toLocaleString() : "Never",
+                    action: (<div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" onClick={() => handleMemberSelect(member)} >
+                            <EyeIcon className="w-4 h-4"/>
+                        </Button>
+                    </div>)
+                })) || []} columns={
+                    [
+                        {
+                            key: "name",
+                            header: "Name",
+                            sortable: true,
+                        },
+                        {
+                            key: "rank",
+                            header: "Rank",
+                            sortable: true,
+                        },
+                        {
+                            key: "lastShift",
+                            header: "Last Shift",
+                            sortable: true,
+                        },
+                        {
+                            key: "onDutyTimeDisplay",
+                            header: "On Duty Time",
+                            sortable: true,
+                        },
+                        {
+                            key: "action",
+                            header: "",
+                            sortable: false,
+                        }
+                    ]
+                } sortFunction={(data, sortKey, sortDirection) => {
+                    return data.sort((a, b) => {
+                        let comparison = 0;
+                        
+                        if (sortKey === "name") {
+                            comparison = a.name.localeCompare(b.name);
+                        } else if (sortKey === "rank") {
+                            comparison = a.rankIndex - b.rankIndex;
+                        } else if (sortKey === "onDutyTimeDisplay") {
+                            comparison = a.onDutyTime - b.onDutyTime;
+                        } else if (sortKey === "lastShift") {
+                            if (a.recentDutyLogs.length > 0 && b.recentDutyLogs.length > 0) {
+                                comparison = a.recentDutyLogs[0].finish - b.recentDutyLogs[0].finish;
+                            } else {
+                                comparison = a.recentDutyLogs.length - b.recentDutyLogs.length;
+                            }
+                        }
+                        
+                        return sortDirection === 'desc' ? -comparison : comparison;
+                    });
+                }} />
+            )}
+            {section === "ranks" && (   
+                <div className="w-full h-full flex flex-col overflow-y-auto">
+                    {department.ranks.map((rank, index) => (
+                        <div 
+                            key={rank.rankId} 
+                            onClick={() => handleRankSelect(rank.rankId)}
+                            className={`flex flex-row gap-2 p-[12px] transition-all duration-200 items-center ${
+                                draggedRank === index ? 'opacity-50' : ''
+                            } ${
+                                dragOverRank === index ? 'border-t-2 border-primary' : ''
+                            }`}
+                            style={{
+                                cursor: draggedRank === index ? 'cursor-move' : 'pointer',
+                                backgroundColor: index % 2 === 0 ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.05)"
+                            }}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, index)}
+                            onDragOver={(e) => handleDragOver(e, index)}
+                            onDrop={(e) => handleDrop(e, index)}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <div className="text-xs text-muted-foreground cursor-move">⋮⋮</div>
+                            <div className="text-md flex-1">{rank.label}</div>
+                        </div>
+                    ))}
+                    <div 
+                        key={-1} 
+                        className={`flex flex-row gap-2 p-[12px] transition-all duration-200 items-center ${!isCreatingRank ? "cursor-pointer" : ""}`}
+                        style={{
+                            backgroundColor: department.ranks.length % 2 === 0 ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.05)"
+                        }}
+                        onClick={() => {
+                            if (!isCreatingRank) {
+                                setIsCreatingRank(true);
+                            }
+                        }}
+                    >
+                        {isCreatingRank ? (
+                            <div className="flex flex-row gap-2 items-center">
+                                <input type="text" className="text-sm h-[36px] bg-background/75 px-2 rounded-md" value={rankLabel} onChange={(e) => setRankLabel(e.target.value)} />
+                                <Button variant="outline" size="icon" onClick={() => {
+                                    if (rankLabel.length === 0) return;
+                                    let uniqueRankId = 0;
+                                    for (let i = 0; i < department.ranks.length; i++) {
+                                        if (department.ranks[i].rankId >= uniqueRankId) {
+                                            uniqueRankId = department.ranks[i].rankId + 1;
+                                        }
+                                    }
+                                    setIsCreatingRank(false);
+                                    setDepartment({
+                                        ...department,
+                                        ranks: [...department.ranks, { rankId: uniqueRankId, label: rankLabel, managingRankIds: [] }],
+                                    });
+                                }}>
+                                    <SaveIcon className="w-4 h-4" />
+                                </Button>
+                                <Button variant="outline" size="icon" onClick={() => {
+                                    setIsCreatingRank(false);
+                                }}>
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex gap-2 items-center">
+                                <PlusIcon className="w-4 h-4" />
+                                <Translate id="add_rank" />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
     )
 }
 
