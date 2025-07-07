@@ -23,7 +23,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const [player, setPlayer] = useState<PlayerData>({
         name: "John Doe",
         departmentId: 11,
-        rankId: 2,
+        rankId: 1,
         permissions: [],
     });
 

@@ -6,6 +6,8 @@ import { Button } from "../ui/button";
 import { Check, DoorOpen, Edit, EyeIcon, LogOut, Pencil, PlusIcon, SaveIcon, Trash, X } from "lucide-react";
 import ComputerContext, { useComputer } from "./Computer";
 import { usePlayer } from "@/providers/player/player";
+import { ItemDisplay } from "../armory/Armory";
+import { useConfig } from "@/providers/config";
 
 type DutyLog = {
     duration: number;
@@ -483,57 +485,57 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
                                                     </div>
                                                 ))}
                                                 {isAddingManagingRank ? (
-                                                <div className="bg-secondary rounded-md p-1">
-                                                    <select 
-                                                        className="w-full bg-background text-xs p-1 rounded border border-border"
-                                                        value={selectedManagingRank || ""}
-                                                        onChange={(e) => setSelectedManagingRank(parseInt(e.target.value))}
-                                                    >
-                                                        <option value="">Select rank...</option>
-                                                        {department.ranks.map((targetRank, targetRankIndex) => (rankIndex > targetRankIndex && targetRankIndex !== 0) && (
-                                                            <option key={targetRankIndex} value={targetRank.rankId}>
-                                                                {targetRank.label}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                    <div className="flex gap-1 mt-2">
-                                                        <button 
-                                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
-                                                            onClick={() => {
-                                                                if (selectedManagingRank) {
-                                                                    let newManagingRankIds = [...managingRankIds, selectedManagingRank];
-                                                                    setDepartment({
-                                                                        ...department,
-                                                                        ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, managingRankIds: newManagingRankIds } : rank),
-                                                                    });
+                                                    <div className="bg-secondary rounded-md p-1">
+                                                        <select 
+                                                            className="w-full bg-background text-xs p-1 rounded border border-border"
+                                                            value={selectedManagingRank || ""}
+                                                            onChange={(e) => setSelectedManagingRank(parseInt(e.target.value))}
+                                                        >
+                                                            <option value="">Select rank...</option>
+                                                            {department.ranks.map((targetRank, targetRankIndex) => (rankIndex > targetRankIndex && targetRankIndex !== 0) && (
+                                                                <option key={targetRankIndex} value={targetRank.rankId}>
+                                                                    {targetRank.label}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <div className="flex gap-1 mt-2">
+                                                            <button 
+                                                                className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
+                                                                onClick={() => {
+                                                                    if (selectedManagingRank) {
+                                                                        let newManagingRankIds = [...managingRankIds, selectedManagingRank];
+                                                                        setDepartment({
+                                                                            ...department,
+                                                                            ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, managingRankIds: newManagingRankIds } : rank),
+                                                                        });
+                                                                        setSelectedManagingRank(null);
+                                                                        setIsAddingManagingRank(false);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <Check className="w-3 h-3" />
+                                                                Save
+                                                            </button>
+                                                            <button 
+                                                                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
+                                                                onClick={() => {
                                                                     setSelectedManagingRank(null);
                                                                     setIsAddingManagingRank(false);
-                                                                }
-                                                            }}
-                                                        >
-                                                            <Check className="w-3 h-3" />
-                                                            Save
-                                                        </button>
-                                                        <button 
-                                                            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
-                                                            onClick={() => {
-                                                                setSelectedManagingRank(null);
-                                                                setIsAddingManagingRank(false);
-                                                            }}
-                                                        >
-                                                            <X className="w-3 h-3" />
-                                                            Cancel
-                                                        </button>
+                                                                }}
+                                                            >
+                                                                <X className="w-3 h-3" />
+                                                                Cancel
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ) : (
-                                                <div className="text-sm cursor-pointer bg-secondary rounded-md p-1 text-center flex items-center justify-center gap-1 whitespace-nowrap" onClick={() => {
-                                                    setIsAddingManagingRank(true);
-                                                }}>
-                                                    <PlusIcon className="w-4 h-4" />
-                                                    <Translate id="add_rank_manager" />
-                                                </div>
-                                            )}
+                                                ) : (
+                                                    <div className="text-sm cursor-pointer bg-secondary rounded-md p-1 text-center flex items-center justify-center gap-1 whitespace-nowrap" onClick={() => {
+                                                        setIsAddingManagingRank(true);
+                                                    }}>
+                                                        <PlusIcon className="w-4 h-4" />
+                                                        <Translate id="add_rank_manager" />
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -547,8 +549,160 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
     )
 }
 
+function SelectedPermissionModal({permission, onClose, isModalVisible}: {permission: string, onClose: () => void, isModalVisible: boolean}) {
+    const { config } = useConfig();
+    const { department, setDepartment } = useComputer();
+    const [isAddingPermissionManager, setIsAddingPermissionManager] = useState(false);
+    const [selectedManagingRank, setSelectedManagingRank] = useState<number | null>(null);
+    const [isDeletingPermission, setIsDeletingPermission] = useState(false);
+    if (!department.permissions[permission]) return null;
+    return (
+        <div className={`absolute inset-0 bg-background/50 backdrop-blur-sm z-[50] flex items-center justify-center transition-opacity duration-200 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="bg-background/95 w-[75%] h-[75%] shadow-lg transition-all duration-200">
+                <div className="relative w-full h-[30px] bg-secondary flex items-center justify-between select-none">
+                    <div className="flex items-center justify-center gap-2 pl-2">
+                        <div className="font-semibold text-sm text-white">{permission}</div>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 hover:bg-destructive/50 transition-all duration-300 h-[30px] w-[30px] cursor-pointer" onClick={onClose}>
+                        <X/>
+                    </div>
+                </div>
+                <div className="w-full h-[calc(100%-30px)] p-2 overflow-y-auto">
+                    <div className="flex flex-col gap-2">
+                        <div className="flex flex-row items-center gap-4">
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex flex-row gap-2 items-center">
+                                        <div className="text-sm font-semibold"><Translate id="label" />:</div>
+                                        <div className="text-sm">{permission}</div>
+                                    </div>
+                                    <div className="w-full select-none whitespace-nowrap flex items-center justify-center gap-2 bg-destructive hover:bg-destructive/80 transition-colors duration-200 cursor-pointer rounded-md p-1 font-semibold text-xs text-center" onClick={() => {
+                                        if (isDeletingPermission) {
+                                            setIsDeletingPermission(false);
+                                            setDepartment({
+                                                ...department,
+                                                permissions: Object.fromEntries(Object.entries(department.permissions).filter(([key]) => key !== permission)),
+                                            });
+                                            onClose();
+                                        } else {
+                                            setIsDeletingPermission(true);
+                                        }
+                                    }}>
+                                        <Trash className="w-3 h-3" />
+                                        {isDeletingPermission ? (
+                                            <Translate id="confirm_delete_permission" />
+                                        ) : (
+                                            <Translate id="delete_permission" />
+                                        )}
+                                    </div> 
+                                    <div className="text-sm font-semibold"><Translate id="managing_ranks" />:</div>
+                                    <div className="grid grid-cols-5 gap-2">
+                                        {department.permissions[permission].managingRankIds.map((targetRankId) => (
+                                            <div key={targetRankId}>
+                                                <div className="relative text-sm bg-secondary rounded-md p-1 text-center px-2">
+                                                    {department.ranks.find((rank) => rank.rankId === targetRankId)?.label || "Unknown"}
+                                                    <div className="absolute inset-0 bg-destructive/95 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer" onClick={() => {
+                                                        setDepartment({
+                                                            ...department,
+                                                            permissions: {
+                                                                ...department.permissions,
+                                                                [permission]: {
+                                                                    ...department.permissions[permission],
+                                                                    managingRankIds: department.permissions[permission].managingRankIds.filter(id => id !== targetRankId),
+                                                                },
+                                                            },
+                                                        });
+                                                    }}>
+                                                        <X className="w-4 h-4 text-white" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {isAddingPermissionManager ? (
+                                            <div className="bg-secondary rounded-md p-1">
+                                                <select 
+                                                    className="w-full bg-background text-xs p-1 rounded border border-border"
+                                                    value={selectedManagingRank || ""}
+                                                    onChange={(e) => setSelectedManagingRank(parseInt(e.target.value))}
+                                                >
+                                                    <option value="">Select rank...</option>
+                                                    {department.ranks.map((targetRank, targetRankIndex) => (!department.permissions[permission].managingRankIds.includes(targetRank.rankId) && targetRankIndex !== 0) && (
+                                                        <option key={targetRankIndex} value={targetRank.rankId}>
+                                                            {targetRank.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <div className="flex gap-1 mt-2">
+                                                    <button 
+                                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
+                                                        onClick={() => {
+                                                            if (selectedManagingRank) {
+                                                                setDepartment({
+                                                                    ...department,
+                                                                    permissions: {
+                                                                        ...department.permissions,
+                                                                        [permission]: {
+                                                                            ...department.permissions[permission],
+                                                                            managingRankIds: [...department.permissions[permission].managingRankIds, selectedManagingRank],
+                                                                        },
+                                                                    },
+                                                                });
+                                                                setSelectedManagingRank(null);
+                                                                setIsAddingPermissionManager(false);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Check className="w-3 h-3" />
+                                                        Save
+                                                    </button>
+                                                    <button 
+                                                        className="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
+                                                        onClick={() => {
+                                                            setSelectedManagingRank(null);
+                                                            setIsAddingPermissionManager(false);
+                                                        }}
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-sm cursor-pointer bg-secondary rounded-md p-1 text-center flex items-center justify-center gap-1 whitespace-nowrap" onClick={() => {
+                                                setIsAddingPermissionManager(true);
+                                            }}>
+                                                <PlusIcon className="w-4 h-4" />
+                                                <Translate id="add_rank_manager" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="text-sm font-semibold"><Translate id="police_armory" />:</div>
+                                    <div className="grid grid-cols-5 gap-2 overflow-y-auto max-h-[250px] px-2">
+                                        {config.policeArmory.map((item: any) => (
+                                            <div className="bg-secondary/50 rounded-md p-1">
+                                                <ItemDisplay key={item.name} item={{
+                                                    label: item.label,
+                                                    name: item.name,
+                                                    itemType: item.itemType || "item",
+                                                }} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+
+
 function Roster() {
     const { department, setDepartment } = useComputer();
+    const { player } = usePlayer();
     const [selectedMember, setSelectedMember] = useState<DepartmentMember | null>(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [section, setSection] = useState("roster");
@@ -559,6 +713,9 @@ function Roster() {
     const [isCreatingRank, setIsCreatingRank] = useState(false);
     const [isAddingMember, setIsAddingMember] = useState(false);
     const [memberIdentifier, setMemberIdentifier] = useState(-1);
+    const [selectedPermission, setSelectedPermission] = useState<string | null>(null);
+    const [isCreatingPermission, setIsCreatingPermission] = useState(false);
+    const [permissionLabel, setPermissionLabel] = useState("");
     const [nearbyPlayers, setNearbyPlayers] = useState<Player[]>([
         {
             name: "John Doe",
@@ -576,7 +733,13 @@ function Roster() {
             source: "3",
         },
     ]);
-
+    const rankIndex = department.ranks.findIndex((rank) => rank.rankId === player?.rankId);
+    const canAddMembers = department.ranks.some(rank => rank.managingRankIds.includes(player?.rankId)) || rankIndex == 0;
+    let tabs = ["roster"];
+    if (rankIndex == 0) {
+        tabs.push("ranks");
+        tabs.push("permissions");
+    }
     const handleMemberSelect = (member: DepartmentMember) => {
         setSelectedMember(member);
         setTimeout(() => {
@@ -646,23 +809,41 @@ function Roster() {
         }, 200);
     };
 
+    const handlePermissionSelect = (permission: string) => {
+        setSelectedPermission(permission);
+        setTimeout(() => {
+            setIsModalVisible(true);
+        }, 10);
+    };
+
+    const handlePermissionDeselect = () => {
+        setIsModalVisible(false);
+        setTimeout(() => {
+            setSelectedPermission(null);
+        }, 200);
+    };
     return (
         <div className="relative h-full flex flex-col gap-0">
-            {selectedMember && (
+            {(selectedMember) && (
                 <SelectedMemberModal memberIdentifier={selectedMember.identifier} onClose={handleMemberDeselect} isModalVisible={isModalVisible} />
             )}
-            {selectedRank ? (
+            {(selectedRank && rankIndex == 0) ? (
                 <SelectedRankModal rankId={selectedRank} onClose={handleRankDeselect} isModalVisible={isModalVisible} />
             ) : null}
+            {(selectedPermission && rankIndex == 0) && (
+                <SelectedPermissionModal permission={selectedPermission} onClose={handlePermissionDeselect} isModalVisible={isModalVisible} />
+            )}
+            {(tabs.length > 1 || canAddMembers) && (
             <div className="w-full p-2 select-none flex flex-col gap-2">
-                <div className="font-semibold text-lg text-primary w-full flex flex-row gap-0 bg-secondary py-1 px-1 gap-1 rounded-md">
-                    <div className={`px-4 cursor-pointer hover:bg-white/10 transition-all duration-200 rounded-md ${section === "roster" ? "bg-white/10" : ""}`} onClick={() => setSection("roster")}>
-                        <Translate id="roster" />
+                {tabs.length > 1 && (
+                    <div className="font-semibold text-lg text-primary w-full flex flex-row gap-0 bg-secondary py-1 px-1 gap-1 rounded-md">
+                        {tabs.map((tab) => (
+                            <div className={`px-4 cursor-pointer hover:bg-white/10 transition-all duration-200 rounded-md ${section === tab ? "bg-white/10" : ""}`} onClick={() => setSection(tab)}>
+                                <Translate id={tab} />
+                            </div>
+                        ))}
                     </div>
-                    <div className={`px-4 cursor-pointer hover:bg-white/10 transition-all duration-200 rounded-md ${section === "ranks" ? "bg-white/10" : ""}`} onClick={() => setSection("ranks")}>
-                        <Translate id="ranks" />
-                    </div>
-                </div>
+                )}
                 {section === "roster" && (
                     <div className="w-full bg-secondary flex items-center justify-center select-none rounded-md h-[40px]" style={{
                         cursor: !isAddingMember ? "pointer" : "default",
@@ -673,7 +854,7 @@ function Roster() {
                     }}>
                         {isAddingMember ? (
                             <div className="flex items-center justify-center gap-2">
-                                <select className="text-sm bg-background/75 px-2 rounded-md" value={memberIdentifier} onChange={(e) => setMemberIdentifier(parseInt(e.target.value))}>
+                                <select className="text-sm bg-background/75 px-2 rounded-md h-[36px]" value={memberIdentifier} onChange={(e) => setMemberIdentifier(parseInt(e.target.value))}>
                                     {nearbyPlayers.map((player, index) => (
                                         <option key={index} value={index}>[{player.source}]: {player.name}</option>
                                     ))}
@@ -709,6 +890,7 @@ function Roster() {
                     </div>
                 )}
             </div>
+            )}
             {section === "roster" && (
                 <Table maxHeight="100%" defaultSortKey="rank" data={department.members?.map((member) => ({
                     ...member,
@@ -771,7 +953,7 @@ function Roster() {
                     });
                 }} />
             )}
-            {section === "ranks" && (   
+            {section === "ranks" && (rankIndex == 0) && (   
                 <div className="w-full h-full flex flex-col overflow-y-auto">
                     {department.ranks.map((rank, index) => (
                         <div 
@@ -837,6 +1019,63 @@ function Roster() {
                             <div className="flex gap-2 items-center">
                                 <PlusIcon className="w-4 h-4" />
                                 <Translate id="add_rank" />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+            {section === "permissions" && (rankIndex == 0) && (
+                <div className="w-full h-full flex flex-col overflow-y-auto">
+                    {Object.keys(department.permissions).map((permission, index) => (
+                        <div 
+                            key={permission} 
+                            onClick={() => handlePermissionSelect(permission)}
+                            className={`flex flex-row gap-2 p-[12px] transition-all duration-200 items-center cursor-pointer`}
+                            style={{
+                                backgroundColor: index % 2 === 0 ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.05)"
+                            }}
+                        >
+                            <div className="text-md flex-1">{permission}</div>
+                        </div>
+                    ))}
+                    <div 
+                        key={-1} 
+                        className={`flex flex-row gap-2 p-[12px] transition-all duration-200 items-center ${!isCreatingPermission ? "cursor-pointer" : ""}`}
+                        style={{
+                            backgroundColor: Object.keys(department.permissions).length % 2 === 0 ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.05)"
+                        }}
+                        onClick={() => {
+                            if (!isCreatingPermission) {
+                                setIsCreatingPermission(true);
+                            }
+                        }}
+                    >   
+                        {isCreatingPermission ? (
+                            <div className="flex flex-row gap-2 items-center">
+                                <input type="text" className="text-sm h-[36px] bg-background/75 px-2 rounded-md" value={permissionLabel} onChange={(e) => setPermissionLabel(e.target.value)} />
+                                <Button variant="outline" size="icon" onClick={() => {
+                                    if (permissionLabel.length === 0 || Object.keys(department.permissions).includes(permissionLabel)) return;
+                                    setIsCreatingPermission(false);
+                                    setDepartment({
+                                        ...department,
+                                        permissions: {
+                                            ...department.permissions,
+                                            [permissionLabel]: { managingRankIds: [] },
+                                        },
+                                    });
+                                }}>
+                                    <SaveIcon className="w-4 h-4" />
+                                </Button>
+                                <Button variant="outline" size="icon" onClick={() => {
+                                    setIsCreatingPermission(false);
+                                }}>
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex gap-2 items-center">
+                                <PlusIcon className="w-4 h-4" />
+                                <Translate id="add_permission" />
                             </div>
                         )}
                     </div>

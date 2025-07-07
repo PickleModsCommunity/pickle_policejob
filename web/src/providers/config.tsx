@@ -13,6 +13,13 @@ export type Config = {
             label: string;
         };
     };
+    policeArmory: {
+        name: string;
+    }[];
+    policeGarage: {
+        label: string;
+        model: string;
+    }[];
 }
 
 interface ConfigContextProps {
@@ -63,12 +70,108 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "add_member": "Add Member",
             "delete_rank": "Delete Rank",
             "confirm_delete_rank": "Click again to confirm.",
+            "delete_permission": "Delete Permission",
+            "confirm_delete_permission": "Click again to confirm.",
+            "police_armory": "Police Armory",
         },
         imageDirectory: undefined,
         identifier: "ERR_NO_IDENTIFIER",
         currency: "GBP",
         countryCode: "en-GB",
-        items: {},
+        items: {
+            "rifle": {
+                label: "Rifle"
+            },
+            "pistol": {
+                label: "Pistol"
+            },
+            "smg": {
+                label: "SMG"
+            },
+            "shotgun": {
+                label: "Shotgun"
+            },
+            "sniper": {
+                label: "Sniper"
+            },
+            "heavy": {
+                label: "Heavy"
+            },
+            "handgun": {
+                label: "Handgun"
+            },
+            "knife": {
+                label: "Knife"
+            },
+            "flashlight": {
+                label: "Flashlight"
+            },
+            "binoculars": {
+                label: "Binoculars"
+            },
+            "radio": {
+                label: "Radio"
+            },
+            "paper": {
+                label: "Taser"
+            },
+        },
+        policeArmory: [
+            {
+                name: "rifle",
+            },
+            {
+                name: "pistol",
+            },
+            {
+                name: "smg",
+            },
+            {
+                name: "shotgun",
+            },
+            {
+                name: "sniper",
+            },
+            {
+                name: "heavy",
+            },
+            {
+                name: "handgun",
+            },
+            {
+                name: "knife",
+            },
+            {
+                name: "flashlight",
+            },
+            {
+                name: "binoculars",
+            },
+            {
+                name: "radio",
+            },
+            {
+                name: "paper",
+            },
+        ],
+        policeGarage: [
+            {
+                label: "Crown Victoria",
+                model: "crownvictoria",
+            },
+            {
+                label: "Police Interceptor",
+                model: "policeinterceptor",
+            },
+            {
+                label: "Police Interceptor Utility",
+                model: "policeinterceptorutility",
+            },
+            {
+                label: "Police Interceptor Utility",
+                model: "policeinterceptorutility",
+            },
+        ],
     });
     useNuiEvent('setConfig', (data) => {
         setConfig({ ...config, ...data.config });
