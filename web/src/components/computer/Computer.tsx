@@ -10,19 +10,27 @@ import EvidencePage from "./EvidencePage";
 import SettingsPage from "./SettingsPage";
 import { createContext } from "react";
 import { useConfig } from "@/providers/config";
-import DocumentContainer, { Document } from "../document/Document";
+import DocumentContainer, { Document, DocumentDisplay } from "../document/Document";
 
 export type Rank = {
     rankId: number;
     label: string;
     managingRankIds: number[];
+    armory: string[];
+    vehicles: number[];
+}
+
+export type DepartmentPermission = {
+    managingRankIds: number[];
+    armory: string[];
+    vehicles: number[];
 }
 
 export type Department = {
     id: number;
     label: string;
     ranks: Rank[];
-    permissions: Record<string, { managingRankIds: number[] }>;
+    permissions: Record<string, DepartmentPermission>;
     members: DepartmentMember[];
 }
 
@@ -63,8 +71,43 @@ function Computer({info}: {info: ComputerInfo}) {
     const [department, setDepartment] = useState<Department>({
         id: 11,
         label: "Los Santos Police Department",
-        ranks: [{"rankId":1,"label":"Chief", "managingRankIds":[]},{"rankId":2,"label":"Lieutenant", "managingRankIds":[]},{"rankId":3,"label":"Sergeant","managingRankIds":[2]},{"rankId":4,"label":"Officer","managingRankIds":[1,2,3]},{"rankId":5,"label":"Recruit","managingRankIds":[1,2,3]}],
-        permissions: {"Air Certified":{"managingRankIds":[2]},"Field Training Officer":{"managingRankIds":[2,3]},"Rifle Certified":{"managingRankIds":[2,3]}},
+        ranks: [
+            {
+                "rankId":1,
+                "label":"Chief", 
+                "managingRankIds":[],
+                "armory": [],
+                "vehicles": [],
+            },
+            {
+                "rankId":2,
+                "label":"Lieutenant", 
+                "managingRankIds":[],
+                "armory": [],
+                "vehicles": [],
+            },
+            {
+                "rankId":3,
+                "label":"Sergeant",
+                "managingRankIds":[2],
+                "armory": [],
+                "vehicles": [],
+            },
+            {
+                "rankId":4,
+                "label":"Officer",
+                "managingRankIds":[1,2,3],
+                "armory": [],
+                "vehicles": [],
+            },
+            {
+                "rankId":5,
+                "label":"Recruit",
+                "managingRankIds":[1,2,3],
+                "armory": [],
+                "vehicles": [],
+            },
+        ],
         members: [
             {
                 "identifier": "char1:eeee",
@@ -160,7 +203,7 @@ function Computer({info}: {info: ComputerInfo}) {
                 "recentDutyLogs": [
                     {
                         "duration": 8,
-                        "report": "Aoaoaoaoaoaooooooooo\n\n\nW\nW\nW\n\nW\nW\nW\nW\nW\nW\nW\nW\n\nW",
+                        "report": "a",
                         "finishTimestamp": "06\/19\/2025 05:04 PM",
                         "startTimestamp": "06\/19\/2025 05:04 PM",
                         "finish": 1750374288
@@ -226,7 +269,24 @@ function Computer({info}: {info: ComputerInfo}) {
                 ],
                 "onDutyTime": 72932,
             },
-        ]
+        ],
+        permissions: {
+            "Air Certified": {
+                "managingRankIds": [2],
+                "armory": [],
+                "vehicles": [],
+            },
+            "Field Training Officer": {
+                "managingRankIds": [2, 3],
+                "armory": [],
+                "vehicles": [],
+            },
+            "Rifle Certified": {
+                "managingRankIds": [2, 3],
+                "armory": [],
+                "vehicles": [],
+            },
+        },
     });
     // Mouse event handlers for dragging
     const handleMouseDown = (e: React.MouseEvent, window: ComputerWindow) => {
@@ -440,14 +500,12 @@ function Computer({info}: {info: ComputerInfo}) {
                                 {window.programId === "roster" && <RosterPage />}
                                 {window.programId === "evidence" && <EvidencePage data={window.data} />}
                                 {window.programId === "settings" && <SettingsPage />}
-                                {window.programId === "file" && <Document 
+                                {window.programId === "file" && <DocumentDisplay
+                                    id={window.data.id}
                                     dark={true} 
                                     width={600 * 0.8} 
                                     height={774 * 0.8} 
                                     canEdit={true} 
-                                    initialContent={window.data.content || ""} 
-                                    headerInfo={window.data.header} 
-                                    onDocumentSave={window.data.onDocumentSave} 
                                 />}
                             </div>
                         </div>

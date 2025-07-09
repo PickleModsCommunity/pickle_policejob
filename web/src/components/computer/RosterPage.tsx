@@ -3,7 +3,7 @@ import { useContext, useState } from "react";
 import Table from "../table/Table";
 import { Translate } from "@/providers/locale/Locale";
 import { Button } from "../ui/button";
-import { Check, DoorOpen, Edit, EyeIcon, LogOut, Pencil, PlusIcon, SaveIcon, Trash, X } from "lucide-react";
+import { Check, CheckIcon, DoorOpen, Edit, EyeIcon, LogOut, Pencil, PlusIcon, SaveIcon, Trash, X } from "lucide-react";
 import ComputerContext, { useComputer } from "./Computer";
 import { usePlayer } from "@/providers/player/player";
 import { ItemDisplay } from "../armory/Armory";
@@ -297,44 +297,7 @@ function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {membe
                                 finishTimestamp: new Date(log.finishTimestamp).toLocaleString(),
                                 action: (<div className="flex items-center gap-2">
                                     <Button variant="outline" size="icon" onClick={() => {
-                                        openWindow("file", {
-                                            title: department.label.toUpperCase(),
-                                            subtitle: "SHIFT REPORT",
-                                            header: {
-                                                title: department.label.toUpperCase(),
-                                                subtitle: "SHIFT REPORT",
-                                                image: "/nui/images/LSPD.webp",
-                                                leftInfo: [
-                                                    { label: "<span class='font-bold'>Pickle Rick</span>"},
-                                                    { label: "Chief of Police"},
-                                                ],
-                                                rightInfo: [
-                                                    { label: "<span class='font-bold'>Shift Start</span>"},
-                                                    { label: "01/01/2000 12:41 PM"},
-                                                    { label: "<span class='font-bold'>Shift End</span>"},
-                                                    { label: "01/01/2000 12:41 PM"},
-                                                ],
-                                            },
-                                            subContent: [
-                                                { label: "<span class='font-bold'>{name}</span>" },
-                                                { label: "{rank}" },
-                                            ],
-                                            enableContent: true,
-                                            content: log.report || "",
-                                            onDocumentSave: (content: any) => {
-                                                console.log("SAVED", index, content);
-                                                setDepartment({
-                                                    ...department,
-                                                    members: department.members.map(m => m.identifier === member.identifier ? { 
-                                                        ...m, 
-                                                        recentDutyLogs: m.recentDutyLogs.map((log, logIndex) => logIndex === index ? { 
-                                                            ...log, 
-                                                            report: content 
-                                                        } : log) 
-                                                    } : m),
-                                                });
-                                            }
-                                        })
+                                        openWindow("file", {id: log.report})
                                     }}>
                                         <EyeIcon className="w-4 h-4"/>
                                     </Button>
@@ -375,6 +338,7 @@ function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {membe
 }
 
 function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, onClose: () => void, isModalVisible: boolean}) {
+    const { config } = useConfig();
     const { department, setDepartment } = useComputer();
     const rank = department.ranks.find((rank) => rank.rankId === rankId);
     const rankIndex = department.ranks.findIndex((rank) => rank.rankId === rankId);
@@ -539,6 +503,94 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
                                             </div>
                                         </div>
                                     )}
+                                    {rankIndex !== 0 && (
+                                        <>
+                                            <div className="text-sm font-semibold"><Translate id="police_armory" />:</div>
+                                            <div className="grid grid-cols-5 gap-2 overflow-y-auto max-h-[250px] px-2">
+                                                {config.policeArmory.map((item: any) => {
+                                                    const isIncluded = rank.armory.includes(item.name);
+                                                    return (
+                                                        <div key={item.model} className="relative bg-secondary/25 rounded-md p-1 group">
+                                                            <ItemDisplay item={item} />
+                                                            {isIncluded ? (
+                                                                <div
+                                                                    className="absolute z-10 inset-0 bg-green-500/25 rounded-md flex items-center justify-center opacity-100 group-hover:bg-red-500/50 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
+                                                                    onClick={() => {
+                                                                        // If hovered, remove; otherwise do nothing
+                                                                        setDepartment({
+                                                                            ...department,
+                                                                            ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, armory: rank.armory.filter((i: string) => i !== item.name) } : rank),
+                                                                        });
+                                                                    }}
+                                                                >
+                                                                    <span className="flex items-center justify-center">
+                                                                        <CheckIcon className={`w-8 h-8 text-white transition-opacity duration-200 ${isIncluded ? 'opacity-100' : 'opacity-0'} group-hover:hidden`} />
+                                                                        <X className="w-8 h-8 text-white absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <div
+                                                                    className="absolute z-10 inset-0 bg-green-500/50 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                                                                    onClick={() => {
+                                                                        setDepartment({
+                                                                            ...department,
+                                                                            ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, armory: [...rank.armory, item.name] } : rank),
+                                                                        });
+                                                                    }}
+                                                                >
+                                                                    <CheckIcon className="w-8 h-8 text-white" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            <div className="text-sm font-semibold"><Translate id="police_garage" />:</div>
+                                            <div className="grid grid-cols-5 gap-2 overflow-y-auto max-h-[250px] px-2">
+                                                {config.policeGarage.map((item: any) => {
+                                                    const isIncluded = rank.vehicles.includes(item.model);
+                                                    return (
+                                                        <div key={item.model} className="relative bg-secondary/25 rounded-md p-1 group">
+                                                            <ItemDisplay item={{
+                                                                label: item.label,
+                                                                name: item.model,
+                                                                itemType: "vehicle",
+                                                            }} />
+                                                            {isIncluded ? (
+                                                                <div
+                                                                    className="absolute z-10 inset-0 bg-green-500/25 rounded-md flex items-center justify-center opacity-100 group-hover:bg-red-500/50 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
+                                                                    onClick={() => {
+                                                                        // If hovered, remove; otherwise do nothing
+                                                                        setDepartment({
+                                                                            ...department,
+                                                                            ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, vehicles: rank.vehicles.filter((i: number) => i !== item.model) } : rank),
+                                                                        });
+                                                                    }}
+                                                                >
+                                                                    <span className="flex items-center justify-center">
+                                                                        <CheckIcon className={`w-8 h-8 text-white transition-opacity duration-200 ${isIncluded ? 'opacity-100' : 'opacity-0'} group-hover:hidden`} />
+                                                                        <X className="w-8 h-8 text-white absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <div
+                                                                    className="absolute z-10 inset-0 bg-green-500/50 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                                                                    onClick={() => {
+                                                                        setDepartment({
+                                                                            ...department,
+                                                                            ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, vehicles: [...rank.vehicles, item.model] } : rank),
+                                                                        });
+                                                                    }}
+                                                                >
+                                                                    <CheckIcon className="w-8 h-8 text-white" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -678,15 +730,115 @@ function SelectedPermissionModal({permission, onClose, isModalVisible}: {permiss
                                     </div>
                                     <div className="text-sm font-semibold"><Translate id="police_armory" />:</div>
                                     <div className="grid grid-cols-5 gap-2 overflow-y-auto max-h-[250px] px-2">
-                                        {config.policeArmory.map((item: any) => (
-                                            <div className="bg-secondary/50 rounded-md p-1">
-                                                <ItemDisplay key={item.name} item={{
-                                                    label: item.label,
-                                                    name: item.name,
-                                                    itemType: item.itemType || "item",
-                                                }} />
-                                            </div>
-                                        ))}
+                                        {config.policeArmory.map((item: any) => {
+                                            const isIncluded = department.permissions[permission]?.armory?.includes(item.name);
+                                            return (
+                                                <div key={item.name} className="relative bg-secondary/25 rounded-md p-1 group">
+                                                    <ItemDisplay item={{
+                                                        label: item.label,
+                                                        name: item.name,
+                                                        itemType: item.itemType || "item",
+                                                    }} />
+                                                    {isIncluded ? (
+                                                        <div
+                                                            className="absolute z-10 inset-0 bg-green-500/25 rounded-md flex items-center justify-center opacity-100 group-hover:bg-red-500/50 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
+                                                            onClick={() => {
+                                                                // If hovered, remove; otherwise do nothing
+                                                                setDepartment({
+                                                                    ...department,
+                                                                    permissions: {
+                                                                        ...department.permissions,
+                                                                        [permission]: {
+                                                                            ...department.permissions[permission],
+                                                                            armory: department.permissions[permission].armory.filter((i: string) => i !== item.name),
+                                                                        },
+                                                                    },
+                                                                });
+                                                            }}
+                                                        >
+                                                            <span className="flex items-center justify-center">
+                                                                <CheckIcon className={`w-8 h-8 text-white transition-opacity duration-200 ${isIncluded ? 'opacity-100' : 'opacity-0'} group-hover:hidden`} />
+                                                                <X className="w-8 h-8 text-white absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            className="absolute z-10 inset-0 bg-green-500/50 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                                                            onClick={() => {
+                                                                setDepartment({
+                                                                    ...department,
+                                                                    permissions: {
+                                                                        ...department.permissions,
+                                                                        [permission]: {
+                                                                            ...department.permissions[permission],
+                                                                            armory: [...department.permissions[permission].armory, item.name],
+                                                                        },
+                                                                    },
+                                                                });
+                                                            }}
+                                                        >
+                                                            <CheckIcon className="w-8 h-8 text-white" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="text-sm font-semibold"><Translate id="police_garage" />:</div>
+                                    <div className="grid grid-cols-5 gap-2 overflow-y-auto max-h-[250px] px-2">
+                                        {config.policeGarage.map((item: any) => {
+                                            const isIncluded = department.permissions[permission]?.vehicles?.includes(item.model);
+                                            return (
+                                                <div key={item.model} className="relative bg-secondary/25 rounded-md p-1 group">
+                                                    <ItemDisplay item={{
+                                                        label: item.label,
+                                                        name: item.model,
+                                                        itemType: "vehicle",
+                                                    }} />
+                                                    {isIncluded ? (
+                                                        <div
+                                                            className="absolute z-10 inset-0 bg-green-500/25 rounded-md flex items-center justify-center opacity-100 group-hover:bg-red-500/50 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
+                                                            onClick={() => {
+                                                                // If hovered, remove; otherwise do nothing
+                                                                setDepartment({
+                                                                    ...department,
+                                                                    permissions: {
+                                                                        ...department.permissions,
+                                                                        [permission]: {
+                                                                            ...department.permissions[permission],
+                                                                            vehicles: department.permissions[permission].vehicles.filter((i: number) => i !== item.model),
+                                                                        },
+                                                                    },
+                                                                });
+                                                            }}
+                                                        >
+                                                            <span className="flex items-center justify-center">
+                                                                <CheckIcon className={`w-8 h-8 text-white transition-opacity duration-200 ${isIncluded ? 'opacity-100' : 'opacity-0'} group-hover:hidden`} />
+                                                                <X className="w-8 h-8 text-white absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            className="absolute z-10 inset-0 bg-green-500/50 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                                                            onClick={() => {
+                                                                setDepartment({
+                                                                    ...department,
+                                                                    permissions: {
+                                                                        ...department.permissions,
+                                                                        [permission]: {
+                                                                            ...department.permissions[permission],
+                                                                            vehicles: [...department.permissions[permission].vehicles, item.model],
+                                                                        },
+                                                                    },
+                                                                });
+                                                            }}
+                                                        >
+                                                            <CheckIcon className="w-8 h-8 text-white" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -1004,7 +1156,7 @@ function Roster() {
                                     setIsCreatingRank(false);
                                     setDepartment({
                                         ...department,
-                                        ranks: [...department.ranks, { rankId: uniqueRankId, label: rankLabel, managingRankIds: [] }],
+                                        ranks: [...department.ranks, { rankId: uniqueRankId, label: rankLabel, managingRankIds: [], armory: [], vehicles: [] }],
                                     });
                                 }}>
                                     <SaveIcon className="w-4 h-4" />
@@ -1060,7 +1212,7 @@ function Roster() {
                                         ...department,
                                         permissions: {
                                             ...department.permissions,
-                                            [permissionLabel]: { managingRankIds: [] },
+                                            [permissionLabel]: { managingRankIds: [], armory: [], vehicles: [] },
                                         },
                                     });
                                 }}>

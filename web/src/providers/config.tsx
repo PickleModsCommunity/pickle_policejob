@@ -18,7 +18,7 @@ export type Config = {
     }[];
     policeGarage: {
         label: string;
-        model: string;
+        model: number;
     }[];
 }
 
@@ -72,7 +72,10 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "confirm_delete_rank": "Click again to confirm.",
             "delete_permission": "Delete Permission",
             "confirm_delete_permission": "Click again to confirm.",
-            "police_armory": "Police Armory",
+            "police_armory": "Armory",
+            "police_garage": "Garage",
+            "items": "Items",
+            "view_document": "View Document",
         },
         imageDirectory: undefined,
         identifier: "ERR_NO_IDENTIFIER",
@@ -157,19 +160,19 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         policeGarage: [
             {
                 label: "Crown Victoria",
-                model: "crownvictoria",
+                model: -12300341,
             },
             {
                 label: "Police Interceptor",
-                model: "policeinterceptor",
+                model: -12300342,
             },
             {
                 label: "Police Interceptor Utility",
-                model: "policeinterceptorutility",
+                model: -12300343,
             },
             {
                 label: "Police Interceptor Utility",
-                model: "policeinterceptorutility",
+                model: -12300344,
             },
         ],
     });
