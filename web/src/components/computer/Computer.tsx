@@ -11,6 +11,7 @@ import SettingsPage from "./SettingsPage";
 import { createContext } from "react";
 import { useConfig } from "@/providers/config";
 import DocumentContainer, { Document, DocumentDisplay } from "../document/Document";
+import { Location } from "../management/Management";
 
 export type Rank = {
     rankId: number;
@@ -32,6 +33,14 @@ export type Department = {
     ranks: Rank[];
     permissions: Record<string, DepartmentPermission>;
     members: DepartmentMember[];
+    locations: {
+        label: string,
+        type: string,
+        positions: {
+            type: string,
+            location: Location,
+        }[],
+    }[]
 }
 
 type ComputerInfo = {
@@ -287,6 +296,7 @@ function Computer({info}: {info: ComputerInfo}) {
                 "vehicles": [],
             },
         },
+        locations: [],
     });
     // Mouse event handlers for dragging
     const handleMouseDown = (e: React.MouseEvent, window: ComputerWindow) => {
@@ -567,7 +577,7 @@ export const useComputer = (): ComputerContextProps => {
 }
 
 export default function ComputerContainer() {
-    const [computerInfo, setComputerInfo] = useState<ComputerInfo | null>({
+    const [computerInfo, setComputerInfo] = useState<ComputerInfo | null>(true ? null : {
         backgroundImage: "https://www.dojrp.com/uploads/monthly_2022_05/large.DOJRP-LSPD-PA-6.png.bc543f0c421f54fc03cbae19e505d8c8.png",
         homeImage: "nui/images/LSPD.webp"
     });

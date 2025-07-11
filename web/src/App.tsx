@@ -4,6 +4,7 @@ import DocumentContainer from "./components/document/Document"
 import { GarageContainer } from "./components/garage/Garage";
 import { Config, useConfig } from "./providers/config";
 import { Translate } from "./providers/locale/Locale";
+import ManagementDisplay from "./components/management/Management";
 
 export function GetItemLabel({item} : {item: string}) {
   const { config } = useConfig();
@@ -54,9 +55,8 @@ export function AppControls({controls} : {controls?: {key: string, label: any}[]
 function App() {
   return (
     <div className="w-screen h-screen absolute text-primary top-0 left-0 bg-gray-900">
-      {/* <ArmoryContainer /> */}
-      {/* <GarageContainer /> */}
       <ComputerContainer />
+      <ManagementDisplay />
     </div>
   )
 }
