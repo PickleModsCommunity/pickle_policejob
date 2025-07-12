@@ -80,6 +80,7 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "return_to_departments": "Return to Departments",
             "departments": "Departments",
             "department_leader": "Department Leader",
+            "none": "None",
         },
         imageDirectory: undefined,
         identifier: "ERR_NO_IDENTIFIER",

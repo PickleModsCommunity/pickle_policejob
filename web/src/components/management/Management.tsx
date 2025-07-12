@@ -7,6 +7,7 @@ import { useNuiEvent } from "@/providers/nui/useNui"
 import { fetchNui } from "@/providers/nui/fetchNui"
 import { useConfig } from "@/providers/config"
 import { Department } from "../computer/Computer"
+import { Player } from "../computer/RosterPage"
 
 const DEFAULT_LOCATION: Location = {
     coords: {x: 0, y: 0, z: 0},
@@ -56,28 +57,23 @@ function Location({ id, info, defaultLocation, className, onUpdate }: { id?: any
 interface ManagementContextProps {
     departments: Department[];
     setDepartments: (departments: Department[]) => void;
-    currentDepartment: Department | null;
-    setCurrentDepartment: (department: Department | null) => void;
+    currentDepartmentId: number | null;
+    setCurrentDepartmentId: (departmentId: number | null) => void;
+    openDialog: (dialog: any) => void;
+    closeDialog: () => void;
 }
 
 const ManagementContext = createContext<ManagementContextProps | undefined>(undefined);
 
 function ManagementDepartmentList() {
-    const { departments, setCurrentDepartment } = useManagement();
+    const { departments, setCurrentDepartmentId } = useManagement();
     return (
         <div className="flex flex-col gap-2">
             <div  className="px-2 pb-2 font-semibold text-2xl"><Translate id="departments" /></div>
             <hr className="mb-2"/>
             <div className="flex flex-col gap-2 overflow-auto max-h-[950px] px-2">
                 <div className="p-4 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
-                    setCurrentDepartment({
-                        id: -1,
-                        label: "New Department",
-                        ranks: [],
-                        permissions: {},
-                        members: [],
-                        locations: [],
-                    })
+                    setCurrentDepartmentId(-1)
                     fetchNui("createDepartment", {})
                 }}>
                     <Plus size={16} />
@@ -85,7 +81,7 @@ function ManagementDepartmentList() {
                 </div>
                 {departments.map((department) => (
                     <div key={department.id} className="p-4 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
-                        setCurrentDepartment(department)
+                        setCurrentDepartmentId(department.id)
                     }}>
                         <div className="flex flex-row items-center justify-between">
                             <h2 className="text-md font-bold">{department.label}</h2>
@@ -97,21 +93,43 @@ function ManagementDepartmentList() {
     )
 }
 
+function GetDepartmentLeader(department: Department): Player | null {
+    const leader = department.members.find((member) => member.rankId === department.ranks[0].rankId) ?? null;
+    if (!leader) return null;
+    return {
+        name: leader.name,
+        identifier: leader.identifier,
+    }
+}
+
 function ManagementDepartment() {
-    const { currentDepartment, setCurrentDepartment } = useManagement();
-    if (!currentDepartment) return null;
+    const { departments, currentDepartmentId, setCurrentDepartmentId, openDialog } = useManagement();
+    const creatingDepartment = currentDepartmentId === -1;
+    const currentDepartment = departments.find((department) => department.id === currentDepartmentId);
+    if (!currentDepartment && !creatingDepartment) return null;
+    const [label, setLabel] = useState(creatingDepartment ? "New Department" : currentDepartment?.label);
+    const [player, setPlayer] = useState<Player | null>(currentDepartment ? GetDepartmentLeader(currentDepartment) : null);
     return (
         <div className="flex flex-col gap-2">
-            <div className="px-2 pb-2 font-semibold text-2xl">{currentDepartment.label}</div>
+            <div className="px-2 pb-2 font-semibold text-2xl">{label}</div>
             <hr/>
             <div className="flex flex-row gap-2 w-full">
                 <div className="flex flex-row gap-2 items-center justify-between w-full">
                     <div className="font-semibold text-md"><Translate id="department_leader" />:</div>
-                    <div className="text-md">{currentDepartment.members.find((member) => member.rankId === currentDepartment.ranks[0].rankId)?.name}</div>
+                    <div className="p-1 px-2 bg-secondary rounded-md cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
+                        openDialog({
+                            type: "select_player",
+                            onSelect: (player: Player) => {
+                                setPlayer(player)
+                            }
+                        })
+                    }}>
+                        {player ? player.name : <Translate id="none" />}
+                    </div>
                 </div>
             </div>
             <div className="p-4 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
-                setCurrentDepartment(null)
+                setCurrentDepartmentId(null)
             }}>
                 <ArrowLeft size={16} />
                 <h2 className="text-md font-bold"><Translate id="return_to_departments" /></h2>
@@ -122,17 +140,49 @@ function ManagementDepartment() {
 function Management({ defaultDepartments }: { defaultDepartments: Department[] }) {
     const {config} = useConfig()
     const [departments, setDepartments] = useState<Department[]>(defaultDepartments)
-    const [currentDepartment, setCurrentDepartment] = useState<Department | null>(null);
+    const [currentDepartmentId, setCurrentDepartmentId] = useState<number | null>(null);
+    const [dialogVisible, setDialogVisible] = useState(false);
+    const [dialog, setDialog] = useState<any>(null);
+    const openDialog = (dialog: any) => {
+        setDialog(dialog)
+        setTimeout(() => {
+            setDialogVisible(true)
+        }, 10)
+    }
+    const closeDialog = () => {
+        setDialogVisible(false)
+        setTimeout(() => {
+            setDialog(null)
+        }, 300)
+    }
     const value = {
         departments,
         setDepartments,
-        currentDepartment,
-        setCurrentDepartment,
+        currentDepartmentId,
+        setCurrentDepartmentId,
+        openDialog,
+        closeDialog,
     }
     return (
         <ManagementContext.Provider value={value}>
             <div className="flex flex-col gap-2">
-                {currentDepartment ? (
+                {dialog && (
+                    <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black/50 transition-opacity duration-300" style={{opacity: dialogVisible ? 1 : 0}}>
+                        <div className="bg-background p-4 w-[calc(100%-20px)]">
+                            <div className="flex flex-col gap-0">
+                                <div className="w-full h-[50px] bg-secondary flex items-center justify-center">
+                                    <div className="font-semibold text-md">{dialog.title}</div>
+                                </div>
+                                {dialog.type === "select_player" && (
+                                    <div className="flex flex-col gap-2">
+                                        balls
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {currentDepartmentId !== null ? (
                     <ManagementDepartment />
                 ) : (
                     <ManagementDepartmentList />

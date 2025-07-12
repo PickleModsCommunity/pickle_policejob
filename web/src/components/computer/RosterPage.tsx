@@ -98,7 +98,7 @@ export function CanRankManagePermission(managingRankId: number, permission: stri
 
 export type Player = {
     name: string;
-    source: string;
+    source?: string;
     identifier: string;
 }
 
