@@ -98,7 +98,7 @@ export function CanRankManagePermission(managingRankId: number, permission: stri
 
 export type Player = {
     name: string;
-    source?: string;
+    source?: number;
     identifier: string;
 }
 
@@ -872,17 +872,17 @@ function Roster() {
         {
             name: "John Doe",
             identifier: "ident:A",
-            source: "1",
+            source: 1,
         },
         {
             name: "Jane Doe",
             identifier: "ident:B",
-            source: "2",
+            source: 2,
         },
         {
             name: "John Doe",
             identifier: "ident:C",
-            source: "3",
+            source: 3,
         },
     ]);
     const rankIndex = department.ranks.findIndex((rank) => rank.rankId === player?.rankId);
@@ -1050,7 +1050,7 @@ function Roster() {
                     rankIndex: department.ranks.findIndex((rank) => rank.rankId === member.rankId),
                     onDutyTimeDisplay: GetStopwatchTime(member.onDutyTime),
                     lastShift: member.recentDutyLogs.length > 0 ? new Date((member.recentDutyLogs[0].finish - member.recentDutyLogs[0].duration) * 1000).toLocaleString() : "Never",
-                    action: (<div className="flex items-center gap-2">
+                    action: (<div className="flex items-center gap-2 justify-end">
                         <Button variant="outline" size="icon" onClick={() => handleMemberSelect(member)} >
                             <EyeIcon className="w-4 h-4"/>
                         </Button>

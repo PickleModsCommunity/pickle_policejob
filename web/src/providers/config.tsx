@@ -20,6 +20,11 @@ export type Config = {
         label: string;
         model: number;
     }[];
+    locationTypes: {
+        [key: string]: {
+            locations: string[];
+        };
+    };
 }
 
 interface ConfigContextProps {
@@ -81,6 +86,27 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "departments": "Departments",
             "department_leader": "Department Leader",
             "none": "None",
+            "locations": "Locations",
+            "location_front_desk": "Front Desk",
+            "location_armory": "Armory",
+            "location_garage": "Garage",
+            "id": "ID: %s",
+            "return_to_locations": "Return to Locations",
+            "create_location": "Create Location",
+            "location_point": "Location",
+            "location_garage_spawn": "Garage Spawn",
+            "location_type": "Location Type",
+            "location_create": "Create Location",
+            "location_delete": "Delete Location",
+            "select_player": "Select Player",
+            "default_department_name": "New Department",
+            "delete_department": "Delete Department",
+            "delete_department_confirm": "Are you sure you want to delete this department?",
+            "yes": "Yes",
+            "no": "No",
+            "default_rank_name": "Chief",
+            "focus_off" : "Focus In-Game",
+            "focus_on" : "Focus Menu",
         },
         imageDirectory: undefined,
         identifier: "ERR_NO_IDENTIFIER",
@@ -180,6 +206,17 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 model: -12300344,
             },
         ],
+        locationTypes: {
+            "front_desk": {
+                locations: [],
+            },
+            "armory": {
+                locations: [],
+            },
+            "garage": {
+                locations: ["garage_spawn"],
+            },
+        }
     });
     useNuiEvent('setConfig', (data) => {
         setConfig({ ...config, ...data.config });

@@ -33,14 +33,13 @@ export type Department = {
     ranks: Rank[];
     permissions: Record<string, DepartmentPermission>;
     members: DepartmentMember[];
-    locations: {
-        label: string,
-        type: string,
-        positions: {
-            type: string,
-            location: Location,
-        }[],
-    }[]
+    locations: DepartmentLocation[];
+}
+
+export type DepartmentLocation = {
+    id: number,
+    type: string,
+    positions: Record<string, Location>,
 }
 
 type ComputerInfo = {

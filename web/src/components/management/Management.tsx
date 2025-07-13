@@ -1,13 +1,14 @@
-import { Translate } from "@/providers/locale/Locale"
+import { Translate, translateText } from "@/providers/locale/Locale"
 import { createContext, useContext, useEffect, useState } from "react"
 import { Button } from "../ui/button"
-import { ArrowLeft, Edit, Plus, Save } from "lucide-react"
+import { ArrowLeft, Edit, EyeIcon, Plus, Save, Trash, X } from "lucide-react"
 import { AppControls } from "@/App"
 import { useNuiEvent } from "@/providers/nui/useNui"
 import { fetchNui } from "@/providers/nui/fetchNui"
 import { useConfig } from "@/providers/config"
-import { Department } from "../computer/Computer"
+import { Department, DepartmentLocation } from "../computer/Computer"
 import { Player } from "../computer/RosterPage"
+import Table from "../table/Table"
 
 const DEFAULT_LOCATION: Location = {
     coords: {x: 0, y: 0, z: 0},
@@ -102,41 +103,368 @@ function GetDepartmentLeader(department: Department): Player | null {
     }
 }
 
+function ManagementLocation({ location, onExit, onUpdate, onCreate, onDelete }: { location: DepartmentLocation, onExit: () => void, onUpdate?: (location: DepartmentLocation) => void, onCreate?: (location: DepartmentLocation) => void, onDelete?: () => void }) {
+    const { config } = useConfig();
+    const isCreating = location.id === -1;
+    const [type, setType] = useState(location.type);
+    const locationTypes = config.locationTypes;
+    const locationType = locationTypes[type];
+    if (!locationType.locations.includes("point")) {
+        locationType.locations.unshift("point");
+    }
+    const [positions, setPositions] = useState(location.positions);
+    return (
+        <div className="flex flex-col gap-2">
+            {isCreating && (
+                <div className="flex flex-row gap-2 items-center justify-between w-full">
+                    <div className="font-semibold text-md"><Translate id={`location_type`} />:</div>
+                    <select className="bg-background text-sm text-muted-foreground cursor-pointer transition-all duration-200" value={type} onChange={(e) => setType(e.target.value)}>
+                        {Object.keys(locationTypes).map((locationType) => (
+                            <option key={locationType} value={locationType}>{<Translate id={`location_${locationType}`} />}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+            {locationTypes[type].locations.map((locationType) => (
+                <div className="flex flex-row gap-2 items-center justify-between w-full" key={locationType}>
+                    <div className="font-semibold text-md"><Translate id={`location_${locationType}`} />:</div>
+                    <Location className="text-muted-foreground text-sm" id={locationType} defaultLocation={positions[locationType] || DEFAULT_LOCATION} onUpdate={(location) => {
+                        setPositions({
+                            ...positions,
+                            [locationType]: location
+                        })
+                    }} />
+                </div>
+            ))}
+            {isCreating ? (
+                <div onClick={() => onCreate && onCreate({
+                    id: -1,
+                    type: type,
+                    positions: positions,
+                })} className="p-2 bg-green-600 cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" key={location.id}>
+                    <Save size={16}/>
+                    <Translate id="location_create" />
+                </div>
+            ) : (
+                <div onClick={() => onDelete && onDelete()} className="p-2 bg-red-600 cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" key={location.id}>
+                    <Trash size={16}/>
+                    <Translate id="location_delete" />
+                </div>
+            )}
+            <div onClick={() => onExit()} className="p-2 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" key={location.id}>
+                <ArrowLeft size={16}/>
+                <Translate id="return_to_locations" />
+            </div>
+        </div>
+    )
+}
+
 function ManagementDepartment() {
-    const { departments, currentDepartmentId, setCurrentDepartmentId, openDialog } = useManagement();
+    const { departments, setDepartments, currentDepartmentId, setCurrentDepartmentId, openDialog, closeDialog } = useManagement();
     const creatingDepartment = currentDepartmentId === -1;
     const currentDepartment = departments.find((department) => department.id === currentDepartmentId);
     if (!currentDepartment && !creatingDepartment) return null;
-    const [label, setLabel] = useState(creatingDepartment ? "New Department" : currentDepartment?.label);
+    const { config } = useConfig();
+    const [label, setLabel] = useState<string>(creatingDepartment ? translateText(config, "default_department_name", []) : currentDepartment?.label || "");
+    const [editingLabel, setEditingLabel] = useState(false);
     const [player, setPlayer] = useState<Player | null>(currentDepartment ? GetDepartmentLeader(currentDepartment) : null);
+    const [location, setLocation] = useState<DepartmentLocation | null>(null);
+    const [locations, setLocations] = useState<DepartmentLocation[]>(currentDepartment?.locations || []);
     return (
-        <div className="flex flex-col gap-2">
-            <div className="px-2 pb-2 font-semibold text-2xl">{label}</div>
+        <div className="flex flex-col gap-2 select-none">
+            <div className="flex flex-row gap-2 items-center justify-between w-full">
+                {editingLabel ? (
+                    <input className="px-2 pb-2 border-b-2 border-primary bg-background text-2xl cursor-pointer transition-all duration-200" value={label} onChange={(e) => setLabel(e.target.value)} />
+                ) : (
+                    <div className="px-2 pb-2 font-semibold text-2xl">{label}</div>
+                )}
+                {editingLabel ? (
+                    <Save size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
+                        setDepartments(departments.map((department) => {
+                            if (department.id === currentDepartmentId) {
+                                return {
+                                    ...department,
+                                    label: label
+                                }
+                            }
+                            return department;
+                        }))
+                        setEditingLabel(false)
+                    }}/>
+                ) : (
+                    <Edit size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
+                        setEditingLabel(true)
+                    }}/>
+                )}
+            </div>
             <hr/>
-            <div className="flex flex-row gap-2 w-full">
+            <div className="flex flex-col gap-2 w-full px-2">
                 <div className="flex flex-row gap-2 items-center justify-between w-full">
                     <div className="font-semibold text-md"><Translate id="department_leader" />:</div>
                     <div className="p-1 px-2 bg-secondary rounded-md cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
                         openDialog({
+                            title: <Translate id="select_player" />,
                             type: "select_player",
-                            onSelect: (player: Player) => {
-                                setPlayer(player)
+                            onSelect: (newPlayer: Player) => {
+                                setPlayer(newPlayer)
+                                if (!creatingDepartment && currentDepartment) {
+                                    let members = currentDepartment.members;
+                                    if (members.find((member) => member.identifier === newPlayer.identifier)) { // Is player already a member?
+                                        members = members.map((member) => {
+                                            if (member.identifier === newPlayer.identifier) {
+                                                return {
+                                                    ...member,
+                                                    rankId: currentDepartment.ranks[0].rankId
+                                                }
+                                            }
+                                            return member;
+                                        })
+                                    } else {
+                                        members.push({
+                                            identifier: newPlayer.identifier,
+                                            name: newPlayer.name,
+                                            rankId: currentDepartment.ranks[0].rankId,
+                                            recentDutyLogs: [],
+                                            permissions: [],
+                                            onDutyTime: 0,
+                                        })
+                                    }
+                                    if (currentDepartment.ranks.length > 1) { // Demote the current leader, set current leader
+                                        members = members.map((member) => {
+                                            if (member.identifier === player?.identifier) {
+                                                return {
+                                                    ...member,
+                                                    rankId: currentDepartment.ranks[1].rankId
+                                                }
+                                            }
+                                            return member;
+                                        })
+                                    } else { // Fire the current leader, set new leader
+                                        members = members.filter((member) => member.identifier !== player?.identifier)
+                                    }
+                                    const updatedDepartments = departments.map((department) => {
+                                        if (department.id === currentDepartmentId) {
+                                            return {
+                                                ...department,
+                                                members: members
+                                            }
+                                        }
+                                        return department;
+                                    })
+                                    setDepartments(updatedDepartments)
+                                }
+                                closeDialog()
                             }
                         })
                     }}>
                         {player ? player.name : <Translate id="none" />}
                     </div>
                 </div>
+                <div className="font-semibold text-md"><Translate id="locations" />:</div>
+                <hr/>
+                <div className="flex flex-col gap-2 overflow-auto max-h-[300px] px-2">
+                    {location ? (
+                        <ManagementLocation 
+                            location={location} 
+                            onExit={() => setLocation(null)} 
+                            onUpdate={setLocation} 
+                            onDelete={() => {
+                                setLocations(locations.filter((targetLocation) => location.id !== targetLocation.id))
+                                if (location.id === -1) return;
+                                setDepartments(departments.map((department) => {
+                                    if (department.id === currentDepartmentId) {
+                                        return {
+                                            ...department,
+                                            locations: department.locations.filter((targetLocation) => location.id !== targetLocation.id)
+                                        }
+                                    }
+                                    return department;
+                                }))
+                                setLocation(null)
+                            }} onCreate={(location: DepartmentLocation) => {
+                                let newLocationId = 1;
+                                for (const location of locations) {
+                                    if (location.id >= newLocationId) {
+                                        newLocationId = location.id + 1;
+                                    }
+                                }
+                                setLocations([...locations, {
+                                    id: newLocationId,
+                                    type: location.type,
+                                    positions: location.positions,
+                                }])
+                                if (!creatingDepartment) {
+                                    setDepartments(departments.map((department) => {
+                                        if (department.id === currentDepartmentId) {
+                                            return {
+                                                ...department,
+                                                locations: [...department.locations]
+                                            }
+                                        }
+                                        return department;
+                                    }))
+                                }
+                                setLocation(null)
+                            }} 
+                        />
+                    ) : (
+                        <>
+                        <div className="px-4 py-2 bg-secondary font-semibold cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
+                            setLocation({
+                                id: -1,
+                                type: "front_desk",
+                                positions: {
+                                    "point": {
+                                        coords: {
+                                            x: 20,
+                                            y: 30,
+                                            z: 40,
+                                        },
+                                    },
+                                },
+                            })
+                        }}>
+                            <Plus size={16} />
+                            <Translate id="create_location" />
+                        </div>
+                        {locations.map((location) => (
+                            <div onClick={() => setLocation(location)} className="px-4 py-2 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-between" key={location.id}>
+                                <Translate id={`location_${location.type}`} />
+                                <div><Translate id="id" args={[location.id]} /></div>
+                            </div>
+                        ))}
+                        </>
+                    )}
+
+                </div>
             </div>
-            <div className="p-4 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
-                setCurrentDepartmentId(null)
-            }}>
-                <ArrowLeft size={16} />
-                <h2 className="text-md font-bold"><Translate id="return_to_departments" /></h2>
+            <hr/>
+            <div className="px-2 flex flex-col gap-2">
+                {creatingDepartment ? (
+                    <div className="p-4 bg-green-600 cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
+                        setCurrentDepartmentId(null)
+                        setDepartments([...departments, {
+                            id: departments.length + 1,
+                            label: label,
+                            members: player ? [
+                                {
+                                    identifier: player?.identifier || "",
+                                    name: player?.name || "",
+                                    rankId: 1,
+                                    recentDutyLogs: [],
+                                    permissions: [],
+                                    onDutyTime: 0,
+                                }
+                            ] : [],
+                            locations: locations,
+                            ranks: [
+                                {
+                                    rankId: 1,
+                                    label: translateText(config, "default_rank_name", []),
+                                    managingRankIds: [],
+                                    armory: [],
+                                    vehicles: [],
+                                }
+                            ],
+                            permissions: {},
+                        }])
+                    }}>
+                        <Save size={16} />
+                        <h2 className="text-md font-bold"><Translate id="create_department" /></h2>
+                    </div>
+                ) : (
+                    <div className="p-4 bg-red-600 cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
+                        openDialog({
+                            title: <Translate id="delete_department" />,
+                            type: "delete_department",
+                            onConfirm: () => {
+                                setDepartments(departments.filter((department) => department.id !== currentDepartmentId))
+                                setCurrentDepartmentId(null)
+                                closeDialog()
+                            }
+                        })
+                    }}>
+                        <Trash size={16} />
+                        <h2 className="text-md font-bold"><Translate id="delete_department" /></h2>
+                    </div>
+                )}
+                <div className="p-4 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
+                    setCurrentDepartmentId(null)
+                }}>
+                    <ArrowLeft size={16} />
+                    <h2 className="text-md font-bold"><Translate id="return_to_departments" /></h2>
+                </div>
             </div>
         </div>
     )
 }
+
+function SelectPlayerDialog({onSelect}: {onSelect: (player: Player) => void}) {
+    const [players, setPlayers] = useState<Player[]>([])
+    useEffect(() => {
+        fetchNui("getPlayers", {}).then((data: any) => {
+            setPlayers(data.players)
+        }).catch((error: any) => {
+            setPlayers([
+                {
+                    name: "John Doe",
+                    source: 1,
+                    identifier: "char1:1234567890",
+                },
+                {
+                    name: "Jane Doe",
+                    source: 2,
+                    identifier: "char1:1234567891",
+                },
+                {
+                    name: "John Doe",
+                    source: 3,
+                    identifier: "char1:1234567892",
+                },
+                {
+                    name: "John Doe",
+                    source: 4,
+                    identifier: "char1:1234567893",
+                },
+                {
+                    name: "John Doe",
+                    source: 5,
+                    identifier: "char1:1234567894",
+                },
+            ])
+        })
+    }, [])
+    return (
+        <div className="flex flex-col gap-2 overflow-auto">
+            <div className="font-semibold text-md"><Translate id="select_player" />: </div>
+            <Table maxHeight="100%" defaultSortKey="source" data={players.map((player) => ({
+                ...player,
+                source: player.source?.toString() || "Unknown",
+                action: (<div className="flex items-center gap-2 justify-end">
+                    <Button variant="outline" size="icon" onClick={() => {
+                        onSelect(player)                        
+                    }}>
+                        <Plus size={16} />
+                    </Button>
+                </div>)
+            }))} columns={[
+                {
+                    key: "source",
+                    header: "Source",
+                },
+                {
+                    key: "name",
+                    header: "Name",
+                },
+                {
+                    key: "action",
+                    header: "",
+                },
+            ]} />
+        </div>
+    )
+}
+
 function Management({ defaultDepartments }: { defaultDepartments: Department[] }) {
     const {config} = useConfig()
     const [departments, setDepartments] = useState<Department[]>(defaultDepartments)
@@ -165,17 +493,28 @@ function Management({ defaultDepartments }: { defaultDepartments: Department[] }
     }
     return (
         <ManagementContext.Provider value={value}>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 select-none">
                 {dialog && (
-                    <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black/50 transition-opacity duration-300" style={{opacity: dialogVisible ? 1 : 0}}>
-                        <div className="bg-background p-4 w-[calc(100%-20px)]">
-                            <div className="flex flex-col gap-0">
-                                <div className="w-full h-[50px] bg-secondary flex items-center justify-center">
-                                    <div className="font-semibold text-md">{dialog.title}</div>
+                    <div className="z-10 absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black/50 transition-opacity duration-300" style={{opacity: dialogVisible ? 1 : 0}}>
+                        <div className="bg-background w-[calc(100%-20px)]">
+                            <div className="relative w-full h-[50px] bg-secondary flex items-center justify-center">
+                                <div className="font-semibold text-md">{dialog.title}</div>
+                                <div className="absolute right-0 top-0 w-[50px] h-[50px] flex items-center cursor-pointer justify-center bg-red-600 hover:bg-red-700 transition-all duration-200" onClick={closeDialog}>
+                                    <X size={20} className="cursor-pointer hover:scale-95 transition-all duration-200"/>
                                 </div>
+                            </div>
+                            <div className="flex flex-col gap-0 p-2 max-h-[300px]">
                                 {dialog.type === "select_player" && (
+                                    <SelectPlayerDialog onSelect={dialog.onSelect} />
+                                )}
+                                {dialog.type === "delete_department" && (
                                     <div className="flex flex-col gap-2">
-                                        balls
+                                        <div className="font-semibold text-md"><Translate id="delete_department_confirm" /></div>
+                                        <div className="flex flex-row gap-2 justify-end">
+                                            <Button className="px-8" variant="outline" size="icon" onClick={dialog.onConfirm}>
+                                               <Translate id="yes" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -204,233 +543,11 @@ function useManagement(): ManagementContextProps {
 }
 
 export default function ManagementDisplay() {
-    const [visible, setVisible] = useState(true)
-    const [departments, setDepartments] = useState<Department[]>([
-        {
-            id: 11,
-            label: "Los Santos Police Department",
-            ranks: [
-                {
-                    "rankId":1,
-                    "label":"Chief", 
-                    "managingRankIds":[],
-                    "armory": [],
-                    "vehicles": [],
-                },
-                {
-                    "rankId":2,
-                    "label":"Lieutenant", 
-                    "managingRankIds":[],
-                    "armory": [],
-                    "vehicles": [],
-                },
-                {
-                    "rankId":3,
-                    "label":"Sergeant",
-                    "managingRankIds":[2],
-                    "armory": [],
-                    "vehicles": [],
-                },
-                {
-                    "rankId":4,
-                    "label":"Officer",
-                    "managingRankIds":[1,2,3],
-                    "armory": [],
-                    "vehicles": [],
-                },
-                {
-                    "rankId":5,
-                    "label":"Recruit",
-                    "managingRankIds":[1,2,3],
-                    "armory": [],
-                    "vehicles": [],
-                },
-            ],
-            members: [
-                {
-                    "identifier": "char1:eeee",
-                    "name": "Michael Rodriguez",
-                    "rankId": 4,
-                    "recentDutyLogs": [],
-                    "permissions": ["Rifle Certified", "Field Training Officer"],
-                    "onDutyTime": 22,
-                },
-                {
-                    "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138b",
-                    "name": "Sarah Johnson",
-                    "rankId": 2,
-                    "recentDutyLogs": [],
-                    "permissions": ["Rifle Certified", "Air Certified", "Field Training Officer"],
-                    "onDutyTime": 256,
-                },
-                {
-                    "identifier": "char1:eeee2",
-                    "name": "David Chen",
-                    "rankId": 4,
-                    "recentDutyLogs": [],
-                    "permissions": [],
-                    "onDutyTime": 12020,
-                },
-                {
-                    "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138c",
-                    "name": "Emily Thompson",
-                    "rankId": 2,
-                    "recentDutyLogs": [],
-                    "permissions": [],
-                    "onDutyTime": 42001,
-                },
-                {
-                    "identifier": "char1:eeee3",
-                    "name": "James Wilson",
-                    "rankId": 4,
-                    "recentDutyLogs": [],
-                    "permissions": [],
-                    "onDutyTime": 2233,
-                },
-                {
-                    "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138d",
-                    "name": "Lisa Martinez",
-                    "rankId": 2,
-                    "recentDutyLogs": [],
-                    "permissions": [],
-                    "onDutyTime": 54321,
-                },
-                {
-                    "identifier": "char1:eeee4",
-                    "name": "Robert Kim",
-                    "rankId": 4,
-                    "recentDutyLogs": [],
-                    "permissions": [],
-                    "onDutyTime": 2222,
-                },
-                {
-                    "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138e",
-                    "name": "Jennifer Davis",
-                    "rankId": 2,
-                    "recentDutyLogs": [],
-                    "permissions": [],
-                    "onDutyTime": 1123,
-                },
-                {
-                    "identifier": "char1:eeee5",
-                    "name": "Christopher Lee",
-                    "rankId": 4,
-                    "recentDutyLogs": [],
-                    "permissions": [],
-                    "onDutyTime": 52431,
-                },
-                {
-                    "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138f",
-                    "name": "Amanda Garcia",
-                    "rankId": 2,
-                    "recentDutyLogs": [
-                        {
-                            "duration": 8,
-                            "finishTimestamp": "06\/19\/2025 05:04 PM",
-                            "startTimestamp": "06\/19\/2025 05:04 PM",
-                            "finish": 1760374288
-                        },
-                    ],
-                    "permissions": [],
-                    "onDutyTime": 2442,
-                },
-                {
-                    "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138a",
-                    "name": "Marcus Williams",
-                    "rankId": 1,
-                    "recentDutyLogs": [
-                        {
-                            "duration": 8,
-                            "report": "a",
-                            "finishTimestamp": "06\/19\/2025 05:04 PM",
-                            "startTimestamp": "06\/19\/2025 05:04 PM",
-                            "finish": 1750374288
-                        },
-                        {
-                            "duration": 18,
-                            "finishTimestamp": "06\/18\/2025 02:20 PM",
-                            "startTimestamp": "06\/18\/2025 02:20 PM",
-                            "finish": 1750278018
-                        },
-                        {
-                            "duration": 7,
-                            "finishTimestamp": "06\/18\/2025 07:25 AM",
-                            "startTimestamp": "06\/18\/2025 07:25 AM",
-                            "finish": 1750253124
-                        },
-                        {
-                            "duration": 23,
-                            "startTimestamp": "06\/17\/2025 11:59 AM",
-                            "finishTimestamp": "06\/17\/2025 11:59 AM",
-                            "finish": 1750183198
-                        },
-                        {
-                            "duration": 7,
-                            "startTimestamp": "06\/17\/2025 11:41 AM",
-                            "report": "Aaaaaa",
-                            "finishTimestamp": "06\/17\/2025 11:41 AM",
-                            "finish": 1750182092
-                        },
-                        {
-                            "duration": 16,
-                            "startTimestamp": "06\/17\/2025 11:20 AM",
-                            "report": "I am tired\n",
-                            "finishTimestamp": "06\/17\/2025 11:20 AM",
-                            "finish": 1750180829
-                        },
-                        {
-                            "duration": 6,
-                            "finishTimestamp": "06\/17\/2025 04:29 AM",
-                            "startTimestamp": "06\/17\/2025 04:29 AM",
-                            "finish": 1750156199
-                        },
-                        {
-                            "duration": 72441,
-                            "finishTimestamp": "06\/16\/2025 08:01 AM",
-                            "startTimestamp": "06\/15\/2025 11:53 AM",
-                            "finish": 1750082474
-                        },
-                        {
-                            "duration": 7,
-                            "finishTimestamp": "06\/15\/2025 08:04 AM",
-                            "startTimestamp": "06\/15\/2025 08:04 AM",
-                            "finish": 1749996260
-                        },
-                        {
-                            "duration": 260,
-                            "finishTimestamp": "06\/15\/2025 08:03 AM",
-                            "startTimestamp": "06\/15\/2025 07:58 AM",
-                            "finish": 1749996181
-                        }
-                    ],
-                    "permissions": [
-                    ],
-                    "onDutyTime": 72932,
-                },
-            ],
-            permissions: {
-                "Air Certified": {
-                    "managingRankIds": [2],
-                    "armory": [],
-                    "vehicles": [],
-                },
-                "Field Training Officer": {
-                    "managingRankIds": [2, 3],
-                    "armory": [],
-                    "vehicles": [],
-                },
-                "Rifle Certified": {
-                    "managingRankIds": [2, 3],
-                    "armory": [],
-                    "vehicles": [],
-                },
-            },
-            locations: [],
-        }
-    ])
-    const [focus, setFocus] = useState(true)
-    const [hidden, setHidden] = useState(false)
-    useNuiEvent("setEditorHidden", (data: any) => {
+    const [visible, setVisible] = useState(false)
+    const [departments, setDepartments] = useState<Department[]>([])
+    const [focus, setFocus] = useState(false)
+    const [hidden, setHidden] = useState(true)
+    useNuiEvent("setManagementHidden", (data: any) => {
         setHidden(data.hidden)
     });
     useEffect(() => {
@@ -438,10 +555,10 @@ export default function ManagementDisplay() {
             if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
             if (!visible) return;
             if (event.key === "Escape" || event.key === "Backspace") {
-                fetchNui("exitCasinoEditor", {});
+                fetchNui("exitManagementEditor", {});
             }
             if (event.key === "g") {
-                fetchNui("disableEditorFocus", {});
+                fetchNui("disableManagementFocus", {});
             }
         };
 
@@ -451,7 +568,7 @@ export default function ManagementDisplay() {
             window.removeEventListener("keydown", handleKeyDown);
         };
     });
-    useNuiEvent("setEditorFocus", (data: any) => {
+    useNuiEvent("setManagementFocus", (data: any) => {
         setFocus(data.toggle)
     });
     useNuiEvent("openManagementEditor", (data: any) => {
@@ -462,7 +579,7 @@ export default function ManagementDisplay() {
             setHidden(false)
         }, 50)
     });
-    useNuiEvent("closeCasinoEditor", () => {
+    useNuiEvent("closeManagementEditor", () => {
         setHidden(true)
         setFocus(false)
         setTimeout(() => {
@@ -470,7 +587,7 @@ export default function ManagementDisplay() {
         }, 300)
     });
     return (
-        <div className="dark w-screen h-screen absolute text-primary top-0 left-0 bg-gray-900 flex items-center justify-center">
+        <div className="dark w-screen h-screen absolute text-primary top-0 left-0 flex items-center justify-center">
             {(visible && !hidden) && <AppControls controls={[{key: "G", label: <Translate id={"focus_" + (focus ? "off" :  "on")}/>}]} />}
             {visible && (
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
