@@ -403,7 +403,13 @@ function ManagementDepartment() {
                             title: <Translate id="delete_department" />,
                             type: "delete_department",
                             onConfirm: () => {
-                                setDepartments(departments.filter((department) => department.id !== currentDepartmentId))
+                                fetchNui("managementAction", {
+                                    action: "deleteDepartment",
+                                    data: {
+                                        departmentId: currentDepartmentId,
+                                    },
+                                })
+                                // setDepartments(departments.filter((department) => department.id !== currentDepartmentId))
                                 setCurrentDepartmentId(null)
                                 closeDialog()
                             }
@@ -490,20 +496,40 @@ function Management({ defaultDepartments }: { defaultDepartments: Department[] }
         openDialog,
         closeDialog,
     }
-    useNuiEvent("updateManagementMembers", (data: any) => {
-        setDepartments(departments.map((department) => {
-            if (department.id === data.departmentId) {
-                return {
-                    ...department,
-                    members: data.members,
+    useNuiEvent("updateManagement", (rawdata: any) => {
+        const data = rawdata.data;
+        if (data.type === "updateMembers") {
+            setDepartments(departments.map((department) => {
+                if (department.id === data.departmentId) {
+                    return {
+                        ...department,
+                        members: data.members,
+                    }
                 }
-            }
-            return department;
-        }))
+                return department;
+            }))
+        } else if (data.type === "createDepartment") {
+            setDepartments([...departments, data.department])
+        } else if (data.type === "deleteDepartment") {
+            setDepartments(departments.filter((department) => department.id !== data.departmentId))
+        } else {
+            console.log("Unknown updateManagement type", JSON.stringify(data, null, 2))
+        }
     })
-    useNuiEvent("createManagementDepartment", (data: any) => {
-        setDepartments([...departments, data.department])
-    })
+    // useNuiEvent("updateManagementMembers", (data: any) => {
+    //     setDepartments(departments.map((department) => {
+    //         if (department.id === data.departmentId) {
+    //             return {
+    //                 ...department,
+    //                 members: data.members,
+    //             }
+    //         }
+    //         return department;
+    //     }))
+    // })
+    // useNuiEvent("createManagementDepartment", (data: any) => {
+    //     setDepartments([...departments, data.department])
+    // })
     return (
         <ManagementContext.Provider value={value}>
             <div className="flex flex-col gap-2 select-none">

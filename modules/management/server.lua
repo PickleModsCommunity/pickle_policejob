@@ -98,6 +98,18 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
                 })
             end
         end)
+    elseif action == "deleteDepartment" then
+        MySQL.query('DELETE FROM `pickle_police_departments` WHERE `id` = ?', {
+            data.departmentId,
+        }, function()
+            DeleteDepartment(data.departmentId)
+            for k, v in pairs(InManagement) do
+                TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
+                    type = "deleteDepartment",  
+                    departmentId = data.departmentId,
+                })
+            end
+        end)
     end
 end)
 

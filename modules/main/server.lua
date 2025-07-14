@@ -60,6 +60,11 @@ function UpdateDepartmentSQL(id, columnId)
     end
 end
 
+function DeleteDepartment(id)
+    Departments[id] = nil
+    TriggerClientEvent("pickle_policejob:deleteDepartment", -1, id)
+end
+
 function GetDepartment(id)
     return Departments[id]
 end

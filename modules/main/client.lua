@@ -212,6 +212,16 @@ RegisterNetEvent("pickle_policejob:initializeDepartment", function(id, departmen
     end
 end)
 
+RegisterNetEvent("pickle_policejob:deleteDepartment", function(id)
+    -- TODO: Remove locations and cleanup local departments
+    Departments[id] = nil
+    for k, v in pairs(LocalDepartments) do
+        if k == id then
+            LocalDepartments[k] = nil
+        end
+    end
+end)
+
 AddEventHandler("onResourceStart", function(resource)
     if resource == GetCurrentResourceName() then
         Wait(1000)
