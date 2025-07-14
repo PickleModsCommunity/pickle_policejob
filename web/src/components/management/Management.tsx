@@ -75,7 +75,6 @@ function ManagementDepartmentList() {
             <div className="flex flex-col gap-2 overflow-auto max-h-[950px] px-2">
                 <div className="p-4 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
                     setCurrentDepartmentId(-1)
-                    fetchNui("createDepartment", {})
                 }}>
                     <Plus size={16} />
                     <h2 className="text-md font-bold"><Translate id="create_department" /></h2>
@@ -170,6 +169,10 @@ function ManagementDepartment() {
     const [player, setPlayer] = useState<Player | null>(currentDepartment ? GetDepartmentLeader(currentDepartment) : null);
     const [location, setLocation] = useState<DepartmentLocation | null>(null);
     const [locations, setLocations] = useState<DepartmentLocation[]>(currentDepartment?.locations || []);
+    useEffect(() => {
+        if (!currentDepartment) return;
+        setPlayer(GetDepartmentLeader(currentDepartment))
+    }, [departments])
     return (
         <div className="flex flex-col gap-2 select-none">
             <div className="flex flex-row gap-2 items-center justify-between w-full">
@@ -206,53 +209,64 @@ function ManagementDepartment() {
                             title: <Translate id="select_player" />,
                             type: "select_player",
                             onSelect: (newPlayer: Player) => {
-                                setPlayer(newPlayer)
-                                if (!creatingDepartment && currentDepartment) {
-                                    let members = currentDepartment.members;
-                                    if (members.find((member) => member.identifier === newPlayer.identifier)) { // Is player already a member?
-                                        members = members.map((member) => {
-                                            if (member.identifier === newPlayer.identifier) {
-                                                return {
-                                                    ...member,
-                                                    rankId: currentDepartment.ranks[0].rankId
-                                                }
-                                            }
-                                            return member;
-                                        })
-                                    } else {
-                                        members.push({
-                                            identifier: newPlayer.identifier,
-                                            name: newPlayer.name,
-                                            rankId: currentDepartment.ranks[0].rankId,
-                                            recentDutyLogs: [],
-                                            permissions: [],
-                                            onDutyTime: 0,
-                                        })
-                                    }
-                                    if (currentDepartment.ranks.length > 1) { // Demote the current leader, set current leader
-                                        members = members.map((member) => {
-                                            if (member.identifier === player?.identifier) {
-                                                return {
-                                                    ...member,
-                                                    rankId: currentDepartment.ranks[1].rankId
-                                                }
-                                            }
-                                            return member;
-                                        })
-                                    } else { // Fire the current leader, set new leader
-                                        members = members.filter((member) => member.identifier !== player?.identifier)
-                                    }
-                                    const updatedDepartments = departments.map((department) => {
-                                        if (department.id === currentDepartmentId) {
-                                            return {
-                                                ...department,
-                                                members: members
-                                            }
-                                        }
-                                        return department;
-                                    })
-                                    setDepartments(updatedDepartments)
+                                if (creatingDepartment) {
+                                    setPlayer(newPlayer)
                                 }
+                                else {
+                                    fetchNui("managementAction", {
+                                        action: "setDepartmentLeader",
+                                        data: {
+                                            departmentId: currentDepartmentId,
+                                            source: newPlayer.source,
+                                        }
+                                    })
+                                }
+                                // if (!creatingDepartment && currentDepartment) {
+                                //     let members = currentDepartment.members;
+                                //     if (members.find((member) => member.identifier === newPlayer.identifier)) { // Is player already a member?
+                                //         members = members.map((member) => {
+                                //             if (member.identifier === newPlayer.identifier) {
+                                //                 return {
+                                //                     ...member,
+                                //                     rankId: currentDepartment.ranks[0].rankId
+                                //                 }
+                                //             }
+                                //             return member;
+                                //         })
+                                //     } else {
+                                //         members.push({
+                                //             identifier: newPlayer.identifier,
+                                //             name: newPlayer.name,
+                                //             rankId: currentDepartment.ranks[0].rankId,
+                                //             recentDutyLogs: [],
+                                //             permissions: [],
+                                //             onDutyTime: 0,
+                                //         })
+                                //     }
+                                //     if (currentDepartment.ranks.length > 1) { // Demote the current leader, set current leader
+                                //         members = members.map((member) => {
+                                //             if (member.identifier === player?.identifier) {
+                                //                 return {
+                                //                     ...member,
+                                //                     rankId: currentDepartment.ranks[1].rankId
+                                //                 }
+                                //             }
+                                //             return member;
+                                //         })
+                                //     } else { // Fire the current leader, set new leader
+                                //         members = members.filter((member) => member.identifier !== player?.identifier)
+                                //     }
+                                //     const updatedDepartments = departments.map((department) => {
+                                //         if (department.id === currentDepartmentId) {
+                                //             return {
+                                //                 ...department,
+                                //                 members: members
+                                //             }
+                                //         }
+                                //         return department;
+                                //     })
+                                //     setDepartments(updatedDepartments)
+                                // }
                                 closeDialog()
                             }
                         })
@@ -261,113 +275,124 @@ function ManagementDepartment() {
                     </div>
                 </div>
                 <div className="font-semibold text-md"><Translate id="locations" />:</div>
-                <hr/>
-                <div className="flex flex-col gap-2 overflow-auto max-h-[300px] px-2">
-                    {location ? (
-                        <ManagementLocation 
-                            location={location} 
-                            onExit={() => setLocation(null)} 
-                            onUpdate={setLocation} 
-                            onDelete={() => {
-                                setLocations(locations.filter((targetLocation) => location.id !== targetLocation.id))
-                                if (location.id === -1) return;
-                                setDepartments(departments.map((department) => {
-                                    if (department.id === currentDepartmentId) {
-                                        return {
-                                            ...department,
-                                            locations: department.locations.filter((targetLocation) => location.id !== targetLocation.id)
-                                        }
-                                    }
-                                    return department;
-                                }))
-                                setLocation(null)
-                            }} onCreate={(location: DepartmentLocation) => {
-                                let newLocationId = 1;
-                                for (const location of locations) {
-                                    if (location.id >= newLocationId) {
-                                        newLocationId = location.id + 1;
-                                    }
-                                }
-                                setLocations([...locations, {
-                                    id: newLocationId,
-                                    type: location.type,
-                                    positions: location.positions,
-                                }])
-                                if (!creatingDepartment) {
-                                    setDepartments(departments.map((department) => {
-                                        if (department.id === currentDepartmentId) {
-                                            return {
-                                                ...department,
-                                                locations: [...department.locations]
+                {!creatingDepartment && (
+                    <>
+                        <hr/>
+                        <div className="flex flex-col gap-2 overflow-auto max-h-[300px] px-2">
+                            {location ? (
+                                <ManagementLocation 
+                                    location={location} 
+                                    onExit={() => setLocation(null)} 
+                                    onUpdate={setLocation} 
+                                    onDelete={() => {
+                                        setLocations(locations.filter((targetLocation) => location.id !== targetLocation.id))
+                                        if (location.id === -1) return;
+                                        setDepartments(departments.map((department) => {
+                                            if (department.id === currentDepartmentId) {
+                                                return {
+                                                    ...department,
+                                                    locations: department.locations.filter((targetLocation) => location.id !== targetLocation.id)
+                                                }
+                                            }
+                                            return department;
+                                        }))
+                                        setLocation(null)
+                                    }} onCreate={(location: DepartmentLocation) => {
+                                        let newLocationId = 1;
+                                        for (const location of locations) {
+                                            if (location.id >= newLocationId) {
+                                                newLocationId = location.id + 1;
                                             }
                                         }
-                                        return department;
-                                    }))
-                                }
-                                setLocation(null)
-                            }} 
-                        />
-                    ) : (
-                        <>
-                        <div className="px-4 py-2 bg-secondary font-semibold cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
-                            setLocation({
-                                id: -1,
-                                type: "front_desk",
-                                positions: {
-                                    "point": {
-                                        coords: {
-                                            x: 20,
-                                            y: 30,
-                                            z: 40,
+                                        setLocations([...locations, {
+                                            id: newLocationId,
+                                            type: location.type,
+                                            positions: location.positions,
+                                        }])
+                                        if (!creatingDepartment) {
+                                            setDepartments(departments.map((department) => {
+                                                if (department.id === currentDepartmentId) {
+                                                    return {
+                                                        ...department,
+                                                        locations: [...department.locations]
+                                                    }
+                                                }
+                                                return department;
+                                            }))
+                                        }
+                                        setLocation(null)
+                                    }} 
+                                />
+                            ) : (
+                                <>
+                                <div className="px-4 py-2 bg-secondary font-semibold cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
+                                    setLocation({
+                                        id: -1,
+                                        type: "front_desk",
+                                        positions: {
+                                            "point": {
+                                                coords: {
+                                                    x: 20,
+                                                    y: 30,
+                                                    z: 40,
+                                                },
+                                            },
                                         },
-                                    },
-                                },
-                            })
-                        }}>
-                            <Plus size={16} />
-                            <Translate id="create_location" />
-                        </div>
-                        {locations.map((location) => (
-                            <div onClick={() => setLocation(location)} className="px-4 py-2 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-between" key={location.id}>
-                                <Translate id={`location_${location.type}`} />
-                                <div><Translate id="id" args={[location.id]} /></div>
-                            </div>
-                        ))}
-                        </>
-                    )}
+                                    })
+                                }}>
+                                    <Plus size={16} />
+                                    <Translate id="create_location" />
+                                </div>
+                                {locations.map((location) => (
+                                    <div onClick={() => setLocation(location)} className="px-4 py-2 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-between" key={location.id}>
+                                        <Translate id={`location_${location.type}`} />
+                                        <div><Translate id="id" args={[location.id]} /></div>
+                                    </div>
+                                ))}
+                                </>
+                            )}
 
-                </div>
+                        </div>
+                    </>
+                )}
             </div>
             <hr/>
             <div className="px-2 flex flex-col gap-2">
                 {creatingDepartment ? (
                     <div className="p-4 bg-green-600 cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
                         setCurrentDepartmentId(null)
-                        setDepartments([...departments, {
-                            id: departments.length + 1,
-                            label: label,
-                            members: player ? [
-                                {
-                                    identifier: player?.identifier || "",
-                                    name: player?.name || "",
-                                    rankId: 1,
-                                    recentDutyLogs: [],
-                                    permissions: [],
-                                    onDutyTime: 0,
-                                }
-                            ] : [],
-                            locations: locations,
-                            ranks: [
-                                {
-                                    rankId: 1,
-                                    label: translateText(config, "default_rank_name", []),
-                                    managingRankIds: [],
-                                    armory: [],
-                                    vehicles: [],
-                                }
-                            ],
-                            permissions: {},
-                        }])
+                        fetchNui("managementAction", {
+                            action: "createDepartment",
+                            data: {
+                                label: label,
+                                leader: player ? player.source : null,
+                            },
+                        })
+                        // setDepartments([...departments, {
+                        //     id: departments.length + 1,
+                        //     label: label,
+                        //     members: player ? [
+                        //         {
+                        //             identifier: player?.identifier || "",
+                        //             name: player?.name || "",
+                        //             rankId: 1,
+                        //             recentDutyLogs: [],
+                        //             permissions: [],
+                        //             onDutyTime: 0,
+                        //         }
+                        //     ] : [],
+                        //     locations: locations,
+                        //     ranks: [
+                        //         {
+                        //             rankId: 1,
+                        //             label: translateText(config, "default_rank_name", []),
+                        //             managingRankIds: [],
+                        //             armory: [],
+                        //             vehicles: [],
+                        //         }
+                        //     ],
+                        //     permissions: {},
+                        // }])
                     }}>
                         <Save size={16} />
                         <h2 className="text-md font-bold"><Translate id="create_department" /></h2>
@@ -405,33 +430,7 @@ function SelectPlayerDialog({onSelect}: {onSelect: (player: Player) => void}) {
         fetchNui("getPlayers", {}).then((data: any) => {
             setPlayers(data.players)
         }).catch((error: any) => {
-            setPlayers([
-                {
-                    name: "John Doe",
-                    source: 1,
-                    identifier: "char1:1234567890",
-                },
-                {
-                    name: "Jane Doe",
-                    source: 2,
-                    identifier: "char1:1234567891",
-                },
-                {
-                    name: "John Doe",
-                    source: 3,
-                    identifier: "char1:1234567892",
-                },
-                {
-                    name: "John Doe",
-                    source: 4,
-                    identifier: "char1:1234567893",
-                },
-                {
-                    name: "John Doe",
-                    source: 5,
-                    identifier: "char1:1234567894",
-                },
-            ])
+            setPlayers([])
         })
     }, [])
     return (
@@ -491,6 +490,20 @@ function Management({ defaultDepartments }: { defaultDepartments: Department[] }
         openDialog,
         closeDialog,
     }
+    useNuiEvent("updateManagementMembers", (data: any) => {
+        setDepartments(departments.map((department) => {
+            if (department.id === data.departmentId) {
+                return {
+                    ...department,
+                    members: data.members,
+                }
+            }
+            return department;
+        }))
+    })
+    useNuiEvent("createManagementDepartment", (data: any) => {
+        setDepartments([...departments, data.department])
+    })
     return (
         <ManagementContext.Provider value={value}>
             <div className="flex flex-col gap-2 select-none">

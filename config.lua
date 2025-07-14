@@ -7,6 +7,15 @@ Config.UseTarget = true -- This enables the use of the target system when availa
 Config.ImageDirectory = "nui://ox_inventory/web/images/"
 Config.WeaponsAreItems = true -- This enables the use of weapons as items. If set to false, weapons will be treated as items and not as weapons.
 
+Config.AdminGroups = {
+    "qbcore.admin",
+    "qbcore.god",
+    "god",
+    "admin",
+    "mod",
+    "superadmin",
+}
+
 Config.TargetIcons = {
     frontdesk = "fas fa-shield-alt",
 }

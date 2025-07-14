@@ -2,8 +2,13 @@ function InitializeDepartment(id, data, dontSync)
     local department = {
         id = id,
         label = data.label,
+        location = data.location,
+        locations = data.locations,
         members = data.members,
-        entities = data.entities,
+        ranks = data.ranks,
+        outfits = data.outfits,
+        permissions = data.permissions,
+        misc = data.misc,
     }
     Departments[id] = department
     if dontSync then return end
@@ -32,9 +37,9 @@ function UpdateDepartmentSQL(id, columnId)
             members = json.encode(members),
             id = id,
         })
-    elseif columnId == "entities" then
-        MySQL.Async.execute("UPDATE pickle_police_departments SET entities = @entities WHERE id = @id", {
-            entities = json.encode(department.entities),
+    elseif columnId == "locations" then
+        MySQL.Async.execute("UPDATE pickle_police_departments SET locations = @locations WHERE id = @id", {
+            locations = json.encode(department.locations),
             id = id,
         })
     elseif columnId == "permissions" then
@@ -59,6 +64,17 @@ function GetDepartment(id)
     return Departments[id]
 end
 
+function GetDepartmentMember(id, source)
+    local department = GetDepartment(id)
+    local identifier = GetIdentifier(source)
+    if not department then return nil end
+    for i=1, #department.members do
+        if department.members[i].identifier == identifier then
+            return department.members[i], i
+        end
+    end
+end
+
 function GetPlayerDepartment(source)
     local identifier = GetIdentifier(source)
     for k, v in pairs(Departments) do
@@ -73,9 +89,9 @@ end
 
 function GetDepartmentEntity(id, entityId)
     local department = GetDepartment(id)
-    for i=1, #department.entities do
-        if department.entities[i].id == entityId then
-            return department.entities[i], i
+    for i=1, #department.locations do
+        if department.locations[i].id == entityId then
+            return department.locations[i], i
         end
     end
     return nil
@@ -103,7 +119,7 @@ function EnsureDepartmentData(key, data)
                 heading = data.heading,
             }
         end
-    elseif key == "entities" then
+    elseif key == "locations" then
         if not data or type(data) ~= "table" then return {} end
         for i=1, #data do
             data[i].location = EnsureDepartmentData("location", data[i].location)
@@ -179,6 +195,18 @@ RegisterCallback("pickle_policejob:openFrontdesk", function(source, cb, id)
     })
 end)
 
+RegisterCallback("pickle_policejob:getPlayers", function(source, cb)
+    local players = {}
+    for k, v in pairs(GetPlayers()) do
+        players[#players + 1] = {
+            source = tonumber(v),
+            identifier = GetIdentifier(v),
+            name = GetPlayerCharacterName(v),
+        }
+    end
+    cb(players)
+end)
+
 RegisterNetEvent("pickle_policejob:toggleDuty", function(id, entityId, report)
     local departmentId, memberData = GetPlayerDepartment(source)
     if not departmentId or id ~= departmentId or not DoesPlayerHaveEntityPermission(source, id, entityId) then return ShowNotification(source, _L("no_department_permission")) end
@@ -187,7 +215,8 @@ end)
 
 RegisterNetEvent("pickle_policejob:initializePlayer", function()
     local xPlayer = ESX.GetPlayerFromId(source)
-    TriggerClientEvent("pickle_policejob:initializeDepartment", -1, Departments)
+    TriggerClientEvent("pickle_policejob:setupInventory", source, Inventory.Items)
+    TriggerClientEvent("pickle_policejob:initializeDepartment", source, Departments)
 end)
 
 AddEventHandler("onPlayerDropped", function(source)
@@ -200,12 +229,12 @@ end)
 
 MySQL.ready(function()
     -- local department = Config.Departments[11]
-    -- MySQL.Async.execute("INSERT IGNORE INTO pickle_police_departments (id, label, location, members, entities, permissions, ranks, outfits) VALUES (@id, @label, @location, @members, @entities, @permissions, @ranks, @outfits)", {
+    -- MySQL.Async.execute("INSERT IGNORE INTO pickle_police_departments (id, label, location, members, locations, permissions, ranks, outfits) VALUES (@id, @label, @location, @members, @locations, @permissions, @ranks, @outfits)", {
     --     id = 11,
     --     label = department.label,
     --     location = json.encode(department.location),
     --     members = json.encode(department.members),
-    --     entities = json.encode(department.entities),
+    --     locations = json.encode(department.locations),
     --     permissions = json.encode(department.permissions),
     --     ranks = json.encode(department.ranks),
     --     outfits = json.encode(department.outfits),
@@ -216,7 +245,7 @@ MySQL.ready(function()
                 label = EnsureDepartmentData("label", v.label),
                 location = EnsureDepartmentData("location", json.decode(v.location)),
                 members = EnsureDepartmentData("members", json.decode(v.members)),
-                entities = EnsureDepartmentData("entities", json.decode(v.entities)),
+                locations = EnsureDepartmentData("locations", json.decode(v.locations)),
                 permissions = EnsureDepartmentData("permissions", json.decode(v.permissions)),
                 ranks = EnsureDepartmentData("ranks", json.decode(v.ranks)),
                 outfits = EnsureDepartmentData("outfits", json.decode(v.outfits)),

@@ -1,5 +1,5 @@
 window.addEventListener('DOMContentLoaded', function() {
-    fetch("https://pickle_casinos/pageLoaded").then(function(response) {
+    fetch("https://pickle_policejob/pageLoaded").then(function(response) {
         // PRODUCTION MODE
     }).catch(function(error) {
         // DEBUG MODE

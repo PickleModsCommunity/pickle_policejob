@@ -132,12 +132,12 @@ end
 function EnsureDepartment(id)
     if LocalDepartments[id] then return end
     local localDepartment = {
-        entities = {},
+        locations = {},
     }
-    for i=1, #Departments[id].entities do
-        local entity = Departments[id].entities[i]
+    for i=1, #Departments[id].locations do
+        local entity = Departments[id].locations[i]
         if entity.type == "frontdesk" then
-            localDepartment.entities[#localDepartment.entities+1] = {
+            localDepartment.locations[#localDepartment.locations+1] = {
                 id = entity.id,
                 interact = CreateInteraction({
                     label = _L("interact_frontdesk"),
@@ -158,6 +158,43 @@ function ExecuteIntegration(integration, ...)
         Config.Integrations[integration].client(...)
     end
 end
+
+RegisterNUICallback("getPlayers", function(data, cb)
+    ServerCallback("pickle_policejob:getPlayers", function(players)
+        cb({
+            players = players,
+        })
+    end)
+end)
+
+RegisterNUICallback("pageLoaded", function(data, cb)
+    cb("ok")
+    while not Inventory or not Inventory.Ready do Wait(100) end
+    SendNUIMessage({
+        type = "setConfig",
+        config = {
+            imageDirectory = Config.ImageDirectory,
+            identifier = "char:1",
+            locale = Language[Config.Language],
+            countryCode = Config.Currency.countryCode,
+            currency = Config.Currency.currency,
+            items = Inventory.Items,
+            policeArmory = Config.PoliceArmory or {},
+            policeGarage = Config.PoliceGarage or {},
+            locationTypes = {
+                ["front_desk"] = {
+                    locations = {}
+                },
+                ["police_garage"] = {
+                    locations = {"spawn"}
+                },
+                ["police_armory"] = {
+                    locations = {}
+                },
+            }
+        }
+    })
+end)
 
 RegisterNetEvent("pickle_policejob:integration", function(integration, ...)
     ExecuteIntegration(integration, ...)
