@@ -170,7 +170,6 @@ function ManagementDepartment() {
     const [player, setPlayer] = useState<Player | null>(currentDepartment ? GetDepartmentLeader(currentDepartment) : null);
     const [currentLocation, setCurrentLocation] = useState<DepartmentLocation | null>(null);
     const [locations, setLocations] = useState<DepartmentLocation[]>(currentDepartment?.locations || []);
-    console.log(currentLocation, "CURRENT LOCATION")
     useEffect(() => {
         if (!currentDepartment) return;
         setPlayer(GetDepartmentLeader(currentDepartment))
@@ -657,10 +656,37 @@ function useManagement(): ManagementContextProps {
 }
 
 export default function ManagementDisplay() {
-    const [visible, setVisible] = useState(false)
-    const [departments, setDepartments] = useState<Department[]>([])
-    const [focus, setFocus] = useState(false)
-    const [hidden, setHidden] = useState(true)
+    const [visible, setVisible] = useState(true)
+    const [departments, setDepartments] = useState<Department[]>([
+        {
+            id: 1,
+            label: "Police Department",
+            members: [],
+            locations: [
+                {
+                    id: 1,
+                    type: "front_desk",
+                    positions: {
+                        point: {
+                            coords: {x: 0, y: 0, z: 0},
+                        }
+                    }
+                }
+            ],
+            ranks: [
+                {
+                    rankId: 1,
+                    label: "Police Officer",
+                    managingRankIds: [],
+                    armory: [],
+                    vehicles: [],
+                }
+            ],
+            permissions: {},
+        },
+    ])
+    const [focus, setFocus] = useState(true)
+    const [hidden, setHidden] = useState(false)
     useNuiEvent("setManagementHidden", (data: any) => {
         setHidden(data.hidden)
     });

@@ -135,6 +135,7 @@ function UnrenderDepartmentLocation(id, locationId)
             if LocalDepartments[id].locations[i].interact then
                 DeleteInteraction(LocalDepartments[id].locations[i].interact)
             end
+            table.remove(LocalDepartments[id].locations, i)
             break
         end
     end
@@ -252,7 +253,20 @@ end)
 RegisterNetEvent("pickle_policejob:updateDepartment", function(data)
     if data.type == "createLocation" then
         Departments[data.departmentId].locations[#Departments[data.departmentId].locations+1] = data.location
-        RenderDepartmentLocation(data.departmentId, data.location.id)
+        EnsureDepartmentLocation(data.departmentId, data.location.id)
+    elseif data.type == "updateLocation" then
+        local updatedLocation = false
+        for i=1, #Departments[data.departmentId].locations do
+            if Departments[data.departmentId].locations[i].id == data.locationId then
+                Departments[data.departmentId].locations[i] = data.location
+                updatedLocation = true
+                break
+            end
+        end
+        if not updatedLocation then
+            Departments[data.departmentId].locations[#Departments[data.departmentId].locations+1] = data.location
+        end
+        EnsureDepartmentLocation(data.departmentId, data.locationId)
     elseif data.type == "deleteLocation" then
         UnrenderDepartmentLocation(data.departmentId, data.locationId)
         for i=1, #Departments[data.departmentId].locations do
