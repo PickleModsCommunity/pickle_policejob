@@ -129,27 +129,54 @@ function OpenFrontdesk(id, entityId)
     end, id, entityId)
 end
 
+function UnrenderDepartmentLocation(id, locationId)
+    for i=1, #LocalDepartments[id].locations do
+        if LocalDepartments[id].locations[i].id == locationId then
+            if LocalDepartments[id].locations[i].interact then
+                DeleteInteraction(LocalDepartments[id].locations[i].interact)
+            end
+            break
+        end
+    end
+end
+
+function RenderDepartmentLocation(id, locationId)
+    local location
+    for i=1, #Departments[id].locations do
+        if Departments[id].locations[i].id == locationId then
+            location = Departments[id].locations[i]
+            break
+        end
+    end
+    if not location then return end
+    if location.type == "front_desk" then
+        LocalDepartments[id].locations[#LocalDepartments[id].locations+1] = {
+            id = locationId,
+            interact = CreateInteraction({
+                label = _L("interact_frontdesk"),
+                icon = Config.TargetIcons["frontdesk"],
+                coords = location.positions.point.coords,
+                heading = location.positions.point.heading,
+                model = location.positions.point.ped and { modelType = "ped", hash = GetHashKey(location.positions.point.ped) } or nil,
+            }, function()
+                OpenFrontdesk(id, locationId)
+            end)
+        }
+    end
+end
+
+function EnsureDepartmentLocation(id, locationId)
+    UnrenderDepartmentLocation(id, locationId)
+    RenderDepartmentLocation(id, locationId)
+end
+
 function EnsureDepartment(id)
     if LocalDepartments[id] then return end
-    local localDepartment = {
+    LocalDepartments[id] = {
         locations = {},
     }
     for i=1, #Departments[id].locations do
-        local entity = Departments[id].locations[i]
-        if entity.type == "frontdesk" then
-            localDepartment.locations[#localDepartment.locations+1] = {
-                id = entity.id,
-                interact = CreateInteraction({
-                    label = _L("interact_frontdesk"),
-                    icon = Config.TargetIcons["frontdesk"],
-                    coords = entity.location.coords + vector3(0.0, 0.0, 1.0),
-                    heading = entity.location.heading,
-                    model = entity.ped and { modelType = "ped", hash = GetHashKey(entity.ped) } or nil,
-                }, function()
-                    OpenFrontdesk(id, entity.id)
-                end)
-            }
-        end
+        EnsureDepartmentLocation(id, Departments[id].locations[i].id)
     end
 end
 
@@ -218,6 +245,21 @@ RegisterNetEvent("pickle_policejob:deleteDepartment", function(id)
     for k, v in pairs(LocalDepartments) do
         if k == id then
             LocalDepartments[k] = nil
+        end
+    end
+end)
+
+RegisterNetEvent("pickle_policejob:updateDepartment", function(data)
+    if data.type == "createLocation" then
+        Departments[data.departmentId].locations[#Departments[data.departmentId].locations+1] = data.location
+        RenderDepartmentLocation(data.departmentId, data.location.id)
+    elseif data.type == "deleteLocation" then
+        UnrenderDepartmentLocation(data.departmentId, data.locationId)
+        for i=1, #Departments[data.departmentId].locations do
+            if Departments[data.departmentId].locations[i].id == data.locationId then
+                table.remove(Departments[data.departmentId].locations, i)
+                break
+            end
         end
     end
 end)

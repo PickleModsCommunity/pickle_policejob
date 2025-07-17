@@ -179,7 +179,7 @@ function Armory({armoryInfo}: {armoryInfo: ArmoryInfo}) {
 }
 
 export default function ArmoryContainer() {
-    const [armoryInfo, setArmoryInfo] = useState<ArmoryInfo | null>(
+    const [armoryInfo, setArmoryInfo] = useState<ArmoryInfo | null>( true ? null :
         {
             items: [
                 {

@@ -104,6 +104,7 @@ function GetDepartmentLeader(department: Department): Player | null {
 
 function ManagementLocation({ location, onExit, onUpdate, onCreate, onDelete }: { location: DepartmentLocation, onExit: () => void, onUpdate?: (location: DepartmentLocation) => void, onCreate?: (location: DepartmentLocation) => void, onDelete?: () => void }) {
     const { config } = useConfig();
+    const { currentDepartmentId } = useManagement();
     const isCreating = location.id === -1;
     const [type, setType] = useState(location.type);
     const locationTypes = config.locationTypes;
@@ -114,6 +115,7 @@ function ManagementLocation({ location, onExit, onUpdate, onCreate, onDelete }: 
     const [positions, setPositions] = useState(location.positions);
     return (
         <div className="flex flex-col gap-2">
+            <hr className="border-b-1 border-primary/50 mt-2"/>
             {isCreating && (
                 <div className="flex flex-row gap-2 items-center justify-between w-full">
                     <div className="font-semibold text-md"><Translate id={`location_type`} />:</div>
@@ -127,7 +129,10 @@ function ManagementLocation({ location, onExit, onUpdate, onCreate, onDelete }: 
             {locationTypes[type].locations.map((locationType) => (
                 <div className="flex flex-row gap-2 items-center justify-between w-full" key={locationType}>
                     <div className="font-semibold text-md"><Translate id={`location_${locationType}`} />:</div>
-                    <Location className="text-muted-foreground text-sm" id={locationType} defaultLocation={positions[locationType] || DEFAULT_LOCATION} onUpdate={(location) => {
+                    <Location className="text-muted-foreground text-sm" id={locationType} info={isCreating ? undefined : {
+                        departmentId: currentDepartmentId,
+                        locationId: location.id,
+                    }} defaultLocation={positions[locationType] || DEFAULT_LOCATION} onUpdate={(location) => {
                         setPositions({
                             ...positions,
                             [locationType]: location
@@ -150,10 +155,6 @@ function ManagementLocation({ location, onExit, onUpdate, onCreate, onDelete }: 
                     <Translate id="location_delete" />
                 </div>
             )}
-            <div onClick={() => onExit()} className="p-2 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" key={location.id}>
-                <ArrowLeft size={16}/>
-                <Translate id="return_to_locations" />
-            </div>
         </div>
     )
 }
@@ -167,11 +168,13 @@ function ManagementDepartment() {
     const [label, setLabel] = useState<string>(creatingDepartment ? translateText(config, "default_department_name", []) : currentDepartment?.label || "");
     const [editingLabel, setEditingLabel] = useState(false);
     const [player, setPlayer] = useState<Player | null>(currentDepartment ? GetDepartmentLeader(currentDepartment) : null);
-    const [location, setLocation] = useState<DepartmentLocation | null>(null);
+    const [currentLocation, setCurrentLocation] = useState<DepartmentLocation | null>(null);
     const [locations, setLocations] = useState<DepartmentLocation[]>(currentDepartment?.locations || []);
+    console.log(currentLocation, "CURRENT LOCATION")
     useEffect(() => {
         if (!currentDepartment) return;
         setPlayer(GetDepartmentLeader(currentDepartment))
+        setLocations(currentDepartment.locations)
     }, [departments])
     return (
         <div className="flex flex-col gap-2 select-none">
@@ -279,79 +282,121 @@ function ManagementDepartment() {
                     <>
                         <hr/>
                         <div className="flex flex-col gap-2 overflow-auto max-h-[300px] px-2">
-                            {location ? (
-                                <ManagementLocation 
-                                    location={location} 
-                                    onExit={() => setLocation(null)} 
-                                    onUpdate={setLocation} 
-                                    onDelete={() => {
-                                        setLocations(locations.filter((targetLocation) => location.id !== targetLocation.id))
-                                        if (location.id === -1) return;
-                                        setDepartments(departments.map((department) => {
-                                            if (department.id === currentDepartmentId) {
-                                                return {
-                                                    ...department,
-                                                    locations: department.locations.filter((targetLocation) => location.id !== targetLocation.id)
-                                                }
-                                            }
-                                            return department;
-                                        }))
-                                        setLocation(null)
-                                    }} onCreate={(location: DepartmentLocation) => {
-                                        let newLocationId = 1;
-                                        for (const location of locations) {
-                                            if (location.id >= newLocationId) {
-                                                newLocationId = location.id + 1;
-                                            }
-                                        }
-                                        setLocations([...locations, {
-                                            id: newLocationId,
-                                            type: location.type,
-                                            positions: location.positions,
-                                        }])
-                                        if (!creatingDepartment) {
-                                            setDepartments(departments.map((department) => {
-                                                if (department.id === currentDepartmentId) {
-                                                    return {
-                                                        ...department,
-                                                        locations: [...department.locations]
-                                                    }
-                                                }
-                                                return department;
-                                            }))
-                                        }
-                                        setLocation(null)
-                                    }} 
-                                />
-                            ) : (
-                                <>
-                                <div className="px-4 py-2 bg-secondary font-semibold cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
-                                    setLocation({
+                                <div className="px-4 py-2 bg-secondary font-semibold cursor-pointer hover:scale-95 transition-all duration-200 flex flex-col gap-2" onClick={() => {
+                                    setCurrentLocation({
                                         id: -1,
                                         type: "front_desk",
                                         positions: {
                                             "point": {
                                                 coords: {
-                                                    x: 20,
-                                                    y: 30,
-                                                    z: 40,
+                                                    x: 0,
+                                                    y: 0,
+                                                    z: 0,
                                                 },
                                             },
                                         },
                                     })
                                 }}>
-                                    <Plus size={16} />
-                                    <Translate id="create_location" />
+                                    <div className="flex flex-row items-center justify-center gap-2">
+                                        <Plus size={16} />
+                                        <Translate id="create_location" />
+                                    </div>
+                                        {currentLocation && currentLocation.id === -1 && (
+                                            <ManagementLocation 
+                                                location={currentLocation} 
+                                                onExit={() => setCurrentLocation(null)} 
+                                                onUpdate={setCurrentLocation} 
+                                                onDelete={() => {
+                                                    fetchNui("managementAction", {
+                                                        action: "deleteLocation",
+                                                        data: {
+                                                            departmentId: currentDepartmentId,
+                                                            locationId: currentLocation.id,
+                                                        },
+                                                    })
+                                                    setCurrentLocation(null)
+                                                }} onCreate={(location: DepartmentLocation) => {
+                                                    fetchNui("managementAction", {
+                                                        action: "createLocation",
+                                                        data: {
+                                                            departmentId: currentDepartmentId,
+                                                            location: location,
+                                                        },
+                                                    })
+                                                    setTimeout(() => {
+                                                        setCurrentLocation(null)
+                                                    }, 100)
+                                                }} 
+                                            />
+                                        )}
                                 </div>
                                 {locations.map((location) => (
-                                    <div onClick={() => setLocation(location)} className="px-4 py-2 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-between" key={location.id}>
-                                        <Translate id={`location_${location.type}`} />
-                                        <div><Translate id="id" args={[location.id]} /></div>
+                                    <div onClick={() => setCurrentLocation(location)} className="px-4 py-2 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-col" key={location.id}>
+                                        <div className="flex flex-row items-center justify-between">
+                                            <Translate id={`location_${location.type}`} />
+                                            <div><Translate id="id" args={[location.id]} /></div>
+                                        </div>
+                                        {currentLocation && currentLocation.id === location.id && (
+                                            <ManagementLocation 
+                                                location={location} 
+                                                onExit={() => setCurrentLocation(null)} 
+                                                onUpdate={setCurrentLocation} 
+                                                onDelete={() => {
+                                                    fetchNui("managementAction", {
+                                                        action: "deleteLocation",
+                                                        data: {
+                                                            departmentId: currentDepartmentId,
+                                                            locationId: location.id,
+                                                        },
+                                                    })
+                                                    // setLocations(locations.filter((targetLocation) => location.id !== targetLocation.id))
+                                                    // if (location.id === -1) return;
+                                                    // setDepartments(departments.map((department) => {
+                                                    //     if (department.id === currentDepartmentId) {
+                                                    //         return {
+                                                    //             ...department,
+                                                    //             locations: department.locations.filter((targetLocation) => location.id !== targetLocation.id)
+                                                    //         }
+                                                    //     }
+                                                    //     return department;
+                                                    // }))
+                                                    setCurrentLocation(null)
+                                                }} onCreate={(location: DepartmentLocation) => {
+                                                    fetchNui("managementAction", {
+                                                        action: "createLocation",
+                                                        data: {
+                                                            departmentId: currentDepartmentId,
+                                                            location: location,
+                                                        },
+                                                    })
+                                                    // let newLocationId = 1;
+                                                    // for (const location of locations) {
+                                                    //     if (location.id >= newLocationId) {
+                                                    //         newLocationId = location.id + 1;
+                                                    //     }
+                                                    // }
+                                                    // setLocations([...locations, {
+                                                    //     id: newLocationId,
+                                                    //     type: location.type,
+                                                    //     positions: location.positions,
+                                                    // }])
+                                                    // if (!creatingDepartment) {
+                                                    //     setDepartments(departments.map((department) => {
+                                                    //         if (department.id === currentDepartmentId) {
+                                                    //             return {
+                                                    //                 ...department,
+                                                    //                 locations: [...department.locations]
+                                                    //             }
+                                                    //         }
+                                                    //         return department;
+                                                    //     }))
+                                                    // }
+                                                    setCurrentLocation(null)
+                                                }} 
+                                            />
+                                        )}
                                     </div>
                                 ))}
-                                </>
-                            )}
-
                         </div>
                     </>
                 )}
@@ -512,6 +557,36 @@ function Management({ defaultDepartments }: { defaultDepartments: Department[] }
             setDepartments([...departments, data.department])
         } else if (data.type === "deleteDepartment") {
             setDepartments(departments.filter((department) => department.id !== data.departmentId))
+        } else if (data.type === "createLocation") {
+            setDepartments(departments.map((department) => {
+                if (department.id === data.departmentId) {
+                    return {
+                        ...department,
+                        locations: [...department.locations, data.location]
+                    }
+                }
+                return department;
+            }))
+        } else if (data.type === "updateLocation") {
+            setDepartments(departments.map((department) => {
+                if (department.id === data.departmentId) {
+                    return {
+                        ...department,
+                        locations: department.locations.map((location) => location.id === data.locationId ? data.location : location)
+                    }
+                }
+                return department;
+            }))
+        } else if (data.type === "deleteLocation") {
+            setDepartments(departments.map((department) => {
+                if (department.id === data.departmentId) {
+                    return {
+                        ...department,
+                        locations: department.locations.filter((location) => location.id !== data.locationId)
+                    }
+                }
+                return department;
+            }))
         } else {
             console.log("Unknown updateManagement type", JSON.stringify(data, null, 2))
         }
@@ -625,7 +700,7 @@ export default function ManagementDisplay() {
             setVisible(false)
         }, 300)
     });
-    return (
+    return visible &&(
         <div className="dark w-screen h-screen absolute text-primary top-0 left-0 flex items-center justify-center">
             {(visible && !hidden) && <AppControls controls={[{key: "G", label: <Translate id={"focus_" + (focus ? "off" :  "on")}/>}]} />}
             {visible && (

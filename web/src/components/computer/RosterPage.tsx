@@ -93,6 +93,9 @@ export function CanRankManageRank(managingRankId: number, rankId: number) {
 
 export function CanRankManagePermission(managingRankId: number, permission: string) {
     const { department } = useComputer();
+    if (department.ranks[0].rankId === managingRankId) {
+        return true;
+    }
     return department.permissions[permission].managingRankIds.includes(managingRankId);
 }
 

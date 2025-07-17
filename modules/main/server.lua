@@ -3,7 +3,7 @@ function InitializeDepartment(id, data, dontSync)
         id = id,
         label = data.label,
         location = data.location,
-        locations = data.locations,
+        locations = EnsureDepartmentData("locations", data.locations),
         members = data.members,
         ranks = data.ranks,
         outfits = data.outfits,
@@ -113,23 +113,32 @@ function EnsureDepartmentData(key, data)
     if key == "label" then
         return data or "ERR_UNKNOWN"
     elseif key == "location" then
-        if not data or not data.coords or data.heading == nil then
+        if not data or not data.coords or data.rotation == nil then
             return {
                 coords = vector3(0.0, 0.0, 0.0),
-                heading = 0.0,
+                rotation = vector3(0.0, 0.0, 0.0),
             }
         else
             return {
                 coords = vector3(data.coords.x, data.coords.y, data.coords.z),
-                heading = data.heading,
+                rotation = vector3(data.rotation.x, data.rotation.y, data.rotation.z),
             }
         end
     elseif key == "locations" then
         if not data or type(data) ~= "table" then return {} end
+        local locations = {}
         for i=1, #data do
-            data[i].location = EnsureDepartmentData("location", data[i].location)
+            local positions = {}
+            for k, v in pairs(data[i].positions) do
+                positions[k] = EnsureDepartmentData("location", v)
+            end
+            locations[#locations+1] = {
+                id = data[i].id,
+                type = data[i].type,
+                positions = positions,
+            }
         end
-        return data
+        return locations
     else
         return data or {}
     end

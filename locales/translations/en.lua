@@ -102,4 +102,8 @@ Language["en"] = {
     default_rank_name = "Chief",
     focus_off = "Focus In-Game",
     focus_on = "Focus Menu",
+    objects_position = "[MOUSE]     - Position  \n[SCROLL UP / DOWN]     - Rotate  \n[SHIFT]     - Faster Movement  \n",
+    objects_freeze = "Freeze Object",
+    objects_unfreeze = "Unfreeze Object",
+    objects_save = "Save Object",
 }

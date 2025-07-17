@@ -17,8 +17,21 @@ function GetManagementData()
     }
 end
 
+function GenerateUniqueLocationId(departmentId)
+    local department = Departments[departmentId]
+    if not department then return end
+    local locationId = 1
+    for i=1, #department.locations do
+        if department.locations[i].id >= locationId then
+            locationId = department.locations[i].id + 1
+        end
+    end
+    return locationId
+end
+
 RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
     local department
+    local departmentId = data.departmentId
     if data.departmentId then
         department = Departments[data.departmentId]
         if not department then return end
@@ -110,6 +123,84 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
                 })
             end
         end)
+    elseif action == "createLocation" then
+        local location = data.location
+        local departmentId = data.departmentId
+        local department = Departments[departmentId]
+        if not department then return end
+        local locationId = GenerateUniqueLocationId(departmentId)
+        local positions = {}
+        for k, v in pairs(location.positions) do
+            positions[k] = EnsureDepartmentData("location", v)
+        end
+        local newLocation = {
+            id = locationId,
+            type = location.type,
+            positions = positions,
+        }
+        table.insert(department.locations, newLocation)
+        UpdateDepartmentSQL(departmentId, "locations")
+        for k, v in pairs(InManagement) do
+            TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
+                type = "createLocation",
+                departmentId = departmentId,
+                location = newLocation,
+            })
+        end
+        TriggerClientEvent("pickle_policejob:updateDepartment", -1, {
+            type = "createLocation",
+            departmentId = departmentId,
+            location = newLocation,
+        })
+    elseif action == "updateLocation" then
+        local location
+        for i=1, #department.locations do
+            if department.locations[i].id == data.locationId then
+                location = department.locations[i]
+                break
+            end
+        end
+        if not location then return end
+        location.positions[data.pointId] = EnsureDepartmentData("location", data.location)
+        UpdateDepartmentSQL(departmentId, "locations")
+        for k, v in pairs(InManagement) do
+            TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
+                type = "updateLocation",
+                departmentId = departmentId,
+                locationId = data.locationId,
+                pointId = data.pointId,
+                location = location,
+            })
+        end
+        TriggerClientEvent("pickle_policejob:updateDepartment", -1, {
+            type = "updateLocation",
+            departmentId = departmentId,
+            locationId = data.locationId,
+            location = location,
+        })
+    elseif action == "deleteLocation" then
+        local location
+        for i=1, #department.locations do
+            if department.locations[i].id == data.locationId then
+                location = {index = i, data = department.locations[i]}
+                break
+            end
+        end
+        if not location then return end
+        table.remove(department.locations, location.index)
+        UpdateDepartmentSQL(departmentId, "locations")
+        for k, v in pairs(InManagement) do
+            TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
+                type = "deleteLocation",
+                departmentId = departmentId,
+                locationId = data.locationId,
+            })
+        end
+        TriggerClientEvent("pickle_policejob:updateDepartment", -1, {
+            type = "deleteLocation",
+            departmentId = departmentId,
+            locationId = data.locationId,
+        })
     end
 end)
 

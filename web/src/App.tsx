@@ -55,6 +55,7 @@ export function AppControls({controls} : {controls?: {key: string, label: any}[]
 function App() {
   return (
     <div className="w-screen h-screen absolute text-primary top-0 left-0">
+      <ArmoryContainer />
       <ComputerContainer />
       <ManagementDisplay />
     </div>
