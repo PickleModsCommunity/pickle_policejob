@@ -3,8 +3,12 @@ import { useNuiEvent } from './nui/useNui';
 
 
 export type Config = {
-    imageDirectory?: string;
+    name: string;
     identifier: string;
+    permissions: {
+        name: string;
+    }[];
+    imageDirectory?: string;
     locale?: Record<string, string>;
     countryCode?: string;
     currency?: string;
@@ -23,8 +27,13 @@ export type Config = {
     locationTypes: {
         [key: string]: {
             locations: string[];
+            settings: string[];
         };
     };
+    peds: {
+        label: string;
+        model: string;
+    }[];
 }
 
 interface ConfigContextProps {
@@ -107,11 +116,14 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "default_rank_name": "Chief",
             "focus_off" : "Focus In-Game",
             "focus_on" : "Focus Menu",
+            "setting_ped": "Ped",
         },
         imageDirectory: undefined,
+        name: "Unknown",
         identifier: "ERR_NO_IDENTIFIER",
         currency: "GBP",
         countryCode: "en-GB",
+        permissions: [],
         items: {
             "rifle": {
                 label: "Rifle"
@@ -206,15 +218,28 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 model: -12300344,
             },
         ],
+        peds: [
+            {
+                label: "Male Officer #1",
+                model: "s_m_m_doctor_01",
+            },
+            {
+                label: "Female Officer #1",
+                model: "s_f_y_cop_01",
+            },
+        ],
         locationTypes: {
             "front_desk": {
                 locations: [],
+                settings: ["ped"]
             },
             "armory": {
                 locations: [],
+                settings: ["ped"],
             },
             "garage": {
                 locations: ["garage_spawn"],
+                settings: ["ped"],
             },
         }
     });

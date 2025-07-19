@@ -6,7 +6,6 @@ import { useNuiEvent } from "@/providers/nui/useNui";
 import { LockIcon, ShoppingBasket, ShoppingCart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { usePlayer } from "@/providers/player/player";
 
 type ArmoryItem = {
     label: string;
@@ -25,7 +24,7 @@ type ArmoryInfo = {
 
 export function ItemDisplay({item}: {item: ArmoryItem | {label?: string, image?: string, name: string, itemType?: string}}) {
     return (
-        <div className="relative w-24 h-24 bg-background/50 rounded-md overflow-hidden flex flex-col gap-0 items-center justify-between transition-transform duration-200 ease-in-out">
+        <div className="relative w-24 h-24 bg-background/50 rounded-md overflow-hidden select-none flex flex-col gap-0 items-center justify-between transition-transform duration-200 ease-in-out">
             <div className="w-full h-full flex flex-col gap-0 items-center justify-center relative">
                 <img src={item.image ? item.image : GetItemImage(item.name)} alt={""} className="w-14 h-14" draggable={false} onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -47,11 +46,13 @@ export function ItemDisplay({item}: {item: ArmoryItem | {label?: string, image?:
 
 function Armory({armoryInfo}: {armoryInfo: ArmoryInfo}) {
     const { config } = useConfig();
-    const { player, hasPermission } = usePlayer();
     const [items, setItems] = useState<ArmoryItem[]>(armoryInfo.items);
     const [hoveredItems, setHoveredItems] = useState<{[key: number]: ArmoryItem}>({});
     const [renderedItems, setRenderedItems] = useState<{[key: number]: ArmoryItem}>({});
-    
+    const hasPermission = (permissions: string[]) => {
+        if (permissions.length === 0) return true;
+        return permissions.some(permission => config.permissions.some((p: any) => p.name === permission));
+    }
     useNuiEvent("updateArmoryItems", (data: any) => {
         setItems(data.items);
     });

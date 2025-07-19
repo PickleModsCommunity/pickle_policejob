@@ -27,7 +27,7 @@ end
 
 function GetPlayerCharacterName(source)
     local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
-    if not xPlayer or not xPlayer.PlayerData then return "Unknown Name" end
+    if not xPlayer or not xPlayer.PlayerData then return "ERR_UNK_NAME" end
     return xPlayer.PlayerData.charinfo.firstname .. " " .. xPlayer.PlayerData.charinfo.lastname
 end
 

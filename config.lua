@@ -6,7 +6,16 @@ Config.InteractDistance = 2.0
 Config.UseTarget = true -- This enables the use of the target system when available.
 Config.ImageDirectory = "nui://ox_inventory/web/images/"
 Config.WeaponsAreItems = true -- This enables the use of weapons as items. If set to false, weapons will be treated as items and not as weapons.
-
+Config.Peds = {
+    {
+        label = "Male Officer #1",
+        model = "s_m_m_cop_01",
+    },
+    {
+        label = "Female Officer #1",
+        model = "s_f_y_cop_01",
+    },
+}
 Config.AdminGroups = {
     "qbcore.admin",
     "qbcore.god",
@@ -38,6 +47,53 @@ end
 Config.Currency = {
     currency = "USD",
     countryCode = "en-US",
+}
+
+Config.PoliceArmory = {
+    { 
+        name = "weapon_pistol",
+        count = 1,
+        itemType = "weapon",
+        price = 1000,
+        maxCount = 1,
+    },
+    {
+        name = "weapon_stungun",
+        count = 1,
+        itemType = "weapon",
+        price = 1000,
+        maxCount = 1,
+    },
+    {
+        name = "weapon_carbinerifle",
+        count = 1,
+        itemType = "weapon",
+        price = 1000,
+        maxCount = 1,
+    },
+}
+
+Config.PoliceGarage = {
+    {
+        label = "Crown Victoria",
+        image = "/nui/images/LSPD.webp",
+        model = -12300341,
+    },
+    {
+        label = "Police Interceptor",
+        image = "/nui/images/LSPD.webp",
+        model = -12300342,
+    },
+    {
+        label = "Police SUV",
+        image = "/nui/images/LSPD.webp",
+        model = -12300343,
+    },
+    {
+        label = "Police SUV II",
+        image = "/nui/images/LSPD.webp",
+        model = -12300344,
+    },
 }
 
 Config.CurrencyItems = {

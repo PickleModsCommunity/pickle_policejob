@@ -69,6 +69,12 @@ function GetDepartment(id)
     return Departments[id]
 end
 
+function GetDepartmentPermission(id, permission)
+    local department = GetDepartment(id)
+    if not department then return nil end
+    return department.permissions[permission]
+end
+
 function GetDepartmentMember(id, source)
     local department = GetDepartment(id)
     local identifier = GetIdentifier(source)
@@ -90,6 +96,16 @@ function GetPlayerDepartment(source)
         end
     end
     return nil
+end
+
+function GetIdentifierDepartment(identifier)
+    for k, v in pairs(Departments) do
+        for i=1, #v.members do
+            if v.members[i].identifier == identifier then
+                return k, v.members[i]
+            end
+        end
+    end
 end
 
 function GetDepartmentEntity(id, entityId)
@@ -136,6 +152,7 @@ function EnsureDepartmentData(key, data)
                 id = data[i].id,
                 type = data[i].type,
                 positions = positions,
+                settings = data[i].settings or {},
             }
         end
         return locations
@@ -198,6 +215,50 @@ function SetPlayerDuty(source, onDuty, report)
     end
 end
 
+function GetDepartmentRank(id, rankId)
+    local department = GetDepartment(id)
+    if not department then return nil end
+    for i=1, #department.ranks do
+        if department.ranks[i].rankId == rankId then
+            return department.ranks[i], i
+        end
+    end
+    return nil
+end
+
+function CanRankManageRank(departmentId, rankId, targetRankId)
+    local rank, rankIndex = GetDepartmentRank(departmentId, rankId)
+    local targetRank, targetRankIndex = GetDepartmentRank(departmentId, targetRankId)
+    if not rank or not targetRank then return false end
+    if rankIndex == 1 then return true end -- If this is the leader rank, they can manage all ranks
+    for i=1, #targetRank.managingRankIds do
+        if targetRank.managingRankIds[i] == rankId then return true end
+    end
+    return false
+end
+
+function CanRankManagePermission(departmentId, rankId, permission)
+    local department = GetDepartment(departmentId)
+    if not department then return false end
+    local permissionData = GetDepartmentPermission(departmentId, permission)
+    if not permissionData then return false end
+    if department.ranks[1].rankId == rankId then return true end -- If this is the leader rank, they can manage all permissions
+    for i=1, #permissionData.managingRankIds do
+        if permissionData.managingRankIds[i] == rankId then return true end
+    end
+    return false
+end
+
+function IsPlayerDepartmentLeader(source)
+    local departmentId, memberData = GetPlayerDepartment(source)
+    if not departmentId then return false end
+    local department = GetDepartment(departmentId)
+    if not department then return false end
+    local rank, rankIndex = GetDepartmentRank(departmentId, memberData.rankId)
+    if not rank then return false end
+    return rankIndex == 1
+end
+
 RegisterCallback("pickle_policejob:openFrontdesk", function(source, cb, id)
     local department = GetDepartment(id)
     local departmentId, memberData = GetPlayerDepartment(source)
@@ -219,6 +280,13 @@ RegisterCallback("pickle_policejob:getPlayers", function(source, cb)
         }
     end
     cb(players)
+end)
+
+RegisterCallback("pickle_policejob:getPlayerInfo", function(source, cb)
+    cb({
+        identifier = GetIdentifier(source),
+        name = GetPlayerCharacterName(source),
+    })
 end)
 
 RegisterNetEvent("pickle_policejob:toggleDuty", function(id, entityId, report)

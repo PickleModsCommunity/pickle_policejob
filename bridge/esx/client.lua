@@ -89,7 +89,7 @@ CreateThread(function()
     Inventory.Ready = false
     
     RegisterNetEvent("pickle_policejob:setupInventory", function(data)
-        Inventory.Items = data.items
+        Inventory.Items = data
         Inventory.Ready = true
     end)
     

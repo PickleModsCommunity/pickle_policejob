@@ -151,16 +151,56 @@ function RenderDepartmentLocation(id, locationId)
     end
     if not location then return end
     if location.type == "front_desk" then
+        local coords = location.positions.point.coords
+        local heading = location.positions.point.rotation.z
+        if location.settings.ped and location.settings.ped ~= "" then
+            coords = coords + vector3(0.0, 0.0, 1.0)
+        end
         LocalDepartments[id].locations[#LocalDepartments[id].locations+1] = {
             id = locationId,
             interact = CreateInteraction({
                 label = _L("interact_frontdesk"),
                 icon = Config.TargetIcons["frontdesk"],
-                coords = location.positions.point.coords,
-                heading = location.positions.point.heading,
-                model = location.positions.point.ped and { modelType = "ped", hash = GetHashKey(location.positions.point.ped) } or nil,
+                coords = coords,
+                heading = heading,
+                model = (location.settings.ped and location.settings.ped ~= "") and { modelType = "ped", hash = GetHashKey(location.settings.ped) } or nil,
             }, function()
                 OpenFrontdesk(id, locationId)
+            end)
+        }
+    elseif location.type == "computer" then
+        local coords = location.positions.point.coords
+        local heading = location.positions.point.rotation.z
+        if location.settings.ped and location.settings.ped ~= "" then
+            coords = coords + vector3(0.0, 0.0, 1.0)
+        end
+        LocalDepartments[id].locations[#LocalDepartments[id].locations+1] = {
+            id = locationId,
+            interact = CreateInteraction({
+                label = _L("location_computer"),
+                icon = Config.TargetIcons["computer"],
+                coords = coords,
+                heading = heading,
+            }, function()
+                OpenComputer(id, locationId)
+            end)
+        }
+    elseif location.type == "armory" then
+        local coords = location.positions.point.coords
+        local heading = location.positions.point.rotation.z
+        if location.settings.ped and location.settings.ped ~= "" then
+            coords = coords + vector3(0.0, 0.0, 1.0)
+        end
+        LocalDepartments[id].locations[#LocalDepartments[id].locations+1] = {
+            id = locationId,    
+            interact = CreateInteraction({
+                label = _L("location_armory"),
+                icon = Config.TargetIcons["armory"],
+                coords = coords,
+                heading = heading,
+                model = (location.settings.ped and location.settings.ped ~= "") and { modelType = "ped", hash = GetHashKey(location.settings.ped) } or nil,
+            }, function()   
+                OpenArmory(id, locationId)
             end)
         }
     end
@@ -197,31 +237,25 @@ end)
 
 RegisterNUICallback("pageLoaded", function(data, cb)
     cb("ok")
-    while not Inventory or not Inventory.Ready do Wait(100) end
-    SendNUIMessage({
-        type = "setConfig",
-        config = {
-            imageDirectory = Config.ImageDirectory,
-            identifier = "char:1",
-            locale = Language[Config.Language],
-            countryCode = Config.Currency.countryCode,
-            currency = Config.Currency.currency,
-            items = Inventory.Items,
-            policeArmory = Config.PoliceArmory or {},
-            policeGarage = Config.PoliceGarage or {},
-            locationTypes = {
-                ["front_desk"] = {
-                    locations = {}
-                },
-                ["police_garage"] = {
-                    locations = {"spawn"}
-                },
-                ["police_armory"] = {
-                    locations = {}
-                },
+    ServerCallback("pickle_policejob:getPlayerInfo", function(player)
+        while not Inventory or not Inventory.Ready do Wait(100) end
+        SendNUIMessage({
+            type = "setConfig",
+            config = {
+                imageDirectory = Config.ImageDirectory,
+                identifier = player.identifier,
+                name = player.name,
+                locale = Language[Config.Language],
+                countryCode = Config.Currency.countryCode,
+                currency = Config.Currency.currency,
+                items = Inventory.Items,
+                policeArmory = Config.PoliceArmory or {},
+                policeGarage = Config.PoliceGarage or {},
+                peds = Config.Peds or {},
+                locationTypes = LOCATION_TYPES,
             }
-        }
-    })
+        })
+    end)
 end)
 
 RegisterNetEvent("pickle_policejob:integration", function(integration, ...)

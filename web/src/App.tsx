@@ -11,7 +11,7 @@ export function GetItemLabel({item} : {item: string}) {
   if (item == "money" || item == "dirty_money") {
     return <Translate id={item} />;
   }
-  const itemLabel = config.items[item]?.label;
+  const itemLabel = config.items[item]?.label || config.items[item.toUpperCase()]?.label;
   if (!itemLabel) {
     return item;
   }

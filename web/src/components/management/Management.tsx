@@ -102,6 +102,18 @@ function GetDepartmentLeader(department: Department): Player | null {
     }
 }
 
+function DropdownSetting({ settingId, value, onUpdate }: { settingId: string, value: string, onUpdate: (value: string) => void }) {
+    const { config } = useConfig();
+    return (
+        <select className="bg-background text-sm text-muted-foreground cursor-pointer transition-all duration-200" value={value} onChange={(e) => onUpdate(e.target.value)}>
+            <option value="">{<Translate id="none" />}</option>
+            {settingId == "ped" && config.peds.map((ped) => (
+                <option key={ped.model} value={ped.model}>{ped.label}</option>
+            ))}
+        </select>
+    )
+}
+
 function ManagementLocation({ location, onExit, onUpdate, onCreate, onDelete }: { location: DepartmentLocation, onExit: () => void, onUpdate?: (location: DepartmentLocation) => void, onCreate?: (location: DepartmentLocation) => void, onDelete?: () => void }) {
     const { config } = useConfig();
     const { currentDepartmentId } = useManagement();
@@ -109,6 +121,8 @@ function ManagementLocation({ location, onExit, onUpdate, onCreate, onDelete }: 
     const [type, setType] = useState(location.type);
     const locationTypes = config.locationTypes;
     const locationType = locationTypes[type];
+    const settingsList = locationType.settings;
+    const [settings, setSettings] = useState(location.settings);
     if (!locationType.locations.includes("point")) {
         locationType.locations.unshift("point");
     }
@@ -129,15 +143,86 @@ function ManagementLocation({ location, onExit, onUpdate, onCreate, onDelete }: 
             {locationTypes[type].locations.map((locationType) => (
                 <div className="flex flex-row gap-2 items-center justify-between w-full" key={locationType}>
                     <div className="font-semibold text-md"><Translate id={`location_${locationType}`} />:</div>
-                    <Location className="text-muted-foreground text-sm" id={locationType} info={isCreating ? undefined : {
+                    <Location className="text-muted-foreground text-sm" id={locationType} info={isCreating ? {
+                        settings: settings,
+                    } : {
+                        settings: settings,
                         departmentId: currentDepartmentId,
                         locationId: location.id,
-                    }} defaultLocation={positions[locationType] || DEFAULT_LOCATION} onUpdate={(location) => {
+                    }} defaultLocation={positions[locationType] || DEFAULT_LOCATION} onUpdate={(locationData) => {
+                        if (!isCreating) {
+                            fetchNui("managementAction", {
+                                action: "updateLocation",
+                                data: {
+                                    departmentId: currentDepartmentId,
+                                    locationId: location.id,
+                                    location: {
+                                        ...location,
+                                        positions: {
+                                            ...positions,
+                                            [locationType]: locationData,
+                                        },
+                                    },
+                                },
+                            })
+                        }
+                        else {
+                            fetchNui("setCurrentLocation", {
+                                departmentId: currentDepartmentId,
+                                location: {
+                                    id: -1,
+                                    type: type,
+                                    positions: {
+                                        ...positions,
+                                        [locationType]: locationData
+                                    },
+                                    settings: settings,
+                                },
+                            })
+                        }
                         setPositions({
                             ...positions,
-                            [locationType]: location
+                            [locationType]: locationData
                         })
                     }} />
+                </div>
+            ))}
+            {settingsList.map((settingId) => (
+                <div className="flex flex-row gap-2 items-center justify-between w-full" key={settingId}>
+                    <div className="font-semibold text-md"><Translate id={`setting_${settingId}`} />:</div>
+                    {settingId == "ped" && <DropdownSetting settingId={settingId} value={settings[settingId]} onUpdate={(value) => {
+                        if (!isCreating) {
+                            fetchNui("managementAction", {
+                                action: "updateLocation",
+                                data: {
+                                    departmentId: currentDepartmentId,
+                                    locationId: location.id,
+                                    location: {
+                                        ...location,
+                                        settings: {
+                                            ...settings,
+                                            [settingId]: value,
+                                        },
+                                    },
+                                },
+                            })
+                        }
+                        else {
+                            fetchNui("setCurrentLocation", {
+                                departmentId: currentDepartmentId,
+                                location: {
+                                    id: -1,
+                                    type: type,
+                                    positions: positions,
+                                    settings: {
+                                        ...settings,
+                                        [settingId]: value,
+                                    },
+                                },
+                            })
+                        }
+                        setSettings({ ...settings, [settingId]: value })
+                    }} />}
                 </div>
             ))}
             {isCreating ? (
@@ -145,6 +230,7 @@ function ManagementLocation({ location, onExit, onUpdate, onCreate, onDelete }: 
                     id: -1,
                     type: type,
                     positions: positions,
+                    settings: settings,
                 })} className="p-2 bg-green-600 cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" key={location.id}>
                     <Save size={16}/>
                     <Translate id="location_create" />
@@ -175,6 +261,16 @@ function ManagementDepartment() {
         setPlayer(GetDepartmentLeader(currentDepartment))
         setLocations(currentDepartment.locations)
     }, [departments])
+    useEffect(() => {
+        fetchNui("setCurrentLocation", {
+            departmentId: currentDepartmentId,
+            location: currentLocation,
+        })
+        fetchNui("setHoveredLocation", {
+            departmentId: currentDepartmentId,
+            locationId: null,
+        })
+    }, [currentLocation])
     return (
         <div className="flex flex-col gap-2 select-none">
             <div className="flex flex-row gap-2 items-center justify-between w-full">
@@ -276,25 +372,28 @@ function ManagementDepartment() {
                         {player ? player.name : <Translate id="none" />}
                     </div>
                 </div>
-                <div className="font-semibold text-md"><Translate id="locations" />:</div>
                 {!creatingDepartment && (
                     <>
+                        <div className="font-semibold text-md"><Translate id="locations" />:</div>
                         <hr/>
                         <div className="flex flex-col gap-2 overflow-auto max-h-[300px] px-2">
                                 <div className="px-4 py-2 bg-secondary font-semibold cursor-pointer hover:scale-95 transition-all duration-200 flex flex-col gap-2" onClick={() => {
-                                    setCurrentLocation({
-                                        id: -1,
-                                        type: "front_desk",
-                                        positions: {
-                                            "point": {
-                                                coords: {
-                                                    x: 0,
-                                                    y: 0,
-                                                    z: 0,
+                                    if (!currentLocation || currentLocation.id !== -1) {
+                                        setCurrentLocation({
+                                            id: -1,
+                                            type: "front_desk",
+                                            positions: {
+                                                "point": {
+                                                    coords: {
+                                                        x: 0,
+                                                        y: 0,
+                                                        z: 0,
+                                                    },
                                                 },
                                             },
-                                        },
-                                    })
+                                            settings: {},
+                                        })
+                                    }
                                 }}>
                                     <div className="flex flex-row items-center justify-center gap-2">
                                         <Plus size={16} />
@@ -330,7 +429,19 @@ function ManagementDepartment() {
                                         )}
                                 </div>
                                 {locations.map((location) => (
-                                    <div onClick={() => setCurrentLocation(location)} className="px-4 py-2 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-col" key={location.id}>
+                                    <div 
+                                        onMouseEnter={() => fetchNui("setHoveredLocation", {
+                                            departmentId: currentDepartmentId,
+                                            locationId: location.id,
+                                        })} 
+                                        onMouseLeave={() => fetchNui("setHoveredLocation", {
+                                            departmentId: currentDepartmentId,
+                                            locationId: null,
+                                        })} 
+                                        onClick={() => setCurrentLocation(location)} 
+                                        className="px-4 py-2 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-col" 
+                                        key={location.id}
+                                    >
                                         <div className="flex flex-row items-center justify-between">
                                             <Translate id={`location_${location.type}`} />
                                             <div><Translate id="id" args={[location.id]} /></div>
@@ -465,6 +576,13 @@ function ManagementDepartment() {
                 )}
                 <div className="p-4 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
                     setCurrentDepartmentId(null)
+                    fetchNui("setCurrentLocation", {
+                        location: null,
+                    })
+                    fetchNui("setHoveredLocation", {
+                        departmentId: currentDepartmentId,
+                        locationId: null,
+                    })
                 }}>
                     <ArrowLeft size={16} />
                     <h2 className="text-md font-bold"><Translate id="return_to_departments" /></h2>
@@ -656,37 +774,10 @@ function useManagement(): ManagementContextProps {
 }
 
 export default function ManagementDisplay() {
-    const [visible, setVisible] = useState(true)
-    const [departments, setDepartments] = useState<Department[]>([
-        {
-            id: 1,
-            label: "Police Department",
-            members: [],
-            locations: [
-                {
-                    id: 1,
-                    type: "front_desk",
-                    positions: {
-                        point: {
-                            coords: {x: 0, y: 0, z: 0},
-                        }
-                    }
-                }
-            ],
-            ranks: [
-                {
-                    rankId: 1,
-                    label: "Police Officer",
-                    managingRankIds: [],
-                    armory: [],
-                    vehicles: [],
-                }
-            ],
-            permissions: {},
-        },
-    ])
-    const [focus, setFocus] = useState(true)
-    const [hidden, setHidden] = useState(false)
+    const [visible, setVisible] = useState(false)
+    const [departments, setDepartments] = useState<Department[]>([])
+    const [focus, setFocus] = useState(false)
+    const [hidden, setHidden] = useState(true)
     useNuiEvent("setManagementHidden", (data: any) => {
         setHidden(data.hidden)
     });

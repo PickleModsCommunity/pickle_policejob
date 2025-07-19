@@ -1,7 +1,6 @@
 import { AppControls } from "@/App";
 import { Translate, translateText } from "@/providers/locale/Locale";
 import { useNuiEvent } from "@/providers/nui/useNui";
-import { usePlayer } from "@/providers/player/player";
 import { Maximize, Maximize2, Minus, MinusIcon, PictureInPicture, PictureInPicture2, X } from "lucide-react";
 import { useContext, useEffect, useState, useRef } from "react";
 import HomePage from "./HomePage";
@@ -12,6 +11,7 @@ import { createContext } from "react";
 import { useConfig } from "@/providers/config";
 import DocumentContainer, { Document, DocumentDisplay } from "../document/Document";
 import { Location } from "../management/Management";
+import { fetchNui } from "@/providers/nui/fetchNui";
 
 export type Rank = {
     rankId: number;
@@ -39,10 +39,12 @@ export type Department = {
 export type DepartmentLocation = {
     id: number,
     type: string,
+    settings: Record<string, any>,
     positions: Record<string, Location>,
 }
 
 type ComputerInfo = {
+    department: Department;
     backgroundImage: string;
     homeImage: string;
 }
@@ -60,6 +62,7 @@ type ComputerWindow = {
 
 interface ComputerContextProps {
     computerInfo: ComputerInfo;
+    player: DepartmentMember;
     windows: ComputerWindow[];
     department: Department;
     setDepartment: (department: Department) => void;
@@ -71,231 +74,41 @@ const ComputerContext = createContext<ComputerContextProps | undefined>(undefine
 function Computer({info}: {info: ComputerInfo}) {
     const [computerInfo, setComputerInfo] = useState<ComputerInfo>(info);
     const {config} = useConfig();
-    const {player} = usePlayer();
     const [windows, setWindows] = useState<ComputerWindow[]>([]);
     const [currentWindow, setCurrentWindow] = useState<ComputerWindow | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-    const [department, setDepartment] = useState<Department>({
-        id: 11,
-        label: "Los Santos Police Department",
-        ranks: [
-            {
-                "rankId":1,
-                "label":"Chief", 
-                "managingRankIds":[],
-                "armory": [],
-                "vehicles": [],
-            },
-            {
-                "rankId":2,
-                "label":"Lieutenant", 
-                "managingRankIds":[],
-                "armory": [],
-                "vehicles": [],
-            },
-            {
-                "rankId":3,
-                "label":"Sergeant",
-                "managingRankIds":[2],
-                "armory": [],
-                "vehicles": [],
-            },
-            {
-                "rankId":4,
-                "label":"Officer",
-                "managingRankIds":[1,2,3],
-                "armory": [],
-                "vehicles": [],
-            },
-            {
-                "rankId":5,
-                "label":"Recruit",
-                "managingRankIds":[1,2,3],
-                "armory": [],
-                "vehicles": [],
-            },
-        ],
-        members: [
-            {
-                "identifier": "char1:eeee",
-                "name": "Michael Rodriguez",
-                "rankId": 4,
-                "recentDutyLogs": [],
-                "permissions": ["Rifle Certified", "Field Training Officer"],
-                "onDutyTime": 22,
-            },
-            {
-                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138b",
-                "name": "Sarah Johnson",
-                "rankId": 2,
-                "recentDutyLogs": [],
-                "permissions": ["Rifle Certified", "Air Certified", "Field Training Officer"],
-                "onDutyTime": 256,
-            },
-            {
-                "identifier": "char1:eeee2",
-                "name": "David Chen",
-                "rankId": 4,
-                "recentDutyLogs": [],
-                "permissions": [],
-                "onDutyTime": 12020,
-            },
-            {
-                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138c",
-                "name": "Emily Thompson",
-                "rankId": 2,
-                "recentDutyLogs": [],
-                "permissions": [],
-                "onDutyTime": 42001,
-            },
-            {
-                "identifier": "char1:eeee3",
-                "name": "James Wilson",
-                "rankId": 4,
-                "recentDutyLogs": [],
-                "permissions": [],
-                "onDutyTime": 2233,
-            },
-            {
-                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138d",
-                "name": "Lisa Martinez",
-                "rankId": 2,
-                "recentDutyLogs": [],
-                "permissions": [],
-                "onDutyTime": 54321,
-            },
-            {
-                "identifier": "char1:eeee4",
-                "name": "Robert Kim",
-                "rankId": 4,
-                "recentDutyLogs": [],
-                "permissions": [],
-                "onDutyTime": 2222,
-            },
-            {
-                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138e",
-                "name": "Jennifer Davis",
-                "rankId": 2,
-                "recentDutyLogs": [],
-                "permissions": [],
-                "onDutyTime": 1123,
-            },
-            {
-                "identifier": "char1:eeee5",
-                "name": "Christopher Lee",
-                "rankId": 4,
-                "recentDutyLogs": [],
-                "permissions": [],
-                "onDutyTime": 52431,
-            },
-            {
-                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138f",
-                "name": "Amanda Garcia",
-                "rankId": 2,
-                "recentDutyLogs": [
-                    {
-                        "duration": 8,
-                        "finishTimestamp": "06\/19\/2025 05:04 PM",
-                        "startTimestamp": "06\/19\/2025 05:04 PM",
-                        "finish": 1760374288
-                    },
-                ],
-                "permissions": [],
-                "onDutyTime": 2442,
-            },
-            {
-                "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138a",
-                "name": "Marcus Williams",
-                "rankId": 1,
-                "recentDutyLogs": [
-                    {
-                        "duration": 8,
-                        "report": "a",
-                        "finishTimestamp": "06\/19\/2025 05:04 PM",
-                        "startTimestamp": "06\/19\/2025 05:04 PM",
-                        "finish": 1750374288
-                    },
-                    {
-                        "duration": 18,
-                        "finishTimestamp": "06\/18\/2025 02:20 PM",
-                        "startTimestamp": "06\/18\/2025 02:20 PM",
-                        "finish": 1750278018
-                    },
-                    {
-                        "duration": 7,
-                        "finishTimestamp": "06\/18\/2025 07:25 AM",
-                        "startTimestamp": "06\/18\/2025 07:25 AM",
-                        "finish": 1750253124
-                    },
-                    {
-                        "duration": 23,
-                        "startTimestamp": "06\/17\/2025 11:59 AM",
-                        "finishTimestamp": "06\/17\/2025 11:59 AM",
-                        "finish": 1750183198
-                    },
-                    {
-                        "duration": 7,
-                        "startTimestamp": "06\/17\/2025 11:41 AM",
-                        "report": "Aaaaaa",
-                        "finishTimestamp": "06\/17\/2025 11:41 AM",
-                        "finish": 1750182092
-                    },
-                    {
-                        "duration": 16,
-                        "startTimestamp": "06\/17\/2025 11:20 AM",
-                        "report": "I am tired\n",
-                        "finishTimestamp": "06\/17\/2025 11:20 AM",
-                        "finish": 1750180829
-                    },
-                    {
-                        "duration": 6,
-                        "finishTimestamp": "06\/17\/2025 04:29 AM",
-                        "startTimestamp": "06\/17\/2025 04:29 AM",
-                        "finish": 1750156199
-                    },
-                    {
-                        "duration": 72441,
-                        "finishTimestamp": "06\/16\/2025 08:01 AM",
-                        "startTimestamp": "06\/15\/2025 11:53 AM",
-                        "finish": 1750082474
-                    },
-                    {
-                        "duration": 7,
-                        "finishTimestamp": "06\/15\/2025 08:04 AM",
-                        "startTimestamp": "06\/15\/2025 08:04 AM",
-                        "finish": 1749996260
-                    },
-                    {
-                        "duration": 260,
-                        "finishTimestamp": "06\/15\/2025 08:03 AM",
-                        "startTimestamp": "06\/15\/2025 07:58 AM",
-                        "finish": 1749996181
-                    }
-                ],
-                "permissions": [
-                ],
-                "onDutyTime": 72932,
-            },
-        ],
-        permissions: {
-            "Air Certified": {
-                "managingRankIds": [2],
-                "armory": [],
-                "vehicles": [],
-            },
-            "Field Training Officer": {
-                "managingRankIds": [2, 3],
-                "armory": [],
-                "vehicles": [],
-            },
-            "Rifle Certified": {
-                "managingRankIds": [2, 3],
-                "armory": [],
-                "vehicles": [],
-            },
-        },
-        locations: [],
+    const [department, setDepartment] = useState<Department>(info.department);
+    const player = department.members.find((member) => member.identifier === config.identifier) || {
+        identifier: "ERR_CLOSE",
+        rankId: 1,
+        name: "Unknown",
+        recentDutyLogs: [],
+        permissions: {},
+        onDutyTime: 0,
+    }
+    if (player.identifier === "ERR_CLOSE") {
+        fetchNui("closeComputer");
+    }
+    
+    useNuiEvent("updateComputerDepartment", (event: any) => {
+        const data = event.data;
+        if (data.type == "updateMembers") {
+            setDepartment(prev => ({
+                ...prev,
+                members: data.members,
+            }));
+        } else if (data.type == "updateRanks") {
+            setDepartment(prev => ({
+                ...prev,
+                ranks: data.ranks,
+            }));
+        } else if (data.type == "updatePermissions") {
+            setDepartment(prev => ({
+                ...prev,
+                permissions: data.permissions,
+            }));
+        }
     });
     // Mouse event handlers for dragging
     const handleMouseDown = (e: React.MouseEvent, window: ComputerWindow) => {
@@ -413,28 +226,28 @@ function Computer({info}: {info: ComputerInfo}) {
         {
             id: "homepage",
             name: "page_homepage",
-            image: "nui/images/LSPD.webp"
+            image: "/nui/images/LSPD.webp"
         },
         {
             id: "roster",
             name: "page_roster",
-            image: "nui/images/LSPD.webp"
+            image: "/nui/images/LSPD.webp"
         },
         {
             id: "evidence",
             name: "page_evidence",
-            image: "nui/images/LSPD.webp"
+            image: "/nui/images/LSPD.webp"
         },
         {
             id: "file",
             name: "page_file",
-            image: "nui/images/LSPD.webp",
+            image: "/nui/images/LSPD.webp",
             hideShortcut: true,
         },
         {
             id: "settings",
             name: "page_settings",
-            image: "nui/images/LSPD.webp"
+            image: "/nui/images/LSPD.webp"
         },
     ]
     const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
@@ -444,17 +257,17 @@ function Computer({info}: {info: ComputerInfo}) {
     //     }, 1000);
     //     return () => clearInterval(interval);
     // }, []);
-    const value = {
-        computerInfo,
-        department,
-        windows,
-        setDepartment,
-        openWindow: (window: string, data?: any) => {
-            handleShortcutSelect(programs.find(program => program.id === window)!, data);
-        }
-    }
     return (
-        <ComputerContext.Provider value={value}>
+        <ComputerContext.Provider value={{
+            computerInfo,
+            department,
+            player: player as DepartmentMember,
+            windows,
+            setDepartment,
+            openWindow: (window: string, data?: any) => {
+                handleShortcutSelect(programs.find(program => program.id === window)!, data);
+            }
+        }}>
             <div className="relative w-[1280px] h-[720px] flex flex-col items-center justify-center overflow-hidden" style={{
                 backgroundImage: `url(${computerInfo.backgroundImage})`,
                 backgroundSize: "cover",
@@ -532,7 +345,7 @@ function Computer({info}: {info: ComputerInfo}) {
                 <div className="relative w-full h-[40px] bg-black/50 flex items-center justify-between px-2">
                     <div className="flex items-center gap-2 whitespace-nowrap">
                         <img src={computerInfo.homeImage} alt="home" className="w-[25px] h-[25px]" />
-                        <div className="text-sm font-semibold text-white">{player.name}</div>
+                        <div className="text-sm font-semibold text-white">{config.name}</div>
                         <div className="flex overflow-x-auto gap-0">
                             {windows.map((window, index) => (
                                 <div 
@@ -576,16 +389,265 @@ export const useComputer = (): ComputerContextProps => {
 }
 
 export default function ComputerContainer() {
+    const [visible, setVisible] = useState(false);
     const [computerInfo, setComputerInfo] = useState<ComputerInfo | null>(true ? null : {
+        department: {
+            id: 11,
+            label: "Los Santos Police Department",
+            ranks: [
+                {
+                    "rankId":1,
+                    "label":"Chief", 
+                    "managingRankIds":[],
+                    "armory": [],
+                    "vehicles": [],
+                },
+                {
+                    "rankId":2,
+                    "label":"Lieutenant", 
+                    "managingRankIds":[],
+                    "armory": [],
+                    "vehicles": [],
+                },
+                {
+                    "rankId":3,
+                    "label":"Sergeant",
+                    "managingRankIds":[2],
+                    "armory": [],
+                    "vehicles": [],
+                },
+                {
+                    "rankId":4,
+                    "label":"Officer",
+                    "managingRankIds":[1,2,3],
+                    "armory": [],
+                    "vehicles": [],
+                },
+                {
+                    "rankId":5,
+                    "label":"Recruit",
+                    "managingRankIds":[1,2,3],
+                    "armory": [],
+                    "vehicles": [],
+                },
+            ],
+            members: [
+                {
+                    "identifier": "char1:eeee",
+                    "name": "Michael Rodriguez",
+                    "rankId": 4,
+                    "recentDutyLogs": [],
+                    "permissions": ["Rifle Certified", "Field Training Officer"],
+                    "onDutyTime": 22,
+                },
+                {
+                    "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138b",
+                    "name": "Sarah Johnson",
+                    "rankId": 2,
+                    "recentDutyLogs": [],
+                    "permissions": ["Rifle Certified", "Air Certified", "Field Training Officer"],
+                    "onDutyTime": 256,
+                },
+                {
+                    "identifier": "char1:eeee2",
+                    "name": "David Chen",
+                    "rankId": 4,
+                    "recentDutyLogs": [],
+                    "permissions": [],
+                    "onDutyTime": 12020,
+                },
+                {
+                    "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138c",
+                    "name": "Emily Thompson",
+                    "rankId": 2,
+                    "recentDutyLogs": [],
+                    "permissions": [],
+                    "onDutyTime": 42001,
+                },
+                {
+                    "identifier": "char1:eeee3",
+                    "name": "James Wilson",
+                    "rankId": 4,
+                    "recentDutyLogs": [],
+                    "permissions": [],
+                    "onDutyTime": 2233,
+                },
+                {
+                    "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138d",
+                    "name": "Lisa Martinez",
+                    "rankId": 2,
+                    "recentDutyLogs": [],
+                    "permissions": [],
+                    "onDutyTime": 54321,
+                },
+                {
+                    "identifier": "char1:eeee4",
+                    "name": "Robert Kim",
+                    "rankId": 4,
+                    "recentDutyLogs": [],
+                    "permissions": [],
+                    "onDutyTime": 2222,
+                },
+                {
+                    "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138e",
+                    "name": "Jennifer Davis",
+                    "rankId": 2,
+                    "recentDutyLogs": [],
+                    "permissions": [],
+                    "onDutyTime": 1123,
+                },
+                {
+                    "identifier": "char1:eeee5",
+                    "name": "Christopher Lee",
+                    "rankId": 4,
+                    "recentDutyLogs": [],
+                    "permissions": [],
+                    "onDutyTime": 52431,
+                },
+                {
+                    "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138f",
+                    "name": "Amanda Garcia",
+                    "rankId": 2,
+                    "recentDutyLogs": [
+                        {
+                            "duration": 8,
+                            "finishTimestamp": "06\/19\/2025 05:04 PM",
+                            "startTimestamp": "06\/19\/2025 05:04 PM",
+                            "finish": 1760374288
+                        },
+                    ],
+                    "permissions": [],
+                    "onDutyTime": 2442,
+                },
+                {
+                    "identifier": "char1:7817bde6206cb72577821aa3369e8d15f688138a",
+                    "name": "Marcus Williams",
+                    "rankId": 1,
+                    "recentDutyLogs": [
+                        {
+                            "duration": 8,
+                            "report": "a",
+                            "finishTimestamp": "06\/19\/2025 05:04 PM",
+                            "startTimestamp": "06\/19\/2025 05:04 PM",
+                            "finish": 1750374288
+                        },
+                        {
+                            "duration": 18,
+                            "finishTimestamp": "06\/18\/2025 02:20 PM",
+                            "startTimestamp": "06\/18\/2025 02:20 PM",
+                            "finish": 1750278018
+                        },
+                        {
+                            "duration": 7,
+                            "finishTimestamp": "06\/18\/2025 07:25 AM",
+                            "startTimestamp": "06\/18\/2025 07:25 AM",
+                            "finish": 1750253124
+                        },
+                        {
+                            "duration": 23,
+                            "startTimestamp": "06\/17\/2025 11:59 AM",
+                            "finishTimestamp": "06\/17\/2025 11:59 AM",
+                            "finish": 1750183198
+                        },
+                        {
+                            "duration": 7,
+                            "startTimestamp": "06\/17\/2025 11:41 AM",
+                            "report": "Aaaaaa",
+                            "finishTimestamp": "06\/17\/2025 11:41 AM",
+                            "finish": 1750182092
+                        },
+                        {
+                            "duration": 16,
+                            "startTimestamp": "06\/17\/2025 11:20 AM",
+                            "report": "I am tired\n",
+                            "finishTimestamp": "06\/17\/2025 11:20 AM",
+                            "finish": 1750180829
+                        },
+                        {
+                            "duration": 6,
+                            "finishTimestamp": "06\/17\/2025 04:29 AM",
+                            "startTimestamp": "06\/17\/2025 04:29 AM",
+                            "finish": 1750156199
+                        },
+                        {
+                            "duration": 72441,
+                            "finishTimestamp": "06\/16\/2025 08:01 AM",
+                            "startTimestamp": "06\/15\/2025 11:53 AM",
+                            "finish": 1750082474
+                        },
+                        {
+                            "duration": 7,
+                            "finishTimestamp": "06\/15\/2025 08:04 AM",
+                            "startTimestamp": "06\/15\/2025 08:04 AM",
+                            "finish": 1749996260
+                        },
+                        {
+                            "duration": 260,
+                            "finishTimestamp": "06\/15\/2025 08:03 AM",
+                            "startTimestamp": "06\/15\/2025 07:58 AM",
+                            "finish": 1749996181
+                        }
+                    ],
+                    "permissions": [
+                    ],
+                    "onDutyTime": 72932,
+                },
+            ],
+            permissions: {
+                "Air Certified": {
+                    "managingRankIds": [2],
+                    "armory": [],
+                    "vehicles": [],
+                },
+                "Field Training Officer": {
+                    "managingRankIds": [2, 3],
+                    "armory": [],
+                    "vehicles": [],
+                },
+                "Rifle Certified": {
+                    "managingRankIds": [2, 3],
+                    "armory": [],
+                    "vehicles": [],
+                },
+            },
+            locations: [],
+        },
         backgroundImage: "https://www.dojrp.com/uploads/monthly_2022_05/large.DOJRP-LSPD-PA-6.png.bc543f0c421f54fc03cbae19e505d8c8.png",
         homeImage: "nui/images/LSPD.webp"
     });
-    useNuiEvent("updateComputerInfo", (data: any) => {
-        setComputerInfo(data.computerInfo);
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+            if (!visible) return;
+            if (event.key === "Escape" || event.key === "Backspace") {
+                fetchNui("closeComputer", {});
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
     });
+    const updateComputerInfo = (data: any) => {
+        if (!data.computerInfo) {
+            setVisible(false);
+            setTimeout(() => {
+                setComputerInfo(data.computerInfo);
+            }, 300);
+        }
+        else {
+            setComputerInfo(data.computerInfo);
+            setTimeout(() => {
+                setVisible(true);
+            }, 10);
+        }
+    }
+    useNuiEvent("updateComputerInfo", updateComputerInfo);
     return (
         computerInfo && (
-            <div className="dark w-screen h-screen absolute text-primary top-0 left-0 bg-gray-900 flex items-center justify-center">
+            <div className="dark w-screen h-screen absolute text-primary top-0 left-0 flex items-center justify-center transition-opacity duration-300" style={{opacity: visible ? 1 : 0}}>
                 <AppControls />
                 <Computer info={computerInfo} />
             </div>

@@ -27,7 +27,7 @@ end
 
 function GetPlayerCharacterName(source)
     local xPlayer = ESX.GetPlayerFromId(source)
-    if not xPlayer then return "Unknown Name" end
+    if not xPlayer then return "ERR_UNK_NAME" end
     return xPlayer.getName()
 end
 

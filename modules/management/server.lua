@@ -78,6 +78,7 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
                 identifier = GetIdentifier(leader),
                 name = GetPlayerCharacterName(leader),
                 rankId = 1,
+                onDutyTime = 0,
                 recentDutyLogs = {},
                 permissions = {},
             })
@@ -90,9 +91,18 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
             ranks = {
                 {
                     rankId = 1,
-                    label = _L("default_rank_name"),
+                    label = _L("default_leader_rank"),
                     managingRankIds = {},
-                }
+                    armory = {},
+                    vehicles = {},
+                },
+                {
+                    rankId = 2,
+                    label = _L("default_rank"),
+                    managingRankIds = {},
+                    armory = {},
+                    vehicles = {},
+                },
             },
             permissions = {},
             outfits = {},
@@ -137,6 +147,7 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
             id = locationId,
             type = location.type,
             positions = positions,
+            settings = location.settings or {},
         }
         table.insert(department.locations, newLocation)
         UpdateDepartmentSQL(departmentId, "locations")
@@ -161,7 +172,11 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
             end
         end
         if not location then return end
-        location.positions[data.pointId] = EnsureDepartmentData("location", data.location)
+        location.positions = data.location.positions
+        location.settings = data.location.settings
+        for k, v in pairs(location.positions) do
+            location.positions[k] = EnsureDepartmentData("location", v)
+        end
         UpdateDepartmentSQL(departmentId, "locations")
         for k, v in pairs(InManagement) do
             TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {

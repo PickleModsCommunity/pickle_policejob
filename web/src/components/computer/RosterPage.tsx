@@ -1,13 +1,13 @@
 import { useNuiEvent } from "@/providers/nui/useNui";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Table from "../table/Table";
-import { Translate } from "@/providers/locale/Locale";
+import { Translate, translateText } from "@/providers/locale/Locale";
 import { Button } from "../ui/button";
-import { Check, CheckIcon, DoorOpen, Edit, EyeIcon, LogOut, Pencil, PlusIcon, SaveIcon, Trash, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CheckIcon, DoorOpen, Edit, EyeIcon, LogOut, Pencil, PlusIcon, SaveIcon, Trash, X } from "lucide-react";
 import ComputerContext, { useComputer } from "./Computer";
-import { usePlayer } from "@/providers/player/player";
 import { ItemDisplay } from "../armory/Armory";
 import { useConfig } from "@/providers/config";
+import { fetchNui } from "@/providers/nui/fetchNui";
 
 type DutyLog = {
     duration: number;
@@ -106,8 +106,7 @@ export type Player = {
 }
 
 function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {memberIdentifier: string, onClose: () => void, isModalVisible: boolean}) {
-    const { department, setDepartment, openWindow } = useComputer();
-    const { player } = usePlayer();
+    const { department, player, setDepartment, openWindow } = useComputer();
     const [isAddingPermission, setIsAddingPermission] = useState(false);
     const [selectedPermission, setSelectedPermission] = useState("");
     const [isFiringMember, setIsFiringMember] = useState(false);
@@ -141,10 +140,14 @@ function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {membe
                                         <div className="w-full whitespace-nowrap flex items-center justify-center gap-2 bg-destructive hover:bg-destructive/80 transition-colors duration-200 cursor-pointer rounded-md p-1 font-semibold text-xs text-center" onClick={() => {
                                             if (isFiringMember) {
                                                 setIsFiringMember(false);
-                                                setDepartment({
-                                                    ...department,
-                                                    members: department.members.filter(m => m.identifier !== member.identifier),
+                                                fetchNui("updateComputerDepartment", {
+                                                    type: "removeMember",
+                                                    identifier: member.identifier,
                                                 });
+                                                // setDepartment({
+                                                //     ...department,
+                                                //     members: department.members.filter(m => m.identifier !== member.identifier),
+                                                // });
                                                 onClose();
                                             } else {
                                                 setIsFiringMember(true);
@@ -176,10 +179,15 @@ function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {membe
                                         <div className="text-sm font-semibold"><Translate id="rank" />:</div>
                                         {CanRankManageRank(player.rankId, member.rankId) ? (
                                         <select className="w-full bg-background text-sm p-1 rounded border border-border" value={member.rankId} onChange={(e) => {
-                                            setDepartment({
-                                                ...department,
-                                                members: department.members.map(m => m.identifier === member.identifier ? { ...m, rankId: parseInt(e.target.value) } : m),
+                                            fetchNui("updateComputerDepartment", {
+                                                type: "updateMemberRank",
+                                                identifier: member.identifier,
+                                                rankId: parseInt(e.target.value),
                                             });
+                                            // setDepartment({
+                                            //     ...department,
+                                            //     members: department.members.map(m => m.identifier === member.identifier ? { ...m, rankId: parseInt(e.target.value) } : m),
+                                            // });
                                         }}>
                                             <option key={member.rankId} value={member.rankId}>{department.ranks.find((rank) => rank.rankId === member.rankId)?.label || "Unknown"}</option>
                                             {department.ranks.map((rank) => (rank.rankId !== member.rankId && CanRankManageRank(player.rankId, rank.rankId)) && (
@@ -198,10 +206,15 @@ function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {membe
                                                         {permission}
                                                         {(CanRankManageRank(player.rankId, member.rankId) && CanRankManagePermission(player.rankId, permission)) && (
                                                             <div className="absolute inset-0 bg-destructive/95 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer" onClick={() => {
-                                                                setDepartment({
-                                                                    ...department,
-                                                                    members: department.members.map(m => m.identifier === member.identifier ? { ...m, permissions: m.permissions.filter(p => p !== permission) } : m),
+                                                                fetchNui("updateComputerDepartment", {
+                                                                    type: "deleteMemberPermission",
+                                                                    identifier: member.identifier,
+                                                                    label: permission,
                                                                 });
+                                                                // setDepartment({
+                                                                //     ...department,
+                                                                //     members: department.members.map(m => m.identifier === member.identifier ? { ...m, permissions: m.permissions.filter(p => p !== permission) } : m),
+                                                                // });
                                                             }}>
                                                                 <X className="w-4 h-4 text-white" />
                                                             </div>
@@ -232,14 +245,19 @@ function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {membe
                                                             className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
                                                             onClick={() => {
                                                                 if (selectedPermission) {
-                                                                    setDepartment({
-                                                                        ...department,
-                                                                        members: department.members.map(m => 
-                                                                            m.identifier === member.identifier 
-                                                                                ? { ...m, permissions: [...m.permissions, selectedPermission] }
-                                                                                : m
-                                                                        )
+                                                                    fetchNui("updateComputerDepartment", {
+                                                                        type: "addMemberPermission",
+                                                                        identifier: member.identifier,
+                                                                        label: selectedPermission,
                                                                     });
+                                                                    // setDepartment({
+                                                                    //     ...department,
+                                                                    //     members: department.members.map(m => 
+                                                                    //         m.identifier === member.identifier 
+                                                                    //             ? { ...m, permissions: [...m.permissions, selectedPermission] }
+                                                                    //             : m
+                                                                    //     )
+                                                                    // });
                                                                     setSelectedPermission("");
                                                                     setIsAddingPermission(false);
                                                                 }
@@ -381,10 +399,15 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
                                         <div className="cursor-pointer" onClick={() => {
                                             setIsEditingLabel(!isEditingLabel)
                                             if (isEditingLabel) {
-                                                setDepartment({
-                                                    ...department,
-                                                    ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, label: inputLabel } : rank),
+                                                fetchNui("updateComputerDepartment", {
+                                                    type: "updateRankLabel",
+                                                    rankId: rankId,
+                                                    label: inputLabel,
                                                 });
+                                                // setDepartment({
+                                                //     ...department,
+                                                //     ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, label: inputLabel } : rank),
+                                                // });
                                             }
                                         }}>
                                             {isEditingLabel ? (
@@ -397,27 +420,31 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
                                     {rankIndex !== 0 && (
                                         <div className="w-full select-none whitespace-nowrap flex items-center justify-center gap-2 bg-destructive hover:bg-destructive/80 transition-colors duration-200 cursor-pointer rounded-md p-1 font-semibold text-xs text-center" onClick={() => {
                                             if (isDeletingRank) {
-                                                let newRanks = department.ranks.filter(r => r.rankId !== rankId);
-                                                let newMembers = [];
-                                                if (newRanks.length <= 1) {
-                                                    for (let i = 0; i < department.members.length; i++) {
-                                                        if (department.members[i].rankId !== rankId) {
-                                                            newMembers.push(department.members[i]);
-                                                        }
-                                                    }
-                                                }
-                                                else {
-                                                    newMembers = department.members.map(m => m.rankId === rankId ? {
-                                                        ...m,
-                                                        rankId: newRanks[newRanks.length - 1].rankId,
-                                                    } : m);
-                                                }
-                                                setIsDeletingRank(false);
-                                                setDepartment({
-                                                    ...department,
-                                                    ranks: newRanks,
-                                                    members: newMembers,
+                                                fetchNui("updateComputerDepartment", {
+                                                    type: "deleteRank",
+                                                    rankId: rankId,
                                                 });
+                                                // let newRanks = department.ranks.filter(r => r.rankId !== rankId);
+                                                // let newMembers = [];
+                                                // if (newRanks.length <= 1) {
+                                                //     for (let i = 0; i < department.members.length; i++) {
+                                                //         if (department.members[i].rankId !== rankId) {
+                                                //             newMembers.push(department.members[i]);
+                                                //         }
+                                                //     }
+                                                // }
+                                                // else {
+                                                //     newMembers = department.members.map(m => m.rankId === rankId ? {
+                                                //         ...m,
+                                                //         rankId: newRanks[newRanks.length - 1].rankId,
+                                                //     } : m);
+                                                // }
+                                                setIsDeletingRank(false);
+                                                // setDepartment({
+                                                //     ...department,
+                                                //     ranks: newRanks,
+                                                //     members: newMembers,
+                                                // });
                                                 onClose();
                                             } else {
                                                 setIsDeletingRank(true);
@@ -440,10 +467,15 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
                                                         <div className="relative text-sm bg-secondary rounded-md p-1 text-center px-2">
                                                             {department.ranks.find((rank) => rank.rankId === targetRankId)?.label || "Unknown"}
                                                             <div className="absolute inset-0 bg-destructive/95 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer" onClick={() => {
-                                                                let newManagingRankIds = managingRankIds.filter(id => id !== targetRankId);
-                                                                setDepartment({
-                                                                    ...department,
-                                                                    ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, managingRankIds: newManagingRankIds } : rank),
+                                                                // let newManagingRankIds = managingRankIds.filter(id => id !== targetRankId);
+                                                                // setDepartment({
+                                                                //     ...department,
+                                                                //     ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, managingRankIds: newManagingRankIds } : rank),
+                                                                // });
+                                                                fetchNui("updateComputerDepartment", {
+                                                                    type: "deleteRankManager",
+                                                                    rankId: rankId,
+                                                                    managingRankId: targetRankId,
                                                                 });
                                                             }}>
                                                                 <X className="w-4 h-4 text-white" />
@@ -470,11 +502,16 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
                                                                 className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
                                                                 onClick={() => {
                                                                     if (selectedManagingRank) {
-                                                                        let newManagingRankIds = [...managingRankIds, selectedManagingRank];
-                                                                        setDepartment({
-                                                                            ...department,
-                                                                            ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, managingRankIds: newManagingRankIds } : rank),
+                                                                        fetchNui("updateComputerDepartment", {
+                                                                            type: "addRankManager",
+                                                                            rankId: rankId,
+                                                                            managingRankId: selectedManagingRank,
                                                                         });
+                                                                        // let newManagingRankIds = [...managingRankIds, selectedManagingRank];
+                                                                        // setDepartment({
+                                                                        //     ...department,
+                                                                        //     ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, managingRankIds: newManagingRankIds } : rank),
+                                                                        // });
                                                                         setSelectedManagingRank(null);
                                                                         setIsAddingManagingRank(false);
                                                                     }
@@ -510,20 +547,25 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
                                         <>
                                             <div className="text-sm font-semibold"><Translate id="police_armory" />:</div>
                                             <div className="grid grid-cols-5 gap-2 overflow-y-auto max-h-[250px] px-2">
-                                                {config.policeArmory.map((item: any) => {
+                                                {config.policeArmory.map((item: any, index: number) => {
                                                     const isIncluded = rank.armory.includes(item.name);
                                                     return (
-                                                        <div key={item.model} className="relative bg-secondary/25 rounded-md p-1 group">
+                                                        <div key={index} className="relative bg-secondary/25 rounded-md p-1 group">
                                                             <ItemDisplay item={item} />
                                                             {isIncluded ? (
                                                                 <div
                                                                     className="absolute z-10 inset-0 bg-green-500/25 rounded-md flex items-center justify-center opacity-100 group-hover:bg-red-500/50 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
                                                                     onClick={() => {
-                                                                        // If hovered, remove; otherwise do nothing
-                                                                        setDepartment({
-                                                                            ...department,
-                                                                            ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, armory: rank.armory.filter((i: string) => i !== item.name) } : rank),
+                                                                        fetchNui("updateComputerDepartment", {
+                                                                            type: "deleteRankArmory",
+                                                                            rankId: rankId,
+                                                                            item: item.name,
                                                                         });
+                                                                        // If hovered, remove; otherwise do nothing
+                                                                        // setDepartment({
+                                                                        //     ...department,
+                                                                        //     ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, armory: rank.armory.filter((i: string) => i !== item.name) } : rank),
+                                                                        // });
                                                                     }}
                                                                 >
                                                                     <span className="flex items-center justify-center">
@@ -535,10 +577,15 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
                                                                 <div
                                                                     className="absolute z-10 inset-0 bg-green-500/50 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer"
                                                                     onClick={() => {
-                                                                        setDepartment({
-                                                                            ...department,
-                                                                            ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, armory: [...rank.armory, item.name] } : rank),
+                                                                        fetchNui("updateComputerDepartment", {
+                                                                            type: "addRankArmory",
+                                                                            rankId: rankId,
+                                                                            item: item.name,
                                                                         });
+                                                                        // setDepartment({
+                                                                        //     ...department,
+                                                                        //     ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, armory: [...rank.armory, item.name] } : rank),
+                                                                        // });
                                                                     }}
                                                                 >
                                                                     <CheckIcon className="w-8 h-8 text-white" />
@@ -556,6 +603,7 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
                                                         <div key={item.model} className="relative bg-secondary/25 rounded-md p-1 group">
                                                             <ItemDisplay item={{
                                                                 label: item.label,
+                                                                image: item.image,
                                                                 name: item.model,
                                                                 itemType: "vehicle",
                                                             }} />
@@ -563,11 +611,16 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
                                                                 <div
                                                                     className="absolute z-10 inset-0 bg-green-500/25 rounded-md flex items-center justify-center opacity-100 group-hover:bg-red-500/50 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
                                                                     onClick={() => {
-                                                                        // If hovered, remove; otherwise do nothing
-                                                                        setDepartment({
-                                                                            ...department,
-                                                                            ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, vehicles: rank.vehicles.filter((i: number) => i !== item.model) } : rank),
+                                                                        fetchNui("updateComputerDepartment", {
+                                                                            type: "deleteRankVehicle",
+                                                                            rankId: rankId,
+                                                                            vehicle: item.model,
                                                                         });
+                                                                        // If hovered, remove; otherwise do nothing
+                                                                        // setDepartment({
+                                                                        //     ...department,
+                                                                        //     ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, vehicles: rank.vehicles.filter((i: number) => i !== item.model) } : rank),
+                                                                        // });
                                                                     }}
                                                                 >
                                                                     <span className="flex items-center justify-center">
@@ -579,10 +632,15 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
                                                                 <div
                                                                     className="absolute z-10 inset-0 bg-green-500/50 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer"
                                                                     onClick={() => {
-                                                                        setDepartment({
-                                                                            ...department,
-                                                                            ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, vehicles: [...rank.vehicles, item.model] } : rank),
+                                                                        fetchNui("updateComputerDepartment", {
+                                                                            type: "addRankVehicle",
+                                                                            rankId: rankId,
+                                                                            vehicle: item.model,
                                                                         });
+                                                                        // setDepartment({
+                                                                        //     ...department,
+                                                                        //     ranks: department.ranks.map(rank => rank.rankId === rankId ? { ...rank, vehicles: [...rank.vehicles, item.model] } : rank),
+                                                                        // });
                                                                     }}
                                                                 >
                                                                     <CheckIcon className="w-8 h-8 text-white" />
@@ -633,11 +691,15 @@ function SelectedPermissionModal({permission, onClose, isModalVisible}: {permiss
                                     </div>
                                     <div className="w-full select-none whitespace-nowrap flex items-center justify-center gap-2 bg-destructive hover:bg-destructive/80 transition-colors duration-200 cursor-pointer rounded-md p-1 font-semibold text-xs text-center" onClick={() => {
                                         if (isDeletingPermission) {
-                                            setIsDeletingPermission(false);
-                                            setDepartment({
-                                                ...department,
-                                                permissions: Object.fromEntries(Object.entries(department.permissions).filter(([key]) => key !== permission)),
+                                            fetchNui("updateComputerDepartment", {
+                                                type: "deletePermission",
+                                                label: permission,
                                             });
+                                            setIsDeletingPermission(false);
+                                            // setDepartment({
+                                            //     ...department,
+                                            //     permissions: Object.fromEntries(Object.entries(department.permissions).filter(([key]) => key !== permission)),
+                                            // });
                                             onClose();
                                         } else {
                                             setIsDeletingPermission(true);
@@ -657,16 +719,21 @@ function SelectedPermissionModal({permission, onClose, isModalVisible}: {permiss
                                                 <div className="relative text-sm bg-secondary rounded-md p-1 text-center px-2">
                                                     {department.ranks.find((rank) => rank.rankId === targetRankId)?.label || "Unknown"}
                                                     <div className="absolute inset-0 bg-destructive/95 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer" onClick={() => {
-                                                        setDepartment({
-                                                            ...department,
-                                                            permissions: {
-                                                                ...department.permissions,
-                                                                [permission]: {
-                                                                    ...department.permissions[permission],
-                                                                    managingRankIds: department.permissions[permission].managingRankIds.filter(id => id !== targetRankId),
-                                                                },
-                                                            },
+                                                        fetchNui("updateComputerDepartment", {
+                                                            type: "deletePermissionRankManager",
+                                                            permission: permission,
+                                                            managingRankId: targetRankId,
                                                         });
+                                                        // setDepartment({
+                                                        //     ...department,
+                                                        //     permissions: {
+                                                        //         ...department.permissions,
+                                                        //         [permission]: {
+                                                        //             ...department.permissions[permission],
+                                                        //             managingRankIds: department.permissions[permission].managingRankIds.filter(id => id !== targetRankId),
+                                                        //         },
+                                                        //     },
+                                                        // });
                                                     }}>
                                                         <X className="w-4 h-4 text-white" />
                                                     </div>
@@ -692,16 +759,21 @@ function SelectedPermissionModal({permission, onClose, isModalVisible}: {permiss
                                                         className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs p-1 rounded flex items-center justify-center gap-1"
                                                         onClick={() => {
                                                             if (selectedManagingRank) {
-                                                                setDepartment({
-                                                                    ...department,
-                                                                    permissions: {
-                                                                        ...department.permissions,
-                                                                        [permission]: {
-                                                                            ...department.permissions[permission],
-                                                                            managingRankIds: [...department.permissions[permission].managingRankIds, selectedManagingRank],
-                                                                        },
-                                                                    },
+                                                                fetchNui("updateComputerDepartment", {
+                                                                    type: "addPermissionRankManager",
+                                                                    permission: permission,
+                                                                    managingRankId: selectedManagingRank,
                                                                 });
+                                                                // setDepartment({
+                                                                //     ...department,
+                                                                //     permissions: {
+                                                                //         ...department.permissions,
+                                                                //         [permission]: {
+                                                                //             ...department.permissions[permission],
+                                                                //             managingRankIds: [...department.permissions[permission].managingRankIds, selectedManagingRank],
+                                                                //         },
+                                                                //     },
+                                                                // });
                                                                 setSelectedManagingRank(null);
                                                                 setIsAddingPermissionManager(false);
                                                             }
@@ -747,16 +819,21 @@ function SelectedPermissionModal({permission, onClose, isModalVisible}: {permiss
                                                             className="absolute z-10 inset-0 bg-green-500/25 rounded-md flex items-center justify-center opacity-100 group-hover:bg-red-500/50 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
                                                             onClick={() => {
                                                                 // If hovered, remove; otherwise do nothing
-                                                                setDepartment({
-                                                                    ...department,
-                                                                    permissions: {
-                                                                        ...department.permissions,
-                                                                        [permission]: {
-                                                                            ...department.permissions[permission],
-                                                                            armory: department.permissions[permission].armory.filter((i: string) => i !== item.name),
-                                                                        },
-                                                                    },
+                                                                fetchNui("updateComputerDepartment", {
+                                                                    type: "deletePermissionArmory",
+                                                                    permission: permission,
+                                                                    item: item.name,
                                                                 });
+                                                                // setDepartment({
+                                                                //     ...department,
+                                                                //     permissions: {
+                                                                //         ...department.permissions,
+                                                                //         [permission]: {
+                                                                //             ...department.permissions[permission],
+                                                                //             armory: department.permissions[permission].armory.filter((i: string) => i !== item.name),
+                                                                //         },
+                                                                //     },
+                                                                // });
                                                             }}
                                                         >
                                                             <span className="flex items-center justify-center">
@@ -768,16 +845,21 @@ function SelectedPermissionModal({permission, onClose, isModalVisible}: {permiss
                                                         <div
                                                             className="absolute z-10 inset-0 bg-green-500/50 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer"
                                                             onClick={() => {
-                                                                setDepartment({
-                                                                    ...department,
-                                                                    permissions: {
-                                                                        ...department.permissions,
-                                                                        [permission]: {
-                                                                            ...department.permissions[permission],
-                                                                            armory: [...department.permissions[permission].armory, item.name],
-                                                                        },
-                                                                    },
+                                                                fetchNui("updateComputerDepartment", {
+                                                                    type: "addPermissionArmory",
+                                                                    permission: permission,
+                                                                    item: item.name,
                                                                 });
+                                                                // setDepartment({
+                                                                //     ...department,
+                                                                //     permissions: {
+                                                                //         ...department.permissions,
+                                                                //         [permission]: {
+                                                                //             ...department.permissions[permission],
+                                                                //             armory: [...department.permissions[permission].armory, item.name],
+                                                                //         },
+                                                                //     },
+                                                                // });
                                                             }}
                                                         >
                                                             <CheckIcon className="w-8 h-8 text-white" />
@@ -803,16 +885,21 @@ function SelectedPermissionModal({permission, onClose, isModalVisible}: {permiss
                                                             className="absolute z-10 inset-0 bg-green-500/25 rounded-md flex items-center justify-center opacity-100 group-hover:bg-red-500/50 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
                                                             onClick={() => {
                                                                 // If hovered, remove; otherwise do nothing
-                                                                setDepartment({
-                                                                    ...department,
-                                                                    permissions: {
-                                                                        ...department.permissions,
-                                                                        [permission]: {
-                                                                            ...department.permissions[permission],
-                                                                            vehicles: department.permissions[permission].vehicles.filter((i: number) => i !== item.model),
-                                                                        },
-                                                                    },
+                                                                fetchNui("updateComputerDepartment", {
+                                                                    type: "deletePermissionVehicle",
+                                                                    permission: permission,
+                                                                    vehicle: item.model,
                                                                 });
+                                                                // setDepartment({
+                                                                //     ...department,
+                                                                //     permissions: {
+                                                                //         ...department.permissions,
+                                                                //         [permission]: {
+                                                                //             ...department.permissions[permission],
+                                                                //             vehicles: department.permissions[permission].vehicles.filter((i: number) => i !== item.model),
+                                                                //         },
+                                                                //     },
+                                                                // });
                                                             }}
                                                         >
                                                             <span className="flex items-center justify-center">
@@ -824,16 +911,21 @@ function SelectedPermissionModal({permission, onClose, isModalVisible}: {permiss
                                                         <div
                                                             className="absolute z-10 inset-0 bg-green-500/50 rounded-md flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer"
                                                             onClick={() => {
-                                                                setDepartment({
-                                                                    ...department,
-                                                                    permissions: {
-                                                                        ...department.permissions,
-                                                                        [permission]: {
-                                                                            ...department.permissions[permission],
-                                                                            vehicles: [...department.permissions[permission].vehicles, item.model],
-                                                                        },
-                                                                    },
+                                                                fetchNui("updateComputerDepartment", {
+                                                                    type: "addPermissionVehicle",
+                                                                    permission: permission,
+                                                                    vehicle: item.model,
                                                                 });
+                                                                // setDepartment({
+                                                                //     ...department,
+                                                                //     permissions: {
+                                                                //         ...department.permissions,
+                                                                //         [permission]: {
+                                                                //             ...department.permissions[permission],
+                                                                //             vehicles: [...department.permissions[permission].vehicles, item.model],
+                                                                //         },
+                                                                //     },
+                                                                // });
                                                             }}
                                                         >
                                                             <CheckIcon className="w-8 h-8 text-white" />
@@ -853,16 +945,11 @@ function SelectedPermissionModal({permission, onClose, isModalVisible}: {permiss
     )
 }
 
-
-
 function Roster() {
-    const { department, setDepartment } = useComputer();
-    const { player } = usePlayer();
+    const { department, player, setDepartment } = useComputer();
     const [selectedMember, setSelectedMember] = useState<DepartmentMember | null>(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [section, setSection] = useState("roster");
-    const [draggedRank, setDraggedRank] = useState<number | null>(null);
-    const [dragOverRank, setDragOverRank] = useState<number | null>(null);
     const [selectedRank, setSelectedRank] = useState<number | null>(0);
     const [rankLabel, setRankLabel] = useState("");
     const [isCreatingRank, setIsCreatingRank] = useState(false);
@@ -871,23 +958,18 @@ function Roster() {
     const [selectedPermission, setSelectedPermission] = useState<string | null>(null);
     const [isCreatingPermission, setIsCreatingPermission] = useState(false);
     const [permissionLabel, setPermissionLabel] = useState("");
-    const [nearbyPlayers, setNearbyPlayers] = useState<Player[]>([
-        {
-            name: "John Doe",
-            identifier: "ident:A",
-            source: 1,
-        },
-        {
-            name: "Jane Doe",
-            identifier: "ident:B",
-            source: 2,
-        },
-        {
-            name: "John Doe",
-            identifier: "ident:C",
-            source: 3,
-        },
-    ]);
+    const [nearbyPlayersState, setNearbyPlayers] = useState<Player[]>([]);
+    const { config } = useConfig();
+    const nearbyPlayers = nearbyPlayersState.filter((player: any) => !department.members.some((member: any) => member.identifier === player.identifier));
+    useEffect(() => {
+        fetchNui("getNearbyPlayers", {}).then((data: any) => {
+            const filtered = data.filter((player: any) => !department.members.some((member: any) => member.identifier === player.identifier));
+            if (filtered.length > 0) {
+                setMemberIdentifier(0);
+            }
+            setNearbyPlayers(filtered);
+        });
+    }, []);
     const rankIndex = department.ranks.findIndex((rank) => rank.rankId === player?.rankId);
     const canAddMembers = department.ranks.some(rank => rank.managingRankIds.includes(player?.rankId)) || rankIndex == 0;
     let tabs = ["roster"];
@@ -907,47 +989,6 @@ function Roster() {
         setTimeout(() => {
             setSelectedMember(null);
         }, 200);
-    };
-
-    const handleDragStart = (e: React.DragEvent, index: number) => {
-        setDraggedRank(index);
-        e.dataTransfer.effectAllowed = 'move';
-    };
-
-    const handleDragOver = (e: React.DragEvent, index: number) => {
-        e.preventDefault();
-        setDragOverRank(index);
-    };
-
-    const handleDrop = (e: React.DragEvent, dropIndex: number) => {
-        e.preventDefault();
-        if (draggedRank !== null && draggedRank !== dropIndex) {
-            // Prevent rank 0 from being moved to a lower position
-            if (draggedRank === 0 && dropIndex > 0) {
-                return;
-            }
-            
-            // Prevent other ranks from becoming rank 0 (position 0)
-            if (dropIndex === 0 && draggedRank > 0) {
-                return;
-            }
-            
-            const newRanks = [...department.ranks];
-            const [draggedItem] = newRanks.splice(draggedRank, 1);
-            newRanks.splice(dropIndex, 0, draggedItem);
-            
-            setDepartment({
-                ...department,
-                ranks: newRanks,
-            });
-        }
-        setDraggedRank(null);
-        setDragOverRank(null);
-    };
-
-    const handleDragEnd = () => {
-        setDraggedRank(null);
-        setDragOverRank(null);
     };
 
     const handleRankSelect = (rankId: number) => {
@@ -1013,19 +1054,16 @@ function Roster() {
                                     {nearbyPlayers.map((player, index) => (
                                         <option key={index} value={index}>[{player.source}]: {player.name}</option>
                                     ))}
+                                    {nearbyPlayers.length === 0 && (
+                                        <option value={-1}>{translateText(config, "no_nearby_players", [])}</option>
+                                    )}
                                 </select>
                                 <Button variant="outline" size="icon" onClick={() => {
+                                    if (memberIdentifier === -1) return;
                                     setIsAddingMember(false);
-                                    setDepartment({
-                                        ...department,
-                                        members: [...department.members, {
-                                            identifier: nearbyPlayers[memberIdentifier].identifier,
-                                            name: nearbyPlayers[memberIdentifier].name,
-                                            rankId: department.ranks[department.ranks.length - 1].rankId,
-                                            recentDutyLogs: [],
-                                            permissions: [],
-                                            onDutyTime: 0,
-                                        }],
+                                    fetchNui("updateComputerDepartment", {
+                                        type: "addMember",
+                                        source: nearbyPlayers[memberIdentifier].source,
                                     });
                                 }}>
                                     <SaveIcon className="w-4 h-4" />
@@ -1109,28 +1147,39 @@ function Roster() {
                 }} />
             )}
             {section === "ranks" && (rankIndex == 0) && (   
-                <div className="w-full h-full flex flex-col overflow-y-auto">
+                <div className="w-full h-full flex flex-col overflow-y-auto select-none">
                     {department.ranks.map((rank, index) => (
                         <div 
                             key={rank.rankId} 
-                            onClick={() => handleRankSelect(rank.rankId)}
-                            className={`flex flex-row gap-2 p-[12px] transition-all duration-200 items-center ${
-                                draggedRank === index ? 'opacity-50' : ''
-                            } ${
-                                dragOverRank === index ? 'border-t-2 border-primary' : ''
-                            }`}
+                            className="flex flex-row gap-2 p-[12px] transition-all duration-200 items-center"
                             style={{
-                                cursor: draggedRank === index ? 'cursor-move' : 'pointer',
                                 backgroundColor: index % 2 === 0 ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.05)"
                             }}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, index)}
-                            onDragOver={(e) => handleDragOver(e, index)}
-                            onDrop={(e) => handleDrop(e, index)}
-                            onDragEnd={handleDragEnd}
                         >
-                            <div className="text-xs text-muted-foreground cursor-move">⋮⋮</div>
-                            <div className="text-md flex-1">{rank.label}</div>
+                            <Button variant="outline" size="icon" onClick={() => handleRankSelect(rank.rankId)}>
+                                <Pencil className="w-4 h-4" />
+                            </Button>
+                            <div className="flex flex-col gap-1 items-center justify-center">
+                                <div className="text-xs text-muted-foreground cursor-pointer hover:text-primary transition-all duration-200" onClick={() => {
+                                    fetchNui("updateComputerDepartment", {
+                                        type: "moveRank",
+                                        rankId: rank.rankId,
+                                        up: true,
+                                    });
+                                }}>
+                                    <ArrowUp className="w-4 h-4" />
+                                </div>
+                                <div className="text-xs text-muted-foreground cursor-pointer hover:text-primary transition-all duration-200" onClick={() => {
+                                    fetchNui("updateComputerDepartment", {
+                                        type: "moveRank",
+                                        rankId: rank.rankId,
+                                        up: false,
+                                    });
+                                }}>
+                                    <ArrowDown className="w-4 h-4" />
+                                </div>
+                            </div>
+                            <div className="text-md flex-1 p-2">{rank.label}</div>
                         </div>
                     ))}
                     <div 
@@ -1149,18 +1198,11 @@ function Roster() {
                             <div className="flex flex-row gap-2 items-center">
                                 <input type="text" className="text-sm h-[36px] bg-background/75 px-2 rounded-md" value={rankLabel} onChange={(e) => setRankLabel(e.target.value)} />
                                 <Button variant="outline" size="icon" onClick={() => {
-                                    if (rankLabel.length === 0) return;
-                                    let uniqueRankId = 0;
-                                    for (let i = 0; i < department.ranks.length; i++) {
-                                        if (department.ranks[i].rankId >= uniqueRankId) {
-                                            uniqueRankId = department.ranks[i].rankId + 1;
-                                        }
-                                    }
-                                    setIsCreatingRank(false);
-                                    setDepartment({
-                                        ...department,
-                                        ranks: [...department.ranks, { rankId: uniqueRankId, label: rankLabel, managingRankIds: [], armory: [], vehicles: [] }],
+                                    fetchNui("updateComputerDepartment", {
+                                        type: "addRank",
+                                        label: rankLabel,
                                     });
+                                    setIsCreatingRank(false);
                                 }}>
                                     <SaveIcon className="w-4 h-4" />
                                 </Button>
@@ -1211,13 +1253,17 @@ function Roster() {
                                 <Button variant="outline" size="icon" onClick={() => {
                                     if (permissionLabel.length === 0 || Object.keys(department.permissions).includes(permissionLabel)) return;
                                     setIsCreatingPermission(false);
-                                    setDepartment({
-                                        ...department,
-                                        permissions: {
-                                            ...department.permissions,
-                                            [permissionLabel]: { managingRankIds: [], armory: [], vehicles: [] },
-                                        },
+                                    fetchNui("updateComputerDepartment", {
+                                        type: "addPermission",
+                                        label: permissionLabel,
                                     });
+                                    // setDepartment({
+                                    //     ...department,
+                                    //     permissions: {
+                                    //         ...department.permissions,
+                                    //         [permissionLabel]: { managingRankIds: [], armory: [], vehicles: [] },
+                                    //     },
+                                    // });
                                 }}>
                                     <SaveIcon className="w-4 h-4" />
                                 </Button>
