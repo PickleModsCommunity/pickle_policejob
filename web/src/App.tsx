@@ -58,6 +58,7 @@ function App() {
       <ArmoryContainer />
       <ComputerContainer />
       <ManagementDisplay />
+      <GarageContainer />
     </div>
   )
 }

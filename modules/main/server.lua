@@ -259,6 +259,42 @@ function IsPlayerDepartmentLeader(source)
     return rankIndex == 1
 end
 
+function CanRankAccessEntry(departmentId, rankId, entryId, entryType)
+    local department = GetDepartment(departmentId)
+    if not department then return false end
+    if department.ranks[1].rankId == rankId then
+        return true
+    end
+    for i=#department.ranks, 1, -1 do
+        local rank = department.ranks[i]
+        for i=1, #rank[entryType] do 
+            local target = rank[entryType][i]
+            if target == entryId then
+                return true
+            end
+        end
+        if rank.id == rankId then
+            break
+        end
+    end
+    return false
+end
+
+function CanPermissionsAccessEntry(departmentId, permissions, entryId, entryType)
+    local department = GetDepartment(departmentId)
+    if not department then return false end
+    for i=1, #permissions do
+        local permission = department.permissions[permissions[i]]
+        for j=1, #permission[entryType] do
+            local target = permission[entryType][j]
+            if target == entryId then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 RegisterCallback("pickle_policejob:openFrontdesk", function(source, cb, id)
     local department = GetDepartment(id)
     local departmentId, memberData = GetPlayerDepartment(source)

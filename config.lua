@@ -61,7 +61,7 @@ Config.PoliceArmory = {
         name = "weapon_stungun",
         count = 1,
         itemType = "weapon",
-        price = 1000,
+        price = 0,
         maxCount = 1,
     },
     {
@@ -71,28 +71,40 @@ Config.PoliceArmory = {
         price = 1000,
         maxCount = 1,
     },
+    {
+        name = "weapon_assaultrifle",
+        count = 1,
+        itemType = "weapon",
+        price = 1000,
+        maxCount = 1,
+    },
 }
 
 Config.PoliceGarage = {
     {
-        label = "Crown Victoria",
-        image = "/nui/images/LSPD.webp",
-        model = -12300341,
+        label = "Crown Victory",
+        image = "https://docs.fivem.net/vehicles/police.webp",
+        model = `police`,
     },
     {
         label = "Police Interceptor",
-        image = "/nui/images/LSPD.webp",
-        model = -12300342,
+        image = "https://docs.fivem.net/vehicles/police2.webp",
+        model = `police2`,
     },
     {
         label = "Police SUV",
-        image = "/nui/images/LSPD.webp",
-        model = -12300343,
+        image = "https://docs.fivem.net/vehicles/police3.webp",
+        model = `police3`,
     },
     {
         label = "Police SUV II",
-        image = "/nui/images/LSPD.webp",
-        model = -12300344,
+        image = "https://docs.fivem.net/vehicles/police4.webp",
+        model = `police4`,
+    },
+    {
+        label = "Police SUV III",
+        image = "https://docs.fivem.net/vehicles/police5.webp",
+        model = `police5`,
     },
 }
 

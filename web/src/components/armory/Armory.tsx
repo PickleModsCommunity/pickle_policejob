@@ -96,7 +96,6 @@ function Armory({armoryInfo}: {armoryInfo: ArmoryInfo}) {
                         <div 
                             key={index} 
                             className="relative w-24 h-24 bg-background/50 rounded-md overflow-hidden flex flex-col gap-0 items-center justify-between transition-transform duration-200 ease-in-out" style={{
-                                transform: hasPermission(item.permissions || []) ? (hoveredItems[index] ? "scale(1.05)" : "scale(1)") : "scale(1)",
                             }}
                             onMouseEnter={() => handleItemHover(item, index)}
                             onMouseLeave={() => handleItemLeave(index)}
@@ -142,16 +141,17 @@ function Armory({armoryInfo}: {armoryInfo: ArmoryInfo}) {
                                                     setRenderedItems(prev => ({ ...prev, [index]: { ...prev[index], count: Math.min(Math.max(1, parseInt(e.target.value)), renderedItems[index]?.maxCount || 1000000) } }));
                                                 }} />
                                             </div>
-                                            <div className="font-semibold text-xs text-center">
-                                                <DisplayCurrency value={(renderedItems[index].price || 0) * (renderedItems[index].count || 1)} />
-                                            </div>
+                                            {renderedItems[index].price ? (
+                                                <div className="font-semibold text-xs text-center">
+                                                    <DisplayCurrency value={(renderedItems[index].price || 0) * (renderedItems[index].count || 1)} />
+                                                </div>
+                                            ) : null}
                                             <Button 
                                                 className="w-full h-6  gap-1 bg-green-600 hover:bg-green-700 text-white text-xs" 
                                                 onClick={() => {
                                                     fetchNui("buyArmoryItem", {
                                                         itemName: renderedItems[index].name,
                                                         quantity: renderedItems[index].count,
-                                                        price: renderedItems[index].price,
                                                     });
                                                 }}
                                             >
@@ -194,12 +194,43 @@ export default function ArmoryContainer() {
             ]
         }
     );
+    const [visible, setVisible] = useState(false);
+    const updateArmoryInfo = (data: any) => {
+        if (data) {
+            setArmoryInfo(data);
+            setTimeout(() => {
+                setVisible(true);
+            }, 10);
+        } else {
+            setVisible(false);
+            setTimeout(() => {
+                setArmoryInfo(null);
+            }, 250);
+        }
+    }
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+            if (!visible) return;
+            if (event.key === "Escape") {
+                fetchNui("closeArmory", {});
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    });
     useNuiEvent("updateArmoryInfo", (data: any) => {
-        setArmoryInfo(data.armoryInfo);
+        updateArmoryInfo(data.armoryInfo);
     });
     return (
         armoryInfo && (
-            <div className="dark w-screen h-screen absolute text-primary top-0 left-0 bg-gray-900 flex items-center justify-center">
+            <div className="dark w-screen h-screen absolute text-primary top-0 left-0 flex items-center justify-center transition-opacity duration-200 ease-in-out" style={{
+                opacity: visible ? 1 : 0,
+            }}>
                 <AppControls />
                 <Armory armoryInfo={{
                     items: armoryInfo.items,

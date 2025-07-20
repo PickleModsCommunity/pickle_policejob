@@ -28,8 +28,17 @@ function tolower(str)
     return string.lower(str)
 end
 
+function toupper(str)
+    return string.upper(str)
+end
+
 function GetItemLabel(name)
-    return (Inventory.Items[name] and Inventory.Items[name].label or name)
+    if Inventory.Items[name] then
+        return Inventory.Items[name].label
+    elseif Inventory.Items[toupper(name)] then
+        return Inventory.Items[toupper(name)].label
+    end
+    return name
 end
 
 function GetCurrencyString(amount)

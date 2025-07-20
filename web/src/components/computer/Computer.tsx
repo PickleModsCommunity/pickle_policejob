@@ -619,7 +619,7 @@ export default function ComputerContainer() {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
             if (!visible) return;
-            if (event.key === "Escape" || event.key === "Backspace") {
+            if (event.key === "Escape") {
                 fetchNui("closeComputer", {});
             }
         };

@@ -8,8 +8,8 @@ LOCATION_TYPES = {
         settings = {"ped"},
     },
     ["garage"] = {
-        locations = {"spawn"},
-        settings = {},
+        locations = {"vehicle_preview", "vehicle_spawn"},
+        settings = {"ped"},
     },
     ["armory"] = {
         locations = {},
@@ -137,6 +137,7 @@ RegisterNUICallback("managementAction", function(data, cb)
 end)
 
 RegisterNUICallback("editLocation", function(data, cb)
+    print(json.encode(data, {indent = true}))
     cb("ok")
     SendNUIMessage({
         type = "setManagementHidden",
@@ -148,7 +149,7 @@ RegisterNUICallback("editLocation", function(data, cb)
     local coords = (data.coords and #(vector3(data.coords.x, data.coords.y, data.coords.z) - playerCoords) < 100.0) and data.coords or (GetEntityCoords(ped) + GetEntityForwardVector(ped) * 3)
     local rotation = (#(vector3(data.rotation.x, data.rotation.y, data.rotation.z) - vector3(0.0, 0.0, 0.0)) > 1.0 and vector3(data.rotation.x, data.rotation.y, data.rotation.z) or vector3(0.0, 0.0, GetEntityHeading(ped)))
     if not data.info.departmentId then
-        if data.info.settings.ped and data.info.settings.ped ~= "" then
+        if data.id == "point" and data.info.settings.ped and data.info.settings.ped ~= "" then
             SetTemporaryEntity({type = "ped", model = GetHashKey(data.info.settings.ped), coords = coords, rotation = rotation})
         else
             SetTemporaryEntity({type = "object", model = `prop_tennis_ball`, coords = coords, rotation = rotation})
@@ -164,7 +165,7 @@ RegisterNUICallback("editLocation", function(data, cb)
         })
     else
         UnrenderDepartmentLocation(data.info.departmentId, data.info.locationId)
-        if data.info.settings.ped and data.info.settings.ped ~= "" then
+        if data.id == "point" and data.info.settings.ped and data.info.settings.ped ~= "" then
             SetTemporaryEntity({type = "ped", model = GetHashKey(data.info.settings.ped), coords = coords, rotation = rotation})
         else
             SetTemporaryEntity({type = "object", model = `prop_tennis_ball`, coords = coords, rotation = rotation})

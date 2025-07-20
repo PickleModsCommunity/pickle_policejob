@@ -203,6 +203,24 @@ function RenderDepartmentLocation(id, locationId)
                 OpenArmory(id, locationId)
             end)
         }
+    elseif location.type == "garage" then
+        local coords = location.positions.point.coords
+        local heading = location.positions.point.rotation.z
+        if location.settings.ped and location.settings.ped ~= "" then
+            coords = coords + vector3(0.0, 0.0, 1.0)
+        end
+        LocalDepartments[id].locations[#LocalDepartments[id].locations+1] = {   
+            id = locationId,
+            interact = CreateInteraction({
+                label = _L("location_garage"),
+                icon = Config.TargetIcons["garage"],
+                coords = coords,
+                heading = heading,
+                model = (location.settings.ped and location.settings.ped ~= "") and { modelType = "ped", hash = GetHashKey(location.settings.ped) } or nil,
+            }, function()
+                OpenVehicleSpawn(id, locationId)
+            end)
+        }
     end
 end
 
@@ -224,6 +242,14 @@ end
 function ExecuteIntegration(integration, ...)
     if Config.Integrations and Config.Integrations[integration] and Config.Integrations[integration].client then
         Config.Integrations[integration].client(...)
+    end
+end
+
+function GetDepartmentLocation(departmentId, locationId)
+    for i=1, #Departments[departmentId].locations do
+        if Departments[departmentId].locations[i].id == locationId then
+            return Departments[departmentId].locations[i]
+        end
     end
 end
 

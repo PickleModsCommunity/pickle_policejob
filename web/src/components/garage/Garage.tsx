@@ -2,7 +2,7 @@ import { AppControls, DisplayCurrency } from "@/App";
 import { Translate } from "@/providers/locale/Locale";
 import { useNuiEvent } from "@/providers/nui/useNui";
 import { ArrowLeft, ArrowRight, CarFront, CarFrontIcon, Plus, Save, ShoppingBasket } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { fetchNui } from "@/providers/nui/fetchNui";
 
@@ -47,6 +47,51 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
     const colorOrder = ["primary", "secondary"];
     const [displayVehicle, setDisplayVehicle] = useState<DisplayVehicle | null>(null);
     const [templateName, setTemplateName] = useState<string | null>(null);
+    const [isMouseDown, setIsMouseDown] = useState(false);
+    const [lastMouseX, setLastMouseX] = useState(0);
+    const [lastTimestamp, setLastTimestamp] = useState(0);
+
+    useNuiEvent("selectVehicle", (data: any) => {
+        setDisplayVehicle(data.vehicleInfo);
+    });
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (isMouseDown) {
+                const now = Date.now();
+                const currentMouseX = e.screenX;
+        
+                const dt = now - lastTimestamp;
+                const distance = Math.abs(currentMouseX - lastMouseX);
+                let speed = Math.round(distance / dt * 5);
+                
+                if (currentMouseX < lastMouseX) {
+                    speed = speed * -1;
+                }
+                
+                setLastMouseX(currentMouseX);
+                setLastTimestamp(now);
+
+                fetchNui("rotateMouse", {
+                    distance: distance,
+                    speed: speed
+                });
+            }
+        };
+
+        const handleMouseUp = () => {
+            setIsMouseDown(false);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isMouseDown, lastMouseX, lastTimestamp]);
+
     const handleWheel = (e: React.WheelEvent) => {
         const container = e.currentTarget;
         container.scrollLeft += e.deltaY;
@@ -87,44 +132,8 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
                         left: scrollPosition,
                         behavior: 'smooth'
                     });
-                    setDisplayVehicle({
+                    fetchNui("selectVehicle", {
                         index: parseInt((vehicleElement as HTMLElement).getAttribute('data-index') || "0"),
-                        currentTemplate: undefined,
-                        liveryCount: 12,
-                        livery: 1,
-                        extras: {
-                            [0]: false,
-                            [1]: false,
-                            [2]: false,
-                            [3]: false,
-                            [4]: false,
-                            [5]: false,
-                            [6]: false,
-                            [7]: false,
-                            [8]: false,
-                            [9]: false,
-                            [10]: false,
-                            [11]: false,
-                            [12]: false,
-                            [13]: false,
-                            [14]: false,
-                        },
-                        colors: {
-                            primary: 0,
-                            secondary: 0,
-                        },
-                        templates: {
-                            ["Undercover"]: {
-                                livery: 1,
-                                extras: {
-                                    [11]: true,
-                                },
-                                colors: {
-                                    primary: 0,
-                                    secondary: 0,
-                                },
-                            },
-                        }
                     });
                 }
             }
@@ -134,8 +143,15 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
         document.addEventListener('mouseup', handleMouseUp);
     };
 
+    const handleRotateMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setIsMouseDown(true);
+        setLastMouseX(e.pageX);
+        setLastTimestamp(Date.now());
+    };
+
     return (
-        <div className="relative w-full h-full select-none">
+        <div className="relative w-full h-full select-none" onMouseDown={handleRotateMouseDown}>
             <div className="absolute bottom-0 left-0 w-full gap-4 flex flex-col items-end">
                 {
                     displayVehicle && (
@@ -354,22 +370,45 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
 }
 
 export function GarageContainer() {
-    const [garageInfo, setGarageInfo] = useState<GarageInfo | null>({
-        vehicles: [
-            {
-                label: "Test",
-                image: "/nui/images/vehicles/test.png",
-                price: 1000,
-                permissions: ["Rifle Certified"],
-            }
-        ]
-    });
+    const [garageInfo, setGarageInfo] = useState<GarageInfo | null>(null);
+    const [visible, setVisible] = useState(false);
+    const updateGarageInfo = (data: any) => {
+        if (data) {
+            setGarageInfo(data);
+            setTimeout(() => {
+                setVisible(true);
+            }, 10);
+        }
+        else {
+            setVisible(false);
+            setTimeout(() => {
+                setGarageInfo(null);
+            }, 250);
+        }
+    }
     useNuiEvent("updateGarageInfo", (data: any) => {
-        setGarageInfo(data.garageInfo);
+        updateGarageInfo(data.garageInfo);
+    });
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+            if (!visible) return;
+            if (event.key === "Escape") {
+                fetchNui("closeGarage", {});
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
     });
     return (
         garageInfo && (
-            <div className="dark w-screen h-screen absolute text-primary top-0 left-0 bg-gray-900 flex items-center justify-center">
+            <div className="dark w-screen h-screen absolute text-primary top-0 left-0 flex items-center justify-center transition-opacity duration-200 ease-in-out" style={{
+                opacity: visible ? 1 : 0,
+            }}>
                 <AppControls />
                 <Garage garageInfo={garageInfo} />
             </div>
