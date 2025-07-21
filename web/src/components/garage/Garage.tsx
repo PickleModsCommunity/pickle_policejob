@@ -1,7 +1,7 @@
 import { AppControls, DisplayCurrency } from "@/App";
 import { Translate } from "@/providers/locale/Locale";
 import { useNuiEvent } from "@/providers/nui/useNui";
-import { ArrowLeft, ArrowRight, CarFront, CarFrontIcon, Plus, Save, ShoppingBasket } from "lucide-react";
+import { ArrowLeft, ArrowRight, CarFront, CarFrontIcon, Plus, Save, ShoppingBasket, Trash } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { fetchNui } from "@/providers/nui/fetchNui";
@@ -53,6 +53,13 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
 
     useNuiEvent("selectVehicle", (data: any) => {
         setDisplayVehicle(data.vehicleInfo);
+    });
+
+    useNuiEvent("updateSelectedVehicle", (data: any) => {
+        setDisplayVehicle(prev => {
+            if (!prev) return prev;
+            return { ...prev, ...data.vehicleInfo };
+        });
     });
 
     useEffect(() => {
@@ -144,7 +151,6 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
     };
 
     const handleRotateMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-        e.preventDefault();
         setIsMouseDown(true);
         setLastMouseX(e.pageX);
         setLastTimestamp(Date.now());
@@ -172,24 +178,16 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
                                 <div className="font-semibold text-md"><Translate id={"livery"} /></div>
                                 <div className="flex flex-row items-center gap-2">
                                     <ArrowLeft size={16} className="cursor-pointer" onClick={() => {
-                                        setDisplayVehicle(prev => {
-                                            if (!prev) return prev;
-                                            return {
-                                                ...prev,
-                                                livery: prev.livery - 1 < 1 ? displayVehicle.liveryCount : prev.livery - 1,
-                                            };
+                                        fetchNui("changeLivery", {
+                                            left: true,
                                         });
                                     }}/>
                                     <div className="font-semibold text-md">
                                         #{displayVehicle.livery}
                                     </div>
                                     <ArrowRight size={16} className="cursor-pointer" onClick={() => {
-                                        setDisplayVehicle(prev => {
-                                            if (!prev) return prev;
-                                            return {
-                                                ...prev,
-                                                livery: prev.livery + 1 > displayVehicle.liveryCount ? 1 : prev.livery + 1,
-                                            };
+                                        fetchNui("changeLivery", {
+                                            left: false,
                                         });
                                     }}/>
                                 </div>
@@ -200,16 +198,20 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
                                     <div key={index} className="flex flex-row items-center justify-center gap-2 cursor-pointer rounded-md p-2 transition-all duration-200 ease-in-out" style={{
                                         backgroundColor: value ? "rgba(255, 255, 255, 0.20)" : "rgba(255, 255, 255, 0.05)",
                                     }} onClick={() => {
-                                        setDisplayVehicle(prev => {
-                                            if (!prev) return prev;
-                                            return {
-                                                ...prev,
-                                                extras: {
-                                                    ...prev.extras,
-                                                    [parseInt(key)]: !prev.extras[parseInt(key)],
-                                                },
-                                            };
+                                        fetchNui("toggleExtra", {
+                                            index: parseInt(key),
+                                            state: value,
                                         });
+                                        // setDisplayVehicle(prev => {
+                                        //     if (!prev) return prev;
+                                        //     return {
+                                        //         ...prev,
+                                        //         extras: {
+                                        //             ...prev.extras,
+                                        //             [parseInt(key)]: !prev.extras[parseInt(key)],
+                                        //         },
+                                        //     };
+                                        // });
                                     }}>
                                         <div className="font-bold text-xs text-center">#{index + 1}</div>
                                     </div>
@@ -220,16 +222,20 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
                                     <div key={index} className="flex flex-row items-center gap-2">
                                         <div className="font-semibold text-md"><Translate id={"color_"+color} /></div>
                                         <input type="color" className="bg-transparent border-none" value={displayVehicle.colors[color as keyof typeof displayVehicle.colors]} onChange={(e) => {
-                                            setDisplayVehicle(prev => {
-                                                if (!prev) return prev;
-                                                return {
-                                                    ...prev,
-                                                    colors: {
-                                                        ...prev.colors,
-                                                        [color]: e.target.value,
-                                                    },
-                                                };
+                                            fetchNui("changeColor", {
+                                                color: color,
+                                                value: e.target.value,
                                             });
+                                            // setDisplayVehicle(prev => {
+                                            //     if (!prev) return prev;
+                                            //     return {
+                                            //         ...prev,
+                                            //         colors: {
+                                            //             ...prev.colors,
+                                            //             [color]: e.target.value,
+                                            //         },
+                                            //     };
+                                            // });
                                         }} />
                                     </div>
                                 ))}
@@ -239,21 +245,29 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
                                 <div className="flex flex-row items-center gap-2">
                                     {displayVehicle.currentTemplate != "add_template" ? (
                                         <select className="bg-background/90 border-none pr-2" value={displayVehicle.currentTemplate || "none"} onChange={(e) => {
-                                            if (displayVehicle.templates[e.target.value as string]) {
-                                                setDisplayVehicle(prev => {
-                                                    if (!prev) return prev;
-                                                    return {
-                                                        ...prev,
-                                                        currentTemplate: e.target.value === "none" ? undefined : e.target.value,
-                                                        livery: displayVehicle.templates[e.target.value as string].livery,
-                                                        extras: {
-                                                            ...displayVehicle.templates[e.target.value as string].extras,
-                                                        },
-                                                        colors: displayVehicle.templates[e.target.value as string].colors,
-                                                    };
+                                            if (e.target.value !== "none" && displayVehicle.templates[e.target.value as string]) {
+                                                fetchNui("selectTemplate", {
+                                                    name: e.target.value,
                                                 });
+                                                // setDisplayVehicle(prev => {
+                                                //     if (!prev) return prev;
+                                                //     return {
+                                                //         ...prev,
+                                                //         currentTemplate: e.target.value === "none" ? undefined : e.target.value,
+                                                //         livery: displayVehicle.templates[e.target.value as string].livery,
+                                                //         extras: {
+                                                //             ...displayVehicle.templates[e.target.value as string].extras,
+                                                //         },
+                                                //         colors: displayVehicle.templates[e.target.value as string].colors,
+                                                //     };
+                                                // });
                                             }
                                             else {
+                                                if (e.target.value !== "add_template" && e.target.value !== "none") {
+                                                    fetchNui("selectTemplate", {
+                                                        name: e.target.value,
+                                                    });
+                                                }
                                                 setDisplayVehicle(prev => {
                                                     if (!prev) return prev;
                                                     return {
@@ -277,41 +291,77 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
 
                                     {displayVehicle.currentTemplate && <Save className="cursor-pointer" size={16} onClick={()=> {
                                         if (templateName) {
+                                            setTemplateName(null);
+                                            fetchNui("saveTemplate", {
+                                                name: templateName,
+                                                template: {
+                                                    livery: displayVehicle.livery,
+                                                    extras: displayVehicle.extras,
+                                                    colors: displayVehicle.colors,
+                                                },
+                                            });
                                             setDisplayVehicle(prev => {
                                                 if (!prev) return prev;
                                                 return {
                                                     ...prev,
-                                                    currentTemplate: templateName,
-                                                    templates: {
-                                                        ...prev.templates,
-                                                        [templateName]: {
-                                                            ...prev.templates[templateName],
-                                                            livery: displayVehicle.livery,
-                                                            extras: displayVehicle.extras,
-                                                            colors: displayVehicle.colors,
-                                                        },
-                                                    },
+                                                    currentTemplate: "none",
                                                 };
                                             });
+                                            // setDisplayVehicle(prev => {
+                                            //     if (!prev) return prev;
+                                            //     return {
+                                            //         ...prev,
+                                            //         currentTemplate: templateName,
+                                            //         templates: {
+                                            //             ...prev.templates,
+                                            //             [templateName]: {
+                                            //                 ...prev.templates[templateName],
+                                            //                 livery: displayVehicle.livery,
+                                            //                 extras: displayVehicle.extras,
+                                            //                 colors: displayVehicle.colors,
+                                            //             },
+                                            //         },
+                                            //     };
+                                            // });
                                         }
                                         else {
+                                            fetchNui("saveTemplate", {
+                                                name: displayVehicle.currentTemplate,
+                                                template: {
+                                                    livery: displayVehicle.livery,
+                                                    extras: displayVehicle.extras,
+                                                    colors: displayVehicle.colors,
+                                                },
+                                            });
                                             setDisplayVehicle(prev => {
                                                 if (!prev) return prev;
                                                 return {
                                                     ...prev,
                                                     currentTemplate: displayVehicle.currentTemplate,
-                                                    templates: {
-                                                        ...prev.templates,
-                                                        [displayVehicle.currentTemplate as string]: {
-                                                            ...prev.templates[displayVehicle.currentTemplate as string],
-                                                            livery: displayVehicle.livery,
-                                                            extras: displayVehicle.extras,
-                                                            colors: displayVehicle.colors,
-                                                        },
-                                                    },
                                                 };
                                             });
+                                            // setDisplayVehicle(prev => {
+                                            //     if (!prev) return prev;
+                                            //     return {
+                                            //         ...prev,
+                                            //         currentTemplate: displayVehicle.currentTemplate,
+                                            //         templates: {
+                                            //             ...prev.templates,
+                                            //             [displayVehicle.currentTemplate as string]: {
+                                            //                 ...prev.templates[displayVehicle.currentTemplate as string],
+                                            //                 livery: displayVehicle.livery,
+                                            //                 extras: displayVehicle.extras,
+                                            //                 colors: displayVehicle.colors,
+                                            //             },
+                                            //         },
+                                            //     };
+                                            // });
                                         }
+                                    }} />}
+                                    {displayVehicle.currentTemplate && <Trash className="cursor-pointer" size={16} onClick={()=> {
+                                        fetchNui("deleteTemplate", {
+                                            name: displayVehicle.currentTemplate,
+                                        });
                                     }} />}
                                 </div>
                             </div>
@@ -319,7 +369,7 @@ function Garage({garageInfo}: {garageInfo: GarageInfo}) {
                                 className="w-full gap-1 bg-green-600 hover:bg-green-700 text-white text-md" 
                                 onClick={() => {
                                     fetchNui("takeVehicle", {
-                                        vehicle: displayVehicle,
+                                        index: displayVehicle.index,
                                     });
                                 }}
                             >

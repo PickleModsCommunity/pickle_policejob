@@ -128,4 +128,7 @@ Language["en"] = {
     not_enough_money = "You are missing %s.",
     armory_purchased = "You have purchased %s (x%s).",
     no_garage_access = "You do not have access to any vehicles in the garage.",
+    garage_template_saved = "Template \"%s\" has been saved.",
+    garage_template_deleted = "Template \"%s\" has been deleted.",
+    garage_template_not_found = "Template \"%s\" does not exist.",
 }
