@@ -9,7 +9,7 @@ LOCATION_TYPES = {
     },
     ["garage"] = {
         locations = {"vehicle_preview", "vehicle_spawn"},
-        settings = {"ped"},
+        settings = {"ped", "garageType"},
     },
     ["armory"] = {
         locations = {},
@@ -132,6 +132,7 @@ RegisterNUICallback("exitManagementEditor", function(data, cb)
 end)
 
 RegisterNUICallback("managementAction", function(data, cb)
+    print(json.encode(data, {indent = true}))
     TriggerServerEvent("pickle_policejob:managementAction", data.action, data.data)
     cb("ok")
 end)

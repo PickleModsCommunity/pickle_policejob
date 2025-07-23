@@ -80,32 +80,89 @@ Config.PoliceArmory = {
     },
 }
 
+Config.PoliceGarageTypes = {
+    cars = {
+        label = "Vehicle Garage",
+        cameraOffset = {
+            coords = vector3(0.0, -6.0, 1.75), -- Where to set the camera.
+            rotation = vector3(-20.0, 0.0, 0.0), -- Z does nothing, as that is the heading. X is up/down, Y is tilt left/right.
+        }
+    },
+    boats = {
+        label = "Boat Dock",
+        cameraOffset = {
+            coords = vector3(0.0, -6.0, 1.75), -- Where to set the camera.
+            rotation = vector3(-20.0, 0.0, 0.0), -- Z does nothing, as that is the heading. X is up/down, Y is tilt left/right.
+        }
+    },
+    aircraft = {
+        label = "Aircraft Hangar",
+        cameraOffset = {
+            coords = vector3(0.0, -8.0, 2.75), -- Where to set the camera.
+            rotation = vector3(-25.0, 0.0, 0.0), -- Z does nothing, as that is the heading. X is up/down, Y is tilt left/right.
+        }
+    },
+}
+
 Config.PoliceGarage = {
+    -- CARS
     {
+        garageType = "cars",
         label = "Crown Victory",
         image = "https://docs.fivem.net/vehicles/police.webp",
         model = `police`,
+        price = 1000,
     },
     {
+        garageType = "cars",
         label = "Police Interceptor",
         image = "https://docs.fivem.net/vehicles/police2.webp",
         model = `police2`,
     },
     {
+        garageType = "cars",
         label = "Police SUV",
         image = "https://docs.fivem.net/vehicles/police3.webp",
         model = `police3`,
     },
     {
+        garageType = "cars",
         label = "Police SUV II",
         image = "https://docs.fivem.net/vehicles/police4.webp",
         model = `police4`,
     },
     {
+        garageType = "cars",
         label = "Police SUV III",
         image = "https://docs.fivem.net/vehicles/police5.webp",
         model = `police5`,
     },
+    {
+        garageType = "cars",
+        label = "Police Bus",
+        image = "https://docs.fivem.net/vehicles/pbus.webp",
+        model = `pbus`,
+    },
+    {
+        garageType = "cars",
+        label = "S.W.A.T. Truck",
+        image = "https://docs.fivem.net/vehicles/riot.webp",
+        model = `riot`,
+    },
+    {
+        garageType = "cars",
+        label = "Riot Truck",
+        image = "https://docs.fivem.net/vehicles/riot2.webp",
+        model = `riot2`,
+    },
+    -- AIRCRAFT
+    {
+        garageType = "aircraft",
+        label = "Police Helicopter",
+        image = "https://docs.fivem.net/vehicles/polmav.webp",
+        model = `polmav`,
+    },
+    -- BOATS
 }
 
 Config.CurrencyItems = {

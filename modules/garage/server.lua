@@ -1,4 +1,5 @@
-function GetDepartmentMemberGarage(source)
+function GetDepartmentMemberGarage(source, garageType)
+    print(source, garageType)
     local departmentId, member = GetPlayerDepartment(source)
     if not departmentId or not member then return end
     local department = GetDepartment(departmentId)
@@ -6,13 +7,15 @@ function GetDepartmentMemberGarage(source)
     local garage = {}
     for i=1, #Config.PoliceGarage do
         local allowed = false
-        if CanRankAccessEntry(departmentId, member.rankId, Config.PoliceGarage[i].model, "vehicles") then
-            allowed = true
-        elseif CanPermissionsAccessEntry(departmentId, member.permissions, Config.PoliceGarage[i].model, "vehicles") then
-            allowed = true
-        end
-        if allowed then
-            table.insert(garage, Config.PoliceGarage[i])
+        if Config.PoliceGarage[i].garageType == garageType then
+            if CanRankAccessEntry(departmentId, member.rankId, Config.PoliceGarage[i].model, "vehicles") then
+                allowed = true
+            elseif CanPermissionsAccessEntry(departmentId, member.permissions, Config.PoliceGarage[i].model, "vehicles") then
+                allowed = true
+            end
+            if allowed then
+                table.insert(garage, Config.PoliceGarage[i])
+            end
         end
     end
     return #garage > 0 and garage or nil, _L("no_garage_access")
@@ -56,6 +59,27 @@ RegisterNetEvent("pickle_policejob:buyVehicle", function(data)
     ShowNotification(source, _L("garage_purchased", GetItemLabel(item.name), data.quantity))
 end)
 
-RegisterCallback("pickle_policejob:openGarage", function(source, cb)
-    cb(GetDepartmentMemberGarage(source))
+lib.callback.register('pickle_policejob:openGarage', function(source, garageType)
+    return GetDepartmentMemberGarage(source, garageType)
+end)
+
+lib.callback.register('pickle_policejob:takeVehicle', function(source, model, garageType)
+    local departmentId, member = GetPlayerDepartment(source)
+    if not departmentId or not member then return end
+    local department = GetDepartment(departmentId)
+    if not department then return end
+    local garage, err = GetDepartmentMemberGarage(source, garageType) or {}
+    local garageVehicle = nil
+    for i=1, #garage do
+        if garage[i].model == model then
+            garageVehicle = garage[i]
+        end
+    end
+    if not garageVehicle then return false, err end
+    if garageVehicle.price and garageVehicle.price > 0 then
+        local money = GetMoney(source)
+        if money < garageVehicle.price then return false, _L("not_enough_money", NumberWithCommas(garageVehicle.price - money)) end
+        RemoveMoney(source, garageVehicle.price)
+    end
+    return true
 end)

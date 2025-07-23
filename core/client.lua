@@ -197,7 +197,7 @@ function SelectInteraction(index, selection, targetData)
     if not EnableInteraction then return end
     local pcoords = GetEntityCoords(PlayerPedId())
     local data = Interactions[index]
-    if not data.target and #(data.coords - pcoords) > Config.InteractDistance then 
+    if not data.target and #(data.coords - pcoords) > (data.interactRadius and data.interactRadius or Config.InteractDistance) then 
         return ShowNotification(_L("interact_far"))
     end
     Interactions[index].selected(selection, targetData)
@@ -220,11 +220,13 @@ function CreateInteraction(data, selected)
         target = data.target,
         offset = data.offset,
         radius = data.radius or 1.0,
+        interactRadius = data.interactRadius or Config.InteractDistance,
         distance = data.distance or Config.InteractDistance,
         heading = data.heading,
+        vehicleInteract = data.vehicleInteract,
         hiddenKeypress = data.hiddenKeypress
     }
-    if Config.UseTarget then
+    if Config.UseTarget and not data.vehicleInteract then
         if data.target then
             AddTargetModel(data.target, Interactions[index].radius, Interactions[index].options)
         else
@@ -256,22 +258,31 @@ CreateThread(function()
         local pcoords = GetEntityCoords(ped)
         local wait = 1500
         local closestInteraction = {id = nil, dist = nil}
+        local inVehicle = GetVehiclePedIsIn(ped, false) ~= 0
         for k,v in pairs(Interactions) do 
             local coords = v.coords
             if coords then
                 local dist = #(pcoords-coords)
                 if (dist < Config.RenderDistance) then 
                     EnsureInteractionModel(k)
-                    if not Config.UseTarget or v.hiddenKeypress then
-                        if not Config.UseTarget and not v.hiddenKeypress and not v.model and Config.Marker and Config.Marker.enabled then
+                    if not Config.UseTarget or v.hiddenKeypress or v.vehicleInteract then
+                        if not Config.UseTarget and not v.hiddenKeypress and not v.vehicleInteract and not v.model and Config.Marker and Config.Marker.enabled then
                             wait = 0
                             DrawMarker(Config.Marker.id, coords.x, coords.y, coords.z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
                             Config.Marker.scale, Config.Marker.scale, Config.Marker.scale, Config.Marker.color[1], 
                             Config.Marker.color[2], Config.Marker.color[3], Config.Marker.color[4], false, true)
                         end
-                        if dist < Config.InteractDistance and (not closestInteraction.id or closestInteraction.dist > dist) then
-                            closestInteraction.id = k
-                            closestInteraction.dist = dist
+                        if dist < (v.interactRadius and v.interactRadius or Config.InteractDistance) and (not closestInteraction.id or closestInteraction.dist > dist) then
+                            local allow = true
+                            if inVehicle and not v.vehicleInteract then
+                                allow = false
+                            elseif not inVehicle and v.vehicleInteract then
+                                allow = false
+                            end
+                            if allow then
+                                closestInteraction.id = k
+                                closestInteraction.dist = dist
+                            end
                         end
                     end
                 elseif v.entity then
@@ -284,8 +295,14 @@ CreateThread(function()
                     local coords = GetOffsetFromEntityInWorldCoords(entity, offset.x, offset.y, offset.z)
                     local dist = #(pcoords-coords)
                     if dist < v.distance and (not closestInteraction.id or closestInteraction.dist > dist) then
-                        closestInteraction.id = k
-                        closestInteraction.dist = dist
+                        local allow = true
+                        if inVehicle and not v.vehicleInteract then
+                            allow = false
+                        end
+                        if allow then
+                            closestInteraction.id = k
+                            closestInteraction.dist = dist
+                        end
                     end
                 end
             end

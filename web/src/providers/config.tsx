@@ -24,6 +24,11 @@ export type Config = {
         label: string;
         model: number;
     }[];
+    garageTypes: {
+        [key: string]: {
+            label: string;
+        };
+    };
     locationTypes: {
         [key: string]: {
             locations: string[];
@@ -218,6 +223,11 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 model: -12300344,
             },
         ],
+        garageTypes: {
+            "ERROR": {
+                label: "ERROR",
+            },
+        },
         peds: [
             {
                 label: "Male Officer #1",

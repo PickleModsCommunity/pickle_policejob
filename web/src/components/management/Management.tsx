@@ -106,9 +106,12 @@ function DropdownSetting({ settingId, value, onUpdate }: { settingId: string, va
     const { config } = useConfig();
     return (
         <select className="bg-background text-sm text-muted-foreground cursor-pointer transition-all duration-200" value={value} onChange={(e) => onUpdate(e.target.value)}>
-            <option value="">{<Translate id="none" />}</option>
+            {settingId == "ped" && <option value="">{<Translate id="none" />}</option>}
             {settingId == "ped" && config.peds.map((ped) => (
                 <option key={ped.model} value={ped.model}>{ped.label}</option>
+            ))}
+            {settingId == "garageType" && Object.keys(config.garageTypes).map((garageType) => (
+                <option key={garageType} value={garageType}>{config.garageTypes[garageType].label}</option>
             ))}
         </select>
     )
@@ -127,6 +130,14 @@ function ManagementLocation({ location, onExit, onUpdate, onCreate, onDelete }: 
         locationType.locations.unshift("point");
     }
     const [positions, setPositions] = useState(location.positions);
+    useEffect(() => {
+        if (settingsList.includes("garageType") && (!settings.garageType || !config.garageTypes[settings.garageType])) {
+            setSettings({
+                ...settings,
+                garageType: Object.keys(config.garageTypes)[0],
+            })
+        }
+    }, [settings])
     return (
         <div className="flex flex-col gap-2">
             <hr className="border-b-1 border-primary/50 mt-2"/>
@@ -190,7 +201,7 @@ function ManagementLocation({ location, onExit, onUpdate, onCreate, onDelete }: 
             {settingsList.map((settingId) => (
                 <div className="flex flex-row gap-2 items-center justify-between w-full" key={settingId}>
                     <div className="font-semibold text-md"><Translate id={`setting_${settingId}`} />:</div>
-                    {settingId == "ped" && <DropdownSetting settingId={settingId} value={settings[settingId]} onUpdate={(value) => {
+                    {(settingId == "ped" || settingId == "garageType") && <DropdownSetting settingId={settingId} value={settings[settingId]} onUpdate={(value) => {
                         if (!isCreating) {
                             fetchNui("managementAction", {
                                 action: "updateLocation",

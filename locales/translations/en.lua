@@ -131,4 +131,7 @@ Language["en"] = {
     garage_template_saved = "Template \"%s\" has been saved.",
     garage_template_deleted = "Template \"%s\" has been deleted.",
     garage_template_not_found = "Template \"%s\" does not exist.",
+    setting_garageType = "Garage Type",
+    not_in_vehicle = "You are not in a vehicle.",
+    return_vehicle = "Return Vehicle",
 }

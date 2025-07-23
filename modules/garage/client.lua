@@ -132,7 +132,8 @@ function OpenVehicleSpawn(departmentId, locationId)
     if not department then return ShowNotification(_L("no_department")) end
     local location = GetDepartmentLocation(departmentId, locationId)
     if not location then return ShowNotification(_L("no_location")) end
-    ServerCallback("pickle_policejob:openGarage", function(result, err)
+    lib.callback("pickle_policejob:openGarage", false, function(result, err)
+        print(result, err)
         if not result then
             inGarage = false
             return ShowNotification(err)
@@ -151,21 +152,22 @@ function OpenVehicleSpawn(departmentId, locationId)
             },
         })
         local vehiclePreview = location.positions.vehicle_preview
+        local cameraOffset = Config.PoliceGarageTypes[location.settings.garageType].cameraOffset
         local offsetObj = CreateProp(`prop_tennis_ball`, vehiclePreview.coords.x, vehiclePreview.coords.y, vehiclePreview.coords.z, false, false, false)
         FreezeEntityPosition(offsetObj, true)
         SetEntityHeading(offsetObj, vehiclePreview.rotation.z)
-        local camCoords = GetOffsetFromEntityInWorldCoords(offsetObj, 0.0, -4.0, 1.25)
+        local camCoords = GetOffsetFromEntityInWorldCoords(offsetObj, cameraOffset.coords.x, cameraOffset.coords.y, cameraOffset.coords.z)
         DeleteEntity(offsetObj)
         SetFocusArea(camCoords)
         EnsureGarageCamera()
         SetCamParams(CurrentCamera, camCoords.x, camCoords.y, camCoords.z,
-            -20.0, 0.0, vehiclePreview.rotation.z, 90.0, 
+            cameraOffset.rotation.x, cameraOffset.rotation.y, vehiclePreview.rotation.z, 70.0, 
             2000, 0, 0, 2
         )
         SetTimeout(10, function()
             SelectGarageVehicle(1)
         end)
-    end)
+    end, location.settings.garageType)
 end
 
 function CloseGarage()
@@ -245,6 +247,42 @@ end)
 
 RegisterNUICallback("takeVehicle", function(data, cb)
     cb("ok")
+    if not SelectedVehicle then return end
+    local department = Departments[GarageInfo.departmentId]
+    if not department then return ShowNotification(_L("no_department")) end
+    local location = GetDepartmentLocation(department.id, GarageInfo.locationId)
+    if not location then return ShowNotification(_L("no_location")) end
+    local spawn = location.positions.vehicle_spawn
+    local tempVehicle = SelectedVehicle.entity + 0
+    local model = SelectedVehicle.model
+    local extras = SelectedVehicle.extras
+    local colors = SelectedVehicle.colors
+    local livery = SelectedVehicle.livery
+    lib.callback("pickle_policejob:takeVehicle", false, function(result, err)
+        if not result then
+            return ShowNotification(err)
+        end
+        SelectedVehicle.entity = nil
+        CloseGarage()
+        DoScreenFadeOut(1000)
+        Wait(1100)
+        DeleteEntity(tempVehicle)
+        local vehicle = CreateVeh(model, spawn.coords.x, spawn.coords.y, spawn.coords.z, spawn.rotation.z, true, false)
+        SetEntityCoords(PlayerPedId(), spawn.coords.x, spawn.coords.y, spawn.coords.z)
+        SetEntityHeading(PlayerPedId(), spawn.rotation.z)
+        SetVehicleDirtLevel(vehicle, 0)
+        SetVehicleLivery(vehicle, livery - 1)
+        for i=0, 25 do
+            if extras[tostring(i)] ~= nil then
+                SetVehicleExtra(vehicle, i, extras[tostring(i)] and 0 or 1)
+            end
+        end
+        SetVehicleColorData(vehicle, "primary", colors.primary)
+        SetVehicleColorData(vehicle, "secondary", colors.secondary)
+        SetPedIntoVehicle(PlayerPedId(), vehicle, -1)
+        Wait(100)
+        DoScreenFadeIn(1000)
+    end, SelectedVehicle.model, location.settings.garageType)
 end)
 
 RegisterNUICallback("selectTemplate", function(data, cb)
@@ -312,6 +350,7 @@ end)
 
 AddEventHandler("onResourceStop", function(resource)
     if resource == GetCurrentResourceName() then
+        DoScreenFadeIn(1000)
         CloseGarage()
     end
 end)

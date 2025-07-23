@@ -135,6 +135,11 @@ function UnrenderDepartmentLocation(id, locationId)
             if LocalDepartments[id].locations[i].interact then
                 DeleteInteraction(LocalDepartments[id].locations[i].interact)
             end
+            if LocalDepartments[id].locations[i].additionalInteracts then
+                for j=1, #LocalDepartments[id].locations[i].additionalInteracts do
+                    DeleteInteraction(LocalDepartments[id].locations[i].additionalInteracts[j])
+                end
+            end
             table.remove(LocalDepartments[id].locations, i)
             break
         end
@@ -212,14 +217,29 @@ function RenderDepartmentLocation(id, locationId)
         LocalDepartments[id].locations[#LocalDepartments[id].locations+1] = {   
             id = locationId,
             interact = CreateInteraction({
-                label = _L("location_garage"),
+                label = Config.PoliceGarageTypes[location.settings.garageType]?.label or "ERR_GARAGE_UNKNOWN_TYPE",
                 icon = Config.TargetIcons["garage"],
                 coords = coords,
                 heading = heading,
                 model = (location.settings.ped and location.settings.ped ~= "") and { modelType = "ped", hash = GetHashKey(location.settings.ped) } or nil,
             }, function()
                 OpenVehicleSpawn(id, locationId)
-            end)
+            end),
+            additionalInteracts = {
+                CreateInteraction({
+                    label = _L("return_vehicle"),
+                    coords = location.positions.vehicle_spawn.coords,
+                    heading = location.positions.vehicle_spawn.rotation.z,
+                    vehicleInteract = true,
+                    interactRadius = 4.0,
+                }, function()
+                    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+                    if not vehicle then return ShowNotification(_L("not_in_vehicle")) end
+                    TaskLeaveVehicle(PlayerPedId(), vehicle, 0)
+                    Wait(3000)
+                    DeleteEntity(vehicle)
+                end)
+            }
         }
     end
 end
@@ -278,6 +298,7 @@ RegisterNUICallback("pageLoaded", function(data, cb)
                 policeArmory = Config.PoliceArmory or {},
                 policeGarage = Config.PoliceGarage or {},
                 peds = Config.Peds or {},
+                garageTypes = Config.PoliceGarageTypes or {},
                 locationTypes = LOCATION_TYPES,
             }
         })
