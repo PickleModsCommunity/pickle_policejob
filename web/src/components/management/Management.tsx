@@ -265,12 +265,14 @@ function ManagementDepartment() {
     const [label, setLabel] = useState<string>(creatingDepartment ? translateText(config, "default_department_name", []) : currentDepartment?.label || "");
     const [editingLabel, setEditingLabel] = useState(false);
     const [player, setPlayer] = useState<Player | null>(currentDepartment ? GetDepartmentLeader(currentDepartment) : null);
+    const [job, setJob] = useState<string>(creatingDepartment ? Object.keys(config.jobs)[0] : currentDepartment?.job || "");
     const [currentLocation, setCurrentLocation] = useState<DepartmentLocation | null>(null);
     const [locations, setLocations] = useState<DepartmentLocation[]>(currentDepartment?.locations || []);
     useEffect(() => {
         if (!currentDepartment) return;
         setPlayer(GetDepartmentLeader(currentDepartment))
         setLocations(currentDepartment.locations)
+        setJob(currentDepartment.job)
     }, [departments])
     useEffect(() => {
         fetchNui("setCurrentLocation", {
@@ -382,6 +384,27 @@ function ManagementDepartment() {
                     }}>
                         {player ? player.name : <Translate id="none" />}
                     </div>
+                </div>
+                <div className="flex flex-row gap-2 items-center justify-between w-full">
+                    <div className="font-semibold text-md"><Translate id="department_job" />:</div>
+                    <select className="bg-background text-sm text-muted-foreground cursor-pointer transition-all duration-200" value={job} onChange={(e) => {
+                        if (creatingDepartment) {
+                            setJob(e.target.value)
+                        }
+                        else {
+                            fetchNui("managementAction", {
+                                action: "setDepartmentJob",
+                                data: {
+                                    departmentId: currentDepartmentId,
+                                    job: e.target.value,
+                                },
+                            })
+                        }
+                    }}>
+                        {Object.keys(config.jobs).map((job) => (
+                            <option key={job} value={job}>{config.jobs[job].label}</option>
+                        ))}
+                    </select>
                 </div>
                 {!creatingDepartment && (
                     <>
@@ -532,6 +555,7 @@ function ManagementDepartment() {
                             data: {
                                 label: label,
                                 leader: player ? player.source : null,
+                                job: job,
                             },
                         })
                         // setDepartments([...departments, {
@@ -711,6 +735,16 @@ function Management({ defaultDepartments }: { defaultDepartments: Department[] }
                     return {
                         ...department,
                         locations: department.locations.filter((location) => location.id !== data.locationId)
+                    }
+                }
+                return department;
+            }))
+        } else if (data.type === "setDepartmentJob") {
+            setDepartments(departments.map((department) => {
+                if (department.id === data.departmentId) {
+                    return {
+                        ...department,
+                        job: data.job,
                     }
                 }
                 return department;

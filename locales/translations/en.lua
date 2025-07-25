@@ -134,4 +134,8 @@ Language["en"] = {
     setting_garageType = "Garage Type",
     not_in_vehicle = "You are not in a vehicle.",
     return_vehicle = "Return Vehicle",
+    department_job = "Department Job",
+    job_level = "Job Level",
+    already_equipped = "You are already equipped with something, press Backspace / ESC to unequip.",
+    equipped_handcuffs = "Equipped handcuffs: Left-click for front cuffs, Right-click for back cuffs.",
 }

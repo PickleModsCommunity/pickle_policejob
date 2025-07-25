@@ -70,7 +70,39 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
                 members = department.members,
             })
         end
+    elseif action == "setDepartmentJob" then
+        local jobCfg = Config.PoliceJobs[data.job]
+        if not jobCfg then print("ERROR: Job not found: " .. data.job) return end
+        for i=1, #department.members do
+            local rank, rankIndex = GetDepartmentRank(data.departmentId, department.members[i].rankId)
+            if rankIndex == 1 then
+                rank.jobLevel = jobCfg.maxLevel
+            elseif rank.jobLevel > jobCfg.maxLevel then
+                rank.jobLevel = 0
+            end
+        end
+        department.job = data.job
+        UpdateDepartmentSQL(data.departmentId, "job")
+        UpdateDepartmentSQL(data.departmentId, "ranks")
+        for k, v in pairs(InManagement) do
+            TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
+                type = "setDepartmentJob",
+                departmentId = data.departmentId,
+                job = data.job,
+            })
+        end
+        SetTimeout(500, function()
+            for k, v in pairs(InManagement) do
+                TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
+                    type = "updateMembers",
+                    departmentId = data.departmentId,
+                    members = department.members,
+                })
+            end
+        end)
     elseif action == "createDepartment" then
+        local jobCfg = Config.PoliceJobs[data.job]
+        if not jobCfg then print("ERROR: Job not found: " .. data.job) return end
         local leader = data.leader
         local members = {}
         if leader and GetIdentifier(leader) then
@@ -85,6 +117,7 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
         end
 
         local department = {
+            job = data.job,
             label = data.label,
             location = data.location,
             members = members,
@@ -92,6 +125,7 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
                 {
                     rankId = 1,
                     label = _L("default_leader_rank"),
+                    jobLevel = jobCfg.maxLevel,
                     managingRankIds = {},
                     armory = {},
                     vehicles = {},
@@ -99,6 +133,7 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
                 {
                     rankId = 2,
                     label = _L("default_rank"),
+                    jobLevel = 0,
                     managingRankIds = {},
                     armory = {},
                     vehicles = {},
@@ -109,8 +144,8 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
             locations = {},
             misc = {},
         }
-        MySQL.insert('INSERT INTO `pickle_police_departments` (label, location, members, ranks, permissions, outfits, locations, misc) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', {
-            department.label, department.location, json.encode(department.members), json.encode(department.ranks), json.encode(department.permissions), json.encode(department.outfits), json.encode(department.locations), json.encode(department.misc)
+        MySQL.insert('INSERT INTO `pickle_police_departments` (label, job, location, members, ranks, permissions, outfits, locations, misc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', {
+            department.label, department.job, json.encode(department.location), json.encode(department.members), json.encode(department.ranks), json.encode(department.permissions), json.encode(department.outfits), json.encode(department.locations), json.encode(department.misc)
         }, function(id)
             department.id = id
             InitializeDepartment(id, department)

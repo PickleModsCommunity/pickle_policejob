@@ -49,6 +49,19 @@ Config.Currency = {
     countryCode = "en-US",
 }
 
+Config.DefaultJob = { name = "unemployed", level = 0 } -- The job to set players to when they clock off-duty.
+
+Config.PoliceJobs = { -- You can use multiple departments with the same job, no need to add anything here if you don't want to.
+    ["police"] = { -- The framework's job name, used in /setjob.
+        label = "Police",
+        maxLevel = 4, -- The leader's rank will be set to this level, ranks lower than the leader will be 0 through to one level below the leader.
+    },
+    ["sheriff"] = { -- The framework's job name, used in /setjob.
+        label = "Blaine County Sheriff's Office",
+        maxLevel = 2, -- The leader's rank will be set to this level, ranks lower than the leader will be 0 through to one level below the leader.
+    },
+}
+
 Config.PoliceArmory = {
     { 
         name = "weapon_pistol",

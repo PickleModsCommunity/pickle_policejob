@@ -365,7 +365,9 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
     const rankIndex = department.ranks.findIndex((rank) => rank.rankId === rankId);
     if (!rank) return null;
     const [inputLabel, setInputLabel] = useState(rank.label || "");
+    const [inputJobLevel, setInputJobLevel] = useState(rank.jobLevel || 0);
     const [isEditingLabel, setIsEditingLabel] = useState(false);
+    const [isEditingJobLevel, setIsEditingJobLevel] = useState(false);
     const [isAddingManagingRank, setIsAddingManagingRank] = useState(false);
     const [selectedManagingRank, setSelectedManagingRank] = useState<number | null>(null);
     const [isDeletingRank, setIsDeletingRank] = useState(false);
@@ -417,6 +419,23 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
                                             )}
                                         </div>
                                     </div>
+                                    {rankIndex !== 0 && (
+                                        <div className="flex flex-row gap-2 items-center">
+                                            <div className="text-sm font-semibold"><Translate id="job_level" />:</div>
+                                            <select className="text-sm bg-secondary px-2 rounded-md" value={inputJobLevel} onChange={(e) => {
+                                                setInputJobLevel(parseInt(e.target.value))
+                                                fetchNui("updateComputerDepartment", {
+                                                    type: "updateRankJobLevel",
+                                                    rankId: rankId,
+                                                    jobLevel: parseInt(e.target.value),
+                                                });
+                                            }}>
+                                                {Array.from({length: config.jobs[department.job].maxLevel}, (_, i) => (
+                                                    <option key={i} value={i}>{i}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
                                     {rankIndex !== 0 && (
                                         <div className="w-full select-none whitespace-nowrap flex items-center justify-center gap-2 bg-destructive hover:bg-destructive/80 transition-colors duration-200 cursor-pointer rounded-md p-1 font-semibold text-xs text-center" onClick={() => {
                                             if (isDeletingRank) {

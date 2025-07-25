@@ -39,6 +39,12 @@ export type Config = {
         label: string;
         model: string;
     }[];
+    jobs: {
+        [key: string]: {
+            label: string;
+            maxLevel: number;
+        };
+    };
 }
 
 interface ConfigContextProps {
@@ -251,7 +257,9 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 locations: ["garage_spawn"],
                 settings: ["ped"],
             },
-        }
+        },
+        jobs: {
+        },
     });
     useNuiEvent('setConfig', (data) => {
         setConfig({ ...config, ...data.config });

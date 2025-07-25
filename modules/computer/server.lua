@@ -99,6 +99,7 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
         table.insert(department.ranks, {
             rankId = rankId,
             label = data.label,
+            jobLevel = data.jobLevel or 0,
             managingRankIds = {},
             armory = {},
             vehicles = {},
@@ -368,6 +369,21 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
         for i=1, #department.ranks do
             if department.ranks[i].rankId == data.rankId then
                 department.ranks[i].label = data.label
+                break
+            end
+        end
+        UpdateDepartmentSQL(departmentId, "ranks")
+        for k, v in pairs(IN_COMPUTER) do
+            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
+                type = "updateRanks",
+                ranks = department.ranks,
+            })
+        end
+    elseif updateType == "updateRankJobLevel" then
+        if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
+        for i=1, #department.ranks do
+            if department.ranks[i].rankId == data.rankId then
+                department.ranks[i].jobLevel = data.jobLevel
                 break
             end
         end

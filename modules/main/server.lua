@@ -1,6 +1,7 @@
 function InitializeDepartment(id, data, dontSync)
     local department = {
         id = id,
+        job = data.job,
         label = data.label,
         location = data.location,
         locations = EnsureDepartmentData("locations", data.locations),
@@ -21,6 +22,11 @@ function UpdateDepartmentSQL(id, columnId)
     if columnId == "label" then
         MySQL.Async.execute("UPDATE pickle_police_departments SET label = @label WHERE id = @id", {
             label = department.label,
+            id = id,
+        })
+    elseif columnId == "job" then
+        MySQL.Async.execute("UPDATE pickle_police_departments SET job = @job WHERE id = @id", {
+            job = department.job,
             id = id,
         })
     elseif columnId == "location" then
@@ -190,8 +196,12 @@ end
 function SetPlayerDuty(source, onDuty, report)
     local departmentId, memberData = GetPlayerDepartment(source)
     if not departmentId then return ShowNotification(source, _L("no_department_permission")) end
+    local department = Departments[departmentId]
+    local rank, rankIndex = GetDepartmentRank(departmentId, memberData.rankId)
     if onDuty and not memberData.onDuty then
         memberData.onDuty = os.time()
+        print("Setting player job to ", department.job, rank.jobLevel)
+        SetPlayerJob(source, department.job, rank.jobLevel)
         ShowNotification(source, _L("duty_on"))
         ExecuteIntegration(source, "duty", departmentId, true)
     elseif not onDuty and memberData.onDuty then
@@ -209,6 +219,7 @@ function SetPlayerDuty(source, onDuty, report)
         if #memberData.recentDutyLogs > 10 then
             table.remove(memberData.recentDutyLogs)
         end
+        SetPlayerJob(source, Config.DefaultJob.name, Config.DefaultJob.level)
         ShowNotification(source, _L("duty_off"))
         UpdateDepartmentSQL(departmentId, "members")
         ExecuteIntegration(source, "duty", departmentId, false, report)
@@ -357,18 +368,38 @@ MySQL.ready(function()
     --     ranks = json.encode(department.ranks),
     --     outfits = json.encode(department.outfits),
     -- })
-    MySQL.Async.fetchAll("SELECT * FROM pickle_police_departments", {}, function(result)
-        for k, v in pairs(result) do
-            InitializeDepartment(v.id, {
-                label = EnsureDepartmentData("label", v.label),
-                location = EnsureDepartmentData("location", json.decode(v.location)),
-                members = EnsureDepartmentData("members", json.decode(v.members)),
-                locations = EnsureDepartmentData("locations", json.decode(v.locations)),
-                permissions = EnsureDepartmentData("permissions", json.decode(v.permissions)),
-                ranks = EnsureDepartmentData("ranks", json.decode(v.ranks)),
-                outfits = EnsureDepartmentData("outfits", json.decode(v.outfits)),
-                misc = EnsureDepartmentData("misc", json.decode(v.misc)),
-            }, true)
-        end
+    MySQL.Async.execute([[
+        CREATE TABLE IF NOT EXISTS `pickle_police_departments` (
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `job` VARCHAR(255) NOT NULL,
+            `label` VARCHAR(255) NOT NULL,
+            `location` JSON NOT NULL,
+            `locations` JSON NOT NULL,
+            `members` JSON NOT NULL,
+            `permissions` JSON NOT NULL,
+            `ranks` JSON NOT NULL,
+            `outfits` JSON NOT NULL,
+            `misc` JSON NOT NULL,
+            PRIMARY KEY (`id`)
+        )
+    ]], function()
+        MySQL.Async.fetchAll("SELECT * FROM pickle_police_departments", {}, function(result)
+            for k, v in pairs(result) do
+                if not Config.PoliceJobs[v.job] then
+                    print("ERROR: Job not found in Config.PoliceJobs, this will break the script: ", v.job, "Department: ", v.label)
+                end
+                InitializeDepartment(v.id, {
+                    label = EnsureDepartmentData("label", v.label),
+                    job = v.job,
+                    location = EnsureDepartmentData("location", json.decode(v.location)),
+                    members = EnsureDepartmentData("members", json.decode(v.members)),
+                    locations = EnsureDepartmentData("locations", json.decode(v.locations)),
+                    permissions = EnsureDepartmentData("permissions", json.decode(v.permissions)),
+                    ranks = EnsureDepartmentData("ranks", json.decode(v.ranks)),
+                    outfits = EnsureDepartmentData("outfits", json.decode(v.outfits)),
+                    misc = EnsureDepartmentData("misc", json.decode(v.misc)),
+                }, true)
+            end
+        end)
     end)
 end)

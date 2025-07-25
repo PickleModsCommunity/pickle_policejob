@@ -295,6 +295,7 @@ RegisterNUICallback("pageLoaded", function(data, cb)
                 countryCode = Config.Currency.countryCode,
                 currency = Config.Currency.currency,
                 items = Inventory.Items,
+                jobs = Config.PoliceJobs or {},
                 policeArmory = Config.PoliceArmory or {},
                 policeGarage = Config.PoliceGarage or {},
                 peds = Config.Peds or {},

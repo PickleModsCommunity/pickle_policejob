@@ -15,6 +15,7 @@ import { fetchNui } from "@/providers/nui/fetchNui";
 
 export type Rank = {
     rankId: number;
+    jobLevel: number;
     label: string;
     managingRankIds: number[];
     armory: string[];
@@ -29,6 +30,7 @@ export type DepartmentPermission = {
 
 export type Department = {
     id: number;
+    job: string;
     label: string;
     ranks: Rank[];
     permissions: Record<string, DepartmentPermission>;
@@ -394,9 +396,11 @@ export default function ComputerContainer() {
         department: {
             id: 11,
             label: "Los Santos Police Department",
+            job: "police",
             ranks: [
                 {
                     "rankId":1,
+                    "jobLevel": 4,
                     "label":"Chief", 
                     "managingRankIds":[],
                     "armory": [],
@@ -404,6 +408,7 @@ export default function ComputerContainer() {
                 },
                 {
                     "rankId":2,
+                    "jobLevel": 3,
                     "label":"Lieutenant", 
                     "managingRankIds":[],
                     "armory": [],
@@ -411,6 +416,7 @@ export default function ComputerContainer() {
                 },
                 {
                     "rankId":3,
+                    "jobLevel": 3,
                     "label":"Sergeant",
                     "managingRankIds":[2],
                     "armory": [],
@@ -418,6 +424,7 @@ export default function ComputerContainer() {
                 },
                 {
                     "rankId":4,
+                    "jobLevel": 1,
                     "label":"Officer",
                     "managingRankIds":[1,2,3],
                     "armory": [],
@@ -425,6 +432,7 @@ export default function ComputerContainer() {
                 },
                 {
                     "rankId":5,
+                    "jobLevel": 0,
                     "label":"Recruit",
                     "managingRankIds":[1,2,3],
                     "armory": [],
