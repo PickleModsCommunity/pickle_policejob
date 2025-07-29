@@ -28,6 +28,25 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(targetPlayer, d
         targetPlayer = tonumber(targetPlayer)
         DraggedPlayers[targetPlayer] = nil
         data.dragged = DraggedPlayers[targetPlayer]
+    elseif data.eventType == "toggleVehicleSeat" then
+        if not HandcuffedPlayers[targetPlayer] then
+            ShowNotification(source, _L("player_not_handcuffed"))
+            return
+        end
+        if DraggedPlayers[targetPlayer] then
+            local cancelEvent = {eventType = "toggleDrag", dragged = false, source = DraggedPlayers[targetPlayer], target = targetPlayer}
+            TriggerClientEvent("pickle_policejob:actions:detainment", DraggedPlayers[targetPlayer], cancelEvent)
+            TriggerClientEvent("pickle_policejob:actions:detainment", targetPlayer, cancelEvent)
+            SetTimeout(100, function()
+                DraggedPlayers[targetPlayer] = nil
+                local eventData = {eventType = "toggleVehicleSeat", source = source, target = targetPlayer, seatId = data.seatId, netId = data.netId}
+                TriggerClientEvent("pickle_policejob:actions:detainment", source, eventData)
+                TriggerClientEvent("pickle_policejob:actions:detainment", targetPlayer, eventData)
+            end)
+            return
+        end
+        local vehicle = NetworkGetEntityFromNetworkId(data.netId)
+        if not vehicle then return ShowNotification(source, _L("no_vehicle_nearby")) end
     end
     local eventData = data
     eventData.source = source

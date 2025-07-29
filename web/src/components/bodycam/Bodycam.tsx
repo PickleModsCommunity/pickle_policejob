@@ -20,13 +20,7 @@ export default function Bodycam() {
         second: "2-digit",
         hour12: false
     }));
-    const timezone = new Date().toLocaleString('en-US', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })
-        .split('GMT')[1]
-        ?.replace(':', '')
-        || (new Date().getTimezoneOffset() / -60 * 100)
-        .toString()
-        .padStart(4, '0')
-        .replace(/^(-?)(\d+)$/, '$10$2');
+
     const setBodycamData = (data: Bodycam | null) => {
         if (data) {
             setBodycam(data);
@@ -88,7 +82,7 @@ export default function Bodycam() {
         }}>
             <div className="flex flex-col items-end gap-0">
                 
-                <div className="text-lg font-bold">{date} {time} {timezone}</div>
+                <div className="text-lg font-bold">{date} {time} -0400</div>
                 <div className="text-lg font-bold">{bodycam.rank.toUpperCase()} {bodycam.name.toUpperCase()}</div>
                 <div className="text-lg font-bold">{bodycam.department.toUpperCase()}</div>
             </div>

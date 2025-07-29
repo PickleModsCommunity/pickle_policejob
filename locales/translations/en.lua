@@ -147,4 +147,9 @@ Language["en"] = {
     actions_handcuffs_description = "Use handcuffs to detain / release someone.",
     actions_drag = "Drag / Release Player",
     actions_drag_description = "Drag a player to a location or release them.",
+    actions_vehicleseat = "Escort into / out of Vehicle",
+    actions_vehicleseat_description = "Escort a player into or out of a vehicle.",
+    no_vehicle_nearby = "There is no vehicle nearby.",
+    no_player_nearby = "There is no player nearby.",
+    vehicle_full = "The vehicle is full.",
 }

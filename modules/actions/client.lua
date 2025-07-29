@@ -82,7 +82,6 @@ end
 
 function RemoveHandcuffs()
     if not IsHandcuffed then return end
-    print("Removing handcuffs", IsHandcuffed.prop)
     DeleteEntity(IsHandcuffed.prop)
     IsHandcuffed = nil
 end
@@ -103,6 +102,22 @@ function GetClosestPlayer()
         end
     end
     return closestPlayer, closestDistance
+end
+
+function GetNearestVehicle()
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+    local pool = GetGamePool("CVehicle")
+    local closestVehicle = nil
+    local closestDistance = 3.0
+    for _, vehicle in ipairs(pool) do
+        local distance = #(GetEntityCoords(vehicle) - coords)
+        if distance < closestDistance and NetworkGetEntityIsNetworked(vehicle) then
+            closestDistance = distance
+            closestVehicle = vehicle
+        end
+    end
+    return closestVehicle
 end
 
 function OpenPoliceActionsMenu()
@@ -126,6 +141,38 @@ function OpenPoliceActionsMenu()
                 if not targetPlayer then return end
                 TriggerServerEvent("pickle_policejob:actions:detainment", GetPlayerServerId(targetPlayer), {
                     eventType = "toggleDrag",
+                })
+            end,
+        },
+        {
+            title = _L("actions_vehicleseat"),
+            description = _L("actions_vehicleseat_description"),
+            icon = "car",
+            onSelect = function()
+                local targetPlayer = GetClosestPlayer()
+                if not targetPlayer then return ShowNotification(_L("no_player_nearby")) end
+                local targetVehicle = GetNearestVehicle()
+                if not targetVehicle then return ShowNotification(_L("no_vehicle_nearby")) end
+                local seatId = nil
+                if not IsPedInVehicle(GetPlayerPed(targetPlayer), targetVehicle, false) then
+                    local maxPassengers = GetVehicleMaxNumberOfPassengers(targetVehicle)
+                    local openSeats = {}
+                    for i=1, maxPassengers - 1 do
+                        local result = GetPedInVehicleSeat(targetVehicle, i)
+                        if not result or result == 0 then
+                            table.insert(openSeats, i)
+                        end
+                    end
+                    if #openSeats == 0 then
+                        ShowNotification(_L("vehicle_full"))
+                        return
+                    end
+                    seatId = openSeats[1]
+                end
+                TriggerServerEvent("pickle_policejob:actions:detainment", GetPlayerServerId(targetPlayer), {
+                    eventType = "toggleVehicleSeat",
+                    netId = VehToNet(targetVehicle),
+                    seatId = seatId,
                 })
             end,
         }
@@ -304,13 +351,26 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(data)
                 end)
             end
         else
-            print(data.source, data.target, serverId)
             if data.source == serverId then
                 IsDragging = nil
             elseif data.target == serverId then
                 IsDragging = nil
             end
-            print(IsDragging)
+        end
+    elseif data.eventType == "toggleVehicleSeat" then
+        if data.target ~= GetPlayerServerId(PlayerId()) then
+            return
+        end
+        local vehicle = NetworkGetEntityFromNetworkId(data.netId)
+        if not vehicle then return end
+        if data.seatId then
+            SetEnableHandcuffs(PlayerPedId(), false)
+            TaskEnterVehicle(PlayerPedId(), vehicle, -1, 2, 2.0, 1, 0)
+            SetTimeout(5000, function()
+                SetEnableHandcuffs(PlayerPedId(), true)
+            end)
+        else
+            TaskLeaveVehicle(PlayerPedId(), vehicle, 0)
         end
     end
 end)
