@@ -138,4 +138,13 @@ Language["en"] = {
     job_level = "Job Level",
     already_equipped = "You are already equipped with something, press Backspace / ESC to unequip.",
     equipped_handcuffs = "Equipped handcuffs: Left-click for front cuffs, Right-click for back cuffs.",
+    not_on_duty = "You are not on duty as a law enforcement officer.",
+    already_cuffed = "This player is already cuffed.",
+    player_detained = "You have detained this player.",
+    stop_dragging_first = "You must stop dragging the player to do this.",
+    player_not_handcuffed = "The player must be handcuffed to do this.",
+    actions_handcuffs = "Equip Handcuffs",
+    actions_handcuffs_description = "Use handcuffs to detain / release someone.",
+    actions_drag = "Drag / Release Player",
+    actions_drag_description = "Drag a player to a location or release them.",
 }

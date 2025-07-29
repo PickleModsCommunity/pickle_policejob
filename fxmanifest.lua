@@ -9,6 +9,7 @@ ui_page "nui/index.html"
 files {
 	"nui/index.html",
 	"nui/images/*.*",
+	"nui/fonts/*.*",
 	"nui/sounds/*.*",
 	"nui/assets/**/*.*",
 	"nui/debug.js",

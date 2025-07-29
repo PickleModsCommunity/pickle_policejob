@@ -5,6 +5,7 @@ import { GarageContainer } from "./components/garage/Garage";
 import { Config, useConfig } from "./providers/config";
 import { Translate } from "./providers/locale/Locale";
 import ManagementDisplay from "./components/management/Management";
+import Bodycam from "./components/bodycam/Bodycam";
 
 export function GetItemLabel({item} : {item: string}) {
   const { config } = useConfig();
@@ -59,6 +60,7 @@ function App() {
       <ComputerContainer />
       <ManagementDisplay />
       <GarageContainer />
+      <Bodycam />
     </div>
   )
 }

@@ -70,6 +70,16 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
                 members = department.members,
             })
         end
+    elseif action == "updateLabel" then
+        department.label = data.label
+        UpdateDepartmentSQL(data.departmentId, "label")
+        for k, v in pairs(InManagement) do
+            TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
+                type = "updateLabel",
+                departmentId = data.departmentId,   
+                label = data.label,
+            })
+        end
     elseif action == "setDepartmentJob" then
         local jobCfg = Config.PoliceJobs[data.job]
         if not jobCfg then print("ERROR: Job not found: " .. data.job) return end

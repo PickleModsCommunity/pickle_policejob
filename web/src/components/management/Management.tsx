@@ -294,15 +294,22 @@ function ManagementDepartment() {
                 )}
                 {editingLabel ? (
                     <Save size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
-                        setDepartments(departments.map((department) => {
-                            if (department.id === currentDepartmentId) {
-                                return {
-                                    ...department,
-                                    label: label
-                                }
-                            }
-                            return department;
-                        }))
+                        fetchNui("managementAction", {
+                            action: "updateLabel",
+                            data: {
+                                departmentId: currentDepartmentId,
+                                label: label,
+                            },
+                        })
+                        // setDepartments(departments.map((department) => {
+                        //     if (department.id === currentDepartmentId) {
+                        //         return {
+                        //             ...department,
+                        //             label: label
+                        //         }
+                        //     }
+                        //     return department;
+                        // }))
                         setEditingLabel(false)
                     }}/>
                 ) : (
@@ -745,6 +752,16 @@ function Management({ defaultDepartments }: { defaultDepartments: Department[] }
                     return {
                         ...department,
                         job: data.job,
+                    }
+                }
+                return department;
+            }))
+        } else if (data.type === "updateLabel") {
+            setDepartments(departments.map((department) => {
+                if (department.id === data.departmentId) {
+                    return {
+                        ...department,
+                        label: data.label,
                     }
                 }
                 return department;

@@ -11,6 +11,11 @@ html {
   /* background-image: url("assets/heist_background.png") !important; */
 }
 
+@font-face {
+  font-family: "VCR";
+  src: url("/nui/fonts/VCR_OSD_MONO.ttf");
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

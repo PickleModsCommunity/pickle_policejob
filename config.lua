@@ -33,6 +33,8 @@ Config.FrameworkSettings = {
     dirtyMoney = "DEFAULT",
 }
 
+Config.VoiceTarget = 30 -- The channel to use for voice syncing while viewing a bodycam. Set to -1 to disable.
+
 Config.IsPlayerDead = function()
     if GetResourceState("wasabi_ambulance") == "started" then
         return exports.wasabi_ambulance:isPlayerDead()
