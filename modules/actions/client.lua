@@ -2,9 +2,12 @@ local Handcuffs = nil
 local IsHandcuffed = false
 local IsDragging = nil
 local IsMenuOpen = false
+local EquippedStabSticks = nil
+local StabSticks = {}
+local RenderedStabSticks = {}
 
 function IsAnythingEquipped()
-    return Handcuffs ~= nil
+    return Handcuffs ~= nil or EquippedStabSticks ~= nil
 end
 
 function GetEntityPlayer(entity)
@@ -78,6 +81,7 @@ end
 
 function UnequipCurrentActions()
     UnequipHandcuffs()
+    UnequipStabSticks()
 end
 
 function RemoveHandcuffs()
@@ -85,6 +89,249 @@ function RemoveHandcuffs()
     DeleteEntity(IsHandcuffed.prop)
     IsHandcuffed = nil
 end
+
+-- Stab Sticks
+
+function UnrenderStackedStabSticks()
+    if not EquippedStabSticks then return end
+    for _, prop in ipairs(EquippedStabSticks.lengthProps) do
+        DeleteEntity(prop)
+    end
+    EquippedStabSticks.lengthProps = {}
+end
+
+function RenderStackedStabSticks()
+    if not EquippedStabSticks then return end
+    UnrenderStackedStabSticks()
+    if EquippedStabSticks.length == 1 then return end
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+    local boneIndex = GetPedBoneIndex(ped, 0x60F2)
+    for i=1, EquippedStabSticks.length - 1 do
+        local prop = CreateProp(`npds_p_pb`, coords.x, coords.y, coords.z, true, true, false)
+        local propCoords = vector3(-2.5 * i, 0.0, 0.0)
+        local rot = vector3(0.0, 0.0, 0.0)
+        table.insert(EquippedStabSticks.lengthProps, prop)
+        AttachEntityToEntity(prop, EquippedStabSticks.prop, boneIndex, propCoords.x, propCoords.y, propCoords.z, rot.x, rot.y, rot.z, 0, 0, 0, 0, 2, 1)
+    end
+end
+
+function EquipStabSticks(amount)
+    if not IsPlayerOnDuty() then return ShowNotification(_L("not_on_duty")) end
+    if IsAnythingEquipped() then return ShowNotification(_L("already_equipped")) end
+    ShowNotification(_L("equipped_stab_sticks"))
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+    local maxStickLength = Config.StabSticks.maxLength
+    EquippedStabSticks = {}
+    EquippedStabSticks.lengthProps = {}
+    EquippedStabSticks.prop = CreateProp(`npds_p_pbr_2`, coords.x, coords.y, coords.z, true, true, false)
+    EquippedStabSticks.length = amount or maxStickLength
+    local boneIndex = GetPedBoneIndex(ped, 0x60F2)
+    local coords, rot = vector3(-0.85, -2.45, -0.55), vector3(90.0, 95.0, 0.0)
+    AttachEntityToEntity(EquippedStabSticks.prop, ped, boneIndex, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, 0, 0, 0, 0, 2, 1)
+    SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true)
+    RenderStackedStabSticks()
+    CreateThread(function()
+        local animLoop = true
+        HIDE_INTERACTIONS = true
+        while EquippedStabSticks do
+            local playerPed = PlayerPedId()
+            DisableControlAction(0, 37, true) -- Weapon wheel
+            ShowInteractText(_L("stab_sticks_controls", EquippedStabSticks.length))
+            if IsDisabledControlPressed(0, 15) and EquippedStabSticks.length < maxStickLength then -- Scroll up
+                EquippedStabSticks.length = EquippedStabSticks.length + 1
+                RenderStackedStabSticks()
+            elseif IsDisabledControlPressed(0, 14) and EquippedStabSticks.length > 1 then -- Scroll down
+                EquippedStabSticks.length = EquippedStabSticks.length - 1
+                RenderStackedStabSticks()
+            elseif IsControlJustPressed(0, 202) then -- ESC
+                UnequipStabSticks()
+            elseif IsControlJustPressed(1, 51) then -- E
+                DetachEntity(EquippedStabSticks.prop, true, true)
+                local coords = GetEntityCoords(EquippedStabSticks.prop)
+                local rot = GetEntityRotation(EquippedStabSticks.prop)
+                DeleteEntity(EquippedStabSticks.prop)
+                local _, groundZ = GetGroundZExcludingObjectsFor_3dCoord(coords.x, coords.y, coords.z + 1000.0)
+                EquippedStabSticks.prop = CreateProp(`npds_p_pb`, coords.x, coords.y, groundZ + 0.1, true, true, false)
+                SetEntityRotation(EquippedStabSticks.prop, 0.0, 0.0, rot.z, 2, true)
+                PlaceObjectOnGroundProperly(EquippedStabSticks.prop)
+                FreezeEntityPosition(EquippedStabSticks.prop, true)
+                for i=1, #EquippedStabSticks.lengthProps do
+                    local prop = EquippedStabSticks.lengthProps[i]
+                    DetachEntity(prop, true, true)
+                    local coords = GetEntityCoords(prop)
+                    local _, groundZ = GetGroundZExcludingObjectsFor_3dCoord(coords.x, coords.y, coords.z + 1000.0)
+                    SetEntityCoords(prop, coords.x, coords.y, groundZ + 0.1)
+                    SetEntityRotation(prop, 0.0, 0.0, rot.z, 2, true)
+                    PlaceObjectOnGroundProperly(prop)
+                    FreezeEntityPosition(prop, true)
+                end
+                local sticks = {
+                    {
+                        coords = GetEntityCoords(EquippedStabSticks.prop),
+                        rotation = GetEntityRotation(EquippedStabSticks.prop),
+                    }
+                }
+                for i=1, #EquippedStabSticks.lengthProps do
+                    table.insert(sticks, {
+                        coords = GetEntityCoords(EquippedStabSticks.lengthProps[i]),
+                        rotation = GetEntityRotation(EquippedStabSticks.lengthProps[i]),
+                    })
+                end
+                UnequipStabSticks()
+                TriggerServerEvent("pickle_policejob:actions:placeStabSticks", sticks)
+                return
+            end
+            if GetEntityHealth(playerPed) <= 0 then
+                UnequipCurrentActions()
+                return
+            end
+            if animLoop and not IsEntityPlayingAnim(playerPed, 'missfbi4prepp1', 'idle', 3) then 
+                PlayAnim(playerPed, 'missfbi4prepp1', 'idle', 8.0, -8.0, -1, 49, 0, false, false, false)
+                animLoop = false
+                SetTimeout(1000, function()
+                    animLoop = true
+                end)
+            end
+            Wait(0)
+        end
+        ClearPedTasks(playerPed)
+        HIDE_INTERACTIONS = false
+    end)
+end
+
+function UnequipStabSticks()
+    if not EquippedStabSticks then return end
+    DeleteEntity(EquippedStabSticks.prop)
+    UnrenderStackedStabSticks()
+    EquippedStabSticks = nil
+    SetTimeout(10, function()
+        ClearPedTasks(PlayerPedId())
+    end)
+end 
+
+function IsStabStickRendered(id)
+    return RenderedStabSticks[id]
+end
+
+function StabStickRenderProcess(id)
+    if not StabSticks[id] then return end
+    local mainNode = StabSticks[id].sticks[1]
+    local coords = mainNode.coords
+    local pcoords = GetEntityCoords(PlayerPedId())
+    local distance = #(coords - pcoords)
+    if IsStabStickRendered(id) then 
+        if distance > Config.StabSticks.renderDistance then
+            UnrenderStabSticks(id)
+        end
+    elseif distance < Config.StabSticks.renderDistance then
+        RenderStabSticks(id)
+    end
+    return IsStabStickRendered(id), distance
+end
+
+function RenderStabSticks(id)
+    if not StabSticks[id] then return end
+    if RenderedStabSticks[id] then 
+        UnrenderStabSticks(id)
+    end
+    RenderedStabSticks[id] = {}
+    for _, stick in ipairs(StabSticks[id].sticks) do
+        local prop = CreateProp(`npds_p_pb`, stick.coords.x, stick.coords.y, stick.coords.z, false, false, false)
+        SetEntityRotation(prop, stick.rotation.x, stick.rotation.y, stick.rotation.z, 2, true)
+        FreezeEntityPosition(prop, true)
+        PlaceObjectOnGroundProperly(prop)
+        table.insert(RenderedStabSticks[id], prop)
+    end
+end
+
+function UnrenderStabSticks(id)
+    if not RenderedStabSticks[id] then return end
+    for _, prop in ipairs(RenderedStabSticks[id]) do
+        DeleteEntity(prop)
+    end
+    RenderedStabSticks[id] = nil
+end
+
+RegisterNetEvent("pickle_policejob:actions:createStabSticks", function(id, sticks)
+    StabSticks[id] = sticks
+    StabStickRenderProcess(id)
+end)
+
+RegisterNetEvent("pickle_policejob:actions:deleteStabSticks", function(id)
+    UnrenderStabSticks(id)
+    StabSticks[id] = nil
+end)
+
+function StabStickGameProcess(id)
+    if not StabSticks[id] then return end
+    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+    local wheelBones = {"wheel_lf", "wheel_rf", "wheel_lm", "wheel_rm", "wheel_lr", "wheel_rr"}
+    local targetableBones = {}
+    if not DoesEntityExist(vehicle) then 
+        if IsPlayerOnDuty() then -- and not Config.UseTarget then
+            local closestStick = nil
+            local closestDistance = 100.0
+            for _, stick in ipairs(StabSticks[id].sticks) do
+                local distance = #(stick.coords - GetEntityCoords(PlayerPedId()))
+                if distance < closestDistance then
+                    closestStick = stick
+                    closestDistance = distance
+                end
+            end
+            if closestDistance < 2.0 then
+                ShowInteractText(_L("stab_sticks_pickup"))
+                if IsControlJustPressed(1, 51) then
+                    TriggerServerEvent("pickle_policejob:actions:deleteStabSticks", id)
+                    EquipStabSticks(#StabSticks[id].sticks)
+                end
+                return true
+            end
+        end
+    else
+        for _, stick in ipairs(StabSticks[id].sticks) do
+            for wheelIndex, bone in ipairs(wheelBones) do
+                local boneIndex = GetEntityBoneIndexByName(vehicle, bone)
+                local coords = GetWorldPositionOfEntityBone(vehicle, boneIndex)
+                local distance = #(coords - stick.coords)
+                if distance < 1.0 then
+                    table.insert(targetableBones, {bone = bone, wheelIndex = wheelIndex - 1})
+                end
+            end
+        end
+        if #targetableBones > 0 then
+            for i=1, #targetableBones do
+                local tireHealth = GetTyreHealth(vehicle, targetableBones[i].wheelIndex)
+                if tireHealth >= 1000 then
+                    SetVehicleTyreBurst(vehicle, targetableBones[i].wheelIndex, false, Config.StabSticks.burstDamage)
+                end
+            end
+        end
+        return true
+    end
+end
+
+CreateThread(function()
+    Wait(1000)
+    local wait = 1500
+    while true do
+        local closestId = nil
+        local closestDistance = 100.0
+        for id, _ in pairs(StabSticks) do
+            local isRendered, distance = StabStickRenderProcess(id)
+            if isRendered and distance < closestDistance then
+                closestId = id
+                closestDistance = distance
+            end
+        end
+        if closestId and StabStickGameProcess(closestId) then
+            wait = 0
+        end
+        Wait(wait)
+    end
+end)
+
 
 function GetClosestPlayer()
     local ped = PlayerPedId()
@@ -375,17 +622,15 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(data)
     end
 end)
 
-CreateThread(function()
-    Wait(1000)
-    EquipHandcuffs()
-end)
-
 RegisterCommand("handcuffs", function()
     EquipHandcuffs()
 end)
 
 AddEventHandler("onResourceStop", function(resource)
     if resource == GetCurrentResourceName() then
+        for id, _ in pairs(StabSticks) do
+            UnrenderStabSticks(id)
+        end
         UnequipCurrentActions()
         RemoveHandcuffs()
     end

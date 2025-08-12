@@ -1,5 +1,10 @@
 local LocalDepartments = {}
 local CurrentDepartment = nil
+local OnDuty = false
+
+function IsPlayerOnDuty()
+    return OnDuty
+end
 
 function OpenFrontdeskOffdutyPrompt(id, entityId)
     local input = lib.inputDialog(_L("offduty_prompt_title"), {
@@ -358,6 +363,10 @@ RegisterNetEvent("pickle_policejob:updateDepartment", function(data)
             end
         end
     end
+end)
+
+RegisterNetEvent("pickle_policejob:updateOnDuty", function(onDuty)
+    OnDuty = onDuty
 end)
 
 AddEventHandler("onResourceStart", function(resource)

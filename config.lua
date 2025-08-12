@@ -64,6 +64,12 @@ Config.PoliceJobs = { -- You can use multiple departments with the same job, no 
     },
 }
 
+Config.StabSticks = {
+    renderDistance = 200.0, -- The distance at which the stab sticks will be rendered. Leave this alone please.
+    burstDamage = 800.0, -- The damage to apply to the vehicle when a stab stick is deployed. Don't set this above 1000.0
+    maxLength = 10, -- The maximum length of the stab sticks that can be deployed.
+}
+
 Config.PoliceArmory = {
     { 
         name = "weapon_pistol",

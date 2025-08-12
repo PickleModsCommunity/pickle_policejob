@@ -1,5 +1,28 @@
 local HandcuffedPlayers = {}
 local DraggedPlayers = {}
+local StabSticks = {}
+
+function CreateStabSticks(sticks)
+    local id
+    repeat
+        id = math.random(1, 1000000)
+    until not StabSticks[id]
+    StabSticks[id] = {
+        sticks = {},
+    }
+    for _, stick in ipairs(sticks) do
+        table.insert(StabSticks[id].sticks, {
+            coords = stick.coords,
+            rotation = stick.rotation,
+        })
+    end
+    TriggerClientEvent("pickle_policejob:actions:createStabSticks", -1, id, StabSticks[id])
+end
+
+function DeleteStabSticks(id)
+    StabSticks[id] = nil
+    TriggerClientEvent("pickle_policejob:actions:deleteStabSticks", -1, id)
+end
 
 RegisterNetEvent("pickle_policejob:actions:detainment", function(targetPlayer, data)
     local source = source
@@ -53,4 +76,27 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(targetPlayer, d
     eventData.target = targetPlayer
     TriggerClientEvent("pickle_policejob:actions:detainment", source, eventData)
     TriggerClientEvent("pickle_policejob:actions:detainment", targetPlayer, eventData)
+end)
+
+RegisterNetEvent("pickle_policejob:actions:placeStabSticks", function(sticks)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    if #sticks < 1 then return ShowNotification(source, _L("no_sticks_placed")) end
+    CreateStabSticks(sticks)
+end)
+
+RegisterNetEvent("pickle_policejob:actions:deleteStabSticks", function(id)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    DeleteStabSticks(id)
+end)
+
+CreateThread(function()
+    Wait(2000)
+    CreateStabSticks({
+        {
+            coords = vector3(2220.4922, 3812.4099, 32.8988),
+            rotation = vector3(0.0, 0.0, 118.8556),
+        },
+    })
 end)

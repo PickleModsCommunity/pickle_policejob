@@ -152,4 +152,6 @@ Language["en"] = {
     no_vehicle_nearby = "There is no vehicle nearby.",
     no_player_nearby = "There is no player nearby.",
     vehicle_full = "The vehicle is full.",
+    stab_sticks_controls = "[E]     - Place Down  \n[ESC / Backspace]     - Cancel  \n[SCROLL]     - Increase / Decrease Length (%s)  \n",
+    stab_sticks_pickup = "[E]     - Pickup Stab Sticks",
 }
