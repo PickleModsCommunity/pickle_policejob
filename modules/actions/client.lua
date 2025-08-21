@@ -5,6 +5,8 @@ local IsMenuOpen = false
 local EquippedStabSticks = nil
 local StabSticks = {}
 local RenderedStabSticks = {}
+local ObjectPlacement = {}
+local ObjectPlacementInteractions = {}
 
 function IsAnythingEquipped()
     return Handcuffs ~= nil or EquippedStabSticks ~= nil
@@ -126,7 +128,7 @@ function EquipStabSticks(amount)
     EquippedStabSticks = {}
     EquippedStabSticks.lengthProps = {}
     EquippedStabSticks.prop = CreateProp(`npds_p_pbr_2`, coords.x, coords.y, coords.z, true, true, false)
-    EquippedStabSticks.length = amount or maxStickLength
+    EquippedStabSticks.length = amount or 1
     local boneIndex = GetPedBoneIndex(ped, 0x60F2)
     local coords, rot = vector3(-0.85, -2.45, -0.55), vector3(90.0, 95.0, 0.0)
     AttachEntityToEntity(EquippedStabSticks.prop, ped, boneIndex, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, 0, 0, 0, 0, 2, 1)
@@ -267,10 +269,9 @@ end)
 function StabStickGameProcess(id)
     if not StabSticks[id] then return end
     local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    local wheelBones = {"wheel_lf", "wheel_rf", "wheel_lm", "wheel_rm", "wheel_lr", "wheel_rr"}
     local targetableBones = {}
     if not DoesEntityExist(vehicle) then 
-        if IsPlayerOnDuty() then -- and not Config.UseTarget then
+        if not Config.UseTarget and IsPlayerOnDuty() then
             local closestStick = nil
             local closestDistance = 100.0
             for _, stick in ipairs(StabSticks[id].sticks) do
@@ -291,7 +292,8 @@ function StabStickGameProcess(id)
         end
     else
         for _, stick in ipairs(StabSticks[id].sticks) do
-            for wheelIndex, bone in ipairs(wheelBones) do
+            local WHEEL_BONES = {"wheel_lf", "wheel_rf", "wheel_lm", "wheel_rm", "wheel_lr", "wheel_rr"}
+            for wheelIndex, bone in ipairs(WHEEL_BONES) do
                 local boneIndex = GetEntityBoneIndexByName(vehicle, bone)
                 local coords = GetWorldPositionOfEntityBone(vehicle, boneIndex)
                 local distance = #(coords - stick.coords)
@@ -312,26 +314,6 @@ function StabStickGameProcess(id)
     end
 end
 
-CreateThread(function()
-    Wait(1000)
-    local wait = 1500
-    while true do
-        local closestId = nil
-        local closestDistance = 100.0
-        for id, _ in pairs(StabSticks) do
-            local isRendered, distance = StabStickRenderProcess(id)
-            if isRendered and distance < closestDistance then
-                closestId = id
-                closestDistance = distance
-            end
-        end
-        if closestId and StabStickGameProcess(closestId) then
-            wait = 0
-        end
-        Wait(wait)
-    end
-end)
-
 
 function GetClosestPlayer()
     local ped = PlayerPedId()
@@ -351,12 +333,12 @@ function GetClosestPlayer()
     return closestPlayer, closestDistance
 end
 
-function GetNearestVehicle()
+function GetNearestVehicle(distance)
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
     local pool = GetGamePool("CVehicle")
     local closestVehicle = nil
-    local closestDistance = 3.0
+    local closestDistance = distance or 3.0
     for _, vehicle in ipairs(pool) do
         local distance = #(GetEntityCoords(vehicle) - coords)
         if distance < closestDistance and NetworkGetEntityIsNetworked(vehicle) then
@@ -367,23 +349,61 @@ function GetNearestVehicle()
     return closestVehicle
 end
 
+function OpenObjectPlacementMenu()
+    local menuId = "pickle_policejob:actions:objectplacement"
+    local options = {}
+    for i=1, #Config.ObjectPlacement.props do
+        table.insert(options, {
+            title = Config.ObjectPlacement.props[i].label,
+            description = _L("object_description", Config.ObjectPlacement.props[i].label),
+            image = Config.ObjectPlacement.props[i].image,
+            onSelect = function()
+                local object = CreateProp(Config.ObjectPlacement.props[i].model, GetEntityCoords(PlayerPedId()), false, false, false)
+                local result = StartGizmoEditor({
+                    entity = object,
+                })
+                DeleteEntity(object)
+                TriggerServerEvent("pickle_policejob:actions:placeObject", {
+                    index = i,
+                    coords = result.position,
+                    rotation = result.rotation,
+                })
+                OpenObjectPlacementMenu()
+            end,
+        })
+    end
+    lib.registerContext({
+        id = menuId,
+        menu = "pickle_policejob:actions:menu",
+        title = _L("actions_objects"),
+        options = options,
+        onExit = function()
+            IsMenuOpen = false
+        end,
+    })
+    lib.showContext(menuId)
+end
+
 function OpenPoliceActionsMenu()
     if IsMenuOpen then return end
+    IsMenuOpen = true
     local menuId = "pickle_policejob:actions:menu"
     local options = {
         {
             title = _L("actions_handcuffs"),
             description = _L("actions_handcuffs_description"),
-            icon = "handcuffs",
+            icon = Config.TargetIcons.handcuffs,
             onSelect = function()
+                IsMenuOpen = false
                 EquipHandcuffs()
             end,
         },
         {
             title = _L("actions_drag"),
             description = _L("actions_drag_description"),
-            icon = "drag",
+            icon = Config.TargetIcons.escort,
             onSelect = function()
+                IsMenuOpen = false
                 local targetPlayer = GetClosestPlayer()
                 if not targetPlayer then return end
                 TriggerServerEvent("pickle_policejob:actions:detainment", GetPlayerServerId(targetPlayer), {
@@ -396,6 +416,7 @@ function OpenPoliceActionsMenu()
             description = _L("actions_vehicleseat_description"),
             icon = "car",
             onSelect = function()
+                IsMenuOpen = false
                 local targetPlayer = GetClosestPlayer()
                 if not targetPlayer then return ShowNotification(_L("no_player_nearby")) end
                 local targetVehicle = GetNearestVehicle()
@@ -422,18 +443,92 @@ function OpenPoliceActionsMenu()
                     seatId = seatId,
                 })
             end,
+        },
+        {
+            title = _L("actions_stab_sticks"),
+            description = _L("actions_stab_sticks_description"),
+            icon = Config.TargetIcons.stab_sticks,
+            onSelect = function()
+                IsMenuOpen = false
+                EquipStabSticks()
+            end,
+        },
+        {
+            title = _L("actions_grappler"),
+            description = _L("actions_grappler_description"),
+            icon = Config.TargetIcons.grappler,
+            onSelect = function()
+                IsMenuOpen = false
+                StartGrapplerPlacement()
+            end,
+        },
+        {
+            title = _L("actions_objects"),
+            description = _L("actions_objects_description"),
+            icon = Config.TargetIcons.objects,
+            arrow = true,
+            onSelect = function()
+                SetTimeout(100, function()
+                    OpenObjectPlacementMenu()
+                end)
+            end,
         }
     }
     lib.registerContext({
         id = menuId,
-        title = _L("view_duty_logs"),
+        title = _L("police_actions_menu"),
         options = options,
         onExit = function()
-            OpenFrontdesk(id, entityId)
+            IsMenuOpen = false
         end
     })
     lib.showContext(menuId)
 end
+
+CreateThread(function()
+    Wait(1000)
+    if Config.UseTarget then
+        AddTargetModel(`npds_p_pb`, 1.0, {
+            {
+                name = "pickle_policejob:actions:stab_sticks",
+                icon = Config.TargetIcons.stab_sticks,
+                label = _L("target_stab_sticks"),
+                onSelect = function()
+                    local closestStick = nil
+                    local closestDistance = 100.0
+                    for id, data in pairs(StabSticks) do
+                        local stick = data.sticks[1]
+                        local distance = #(stick.coords - GetEntityCoords(PlayerPedId()))
+                        if distance < closestDistance then
+                            closestStick = id
+                            closestDistance = distance
+                        end
+                    end
+                    if closestStick then
+                        TriggerServerEvent("pickle_policejob:actions:deleteStabSticks", closestStick)
+                        EquipStabSticks(#StabSticks[closestStick].sticks)
+                    end
+                end,
+            }
+        })
+    end
+    local wait = 1500
+    while true do
+        local closestId = nil
+        local closestDistance = 100.0
+        for id, _ in pairs(StabSticks) do
+            local isRendered, distance = StabStickRenderProcess(id)
+            if isRendered and distance < closestDistance then
+                closestId = id
+                closestDistance = distance
+            end
+        end
+        if closestId and StabStickGameProcess(closestId) then
+            wait = 0
+        end
+        Wait(wait)
+    end
+end)
 
 RegisterCommand("policeactions", function()
     OpenPoliceActionsMenu()
@@ -622,8 +717,27 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(data)
     end
 end)
 
-RegisterCommand("handcuffs", function()
-    EquipHandcuffs()
+RegisterNetEvent("pickle_policejob:actions:placeObject", function(id, data)
+    local objectCfg = Config.ObjectPlacement.props[data.index]
+    if not objectCfg then return end
+    ObjectPlacement[id] = data
+    ObjectPlacementInteractions[id] = CreateInteraction({
+        label = _L("remove_object"),
+        icon = Config.TargetIcons.objects,
+        coords = data.coords + vector3(0.0, 0.0, 1.0),
+        zOffset = objectCfg.targetZOffset or 0.0,
+        rotation = data.rotation,
+        model = { hash = objectCfg.model, modelType = "prop" },
+    }, function()
+        TriggerServerEvent("pickle_policejob:actions:deleteObject", id)
+    end)
+end)
+
+RegisterNetEvent("pickle_policejob:actions:deleteObject", function(id)
+    if not ObjectPlacement[id] then return end
+    DeleteInteraction(ObjectPlacementInteractions[id])
+    ObjectPlacement[id] = nil
+    ObjectPlacementInteractions[id] = nil
 end)
 
 AddEventHandler("onResourceStop", function(resource)

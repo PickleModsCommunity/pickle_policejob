@@ -1,6 +1,6 @@
 inGizmo = false
 
-function StartMovement(prop)
+function StartMovement(prop, data)
     local coords = GetEntityCoords(PlayerPedId())
     local heading = 0.0
     local hasSetHeading = false
@@ -15,7 +15,9 @@ function StartMovement(prop)
                 coords = vector3(hitCoords.x, hitCoords.y, hitCoords.z)
                 heading = GetGameplayCamRot(2).z
                 SetEntityCoords(prop, coords.x, coords.y, coords.z)
-                SetEntityRotation(prop, 0, 0, heading, 2) 
+                if not data.keepRotation then
+                    SetEntityRotation(prop, 0, 0, heading, 2) 
+                end
             end
         end
         ShowInteractText(
@@ -31,16 +33,18 @@ function StartMovement(prop)
         end
         if isFrozen then
             local forwardVector --[[ vector3 ]], rightVector --[[ vector3 ]], upVector --[[ vector3 ]], position --[[ vector3 ]] = GetEntityMatrix(prop)
-            if IsControlPressed(1, 15) then
-                heading = heading + (1.0 * speedMode)
-                if heading > 360.0 then heading = (360.0 - heading) end
-                SetEntityRotation(prop, 0.0, 0.0, heading, 2, true)
-                hasSetHeading = true
-            elseif IsControlPressed(1, 14) then
-                heading = heading - (1.0 * speedMode)
-                if heading < 0.0 then heading = (360.0 + heading) end
-                SetEntityRotation(prop, 0.0, 0.0, heading, 2, true)
-                hasSetHeading = true
+            if not data.keepRotation then
+                if IsControlPressed(1, 15) then
+                    heading = heading + (1.0 * speedMode)
+                    if heading > 360.0 then heading = (360.0 - heading) end
+                    SetEntityRotation(prop, 0.0, 0.0, heading, 2, true)
+                    hasSetHeading = true
+                elseif IsControlPressed(1, 14) then
+                    heading = heading - (1.0 * speedMode)
+                    if heading < 0.0 then heading = (360.0 + heading) end
+                    SetEntityRotation(prop, 0.0, 0.0, heading, 2, true)
+                    hasSetHeading = true
+                end
             end
             DisableControlAction(0, 1, true)
             DisableControlAction(0, 2, true)
@@ -86,7 +90,7 @@ function StartGizmoEditor(data)
         if Config.UseObjectGizmo and GetResourceState("object_gizmo") == "started" then
             result = exports.object_gizmo:useGizmo(data.entity)
         else
-            result = StartMovement(data.entity)
+            result = StartMovement(data.entity, data)
         end
         inGizmo = false
         return result

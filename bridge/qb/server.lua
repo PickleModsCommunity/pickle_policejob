@@ -145,6 +145,7 @@ end
 function SetPlayerJob(source, job, grade)
     local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
     xPlayer.Functions.SetJob(job, grade)
+    xPlayer.Functions.SetJobDuty(true)
 end
 
 function IsPlayerAdmin(source)

@@ -150,7 +150,7 @@ function EnsureInteractionModel(index)
         SetEntityAlpha(entity, 0, false)
     elseif data.model and (not data.model.modelType or data.model.modelType == "ped") then
         local offset = data.model.offset or vector3(0.0, 0.0, 0.0)
-        entity = CreateNPC(data.model.hash, data.coords.x + offset.x, data.coords.y + offset.y, (data.coords.z - 1.0) + offset.z, data.heading, false, true)
+        entity = CreateNPC(data.model.hash, data.coords.x + offset.x, data.coords.y + offset.y, (data.coords.z - 1.0) + offset.z, data.rotation.z, false, true)
         SetEntityInvincible(entity, true)
         SetBlockingOfNonTemporaryEvents(entity, true)
         if data.model.animation then
@@ -163,7 +163,7 @@ function EnsureInteractionModel(index)
         return
     end
     FreezeEntityPosition(entity, true)
-    SetEntityHeading(entity, data.heading)
+    SetEntityRotation(entity, data.rotation.x, data.rotation.y, data.rotation.z, 2, true)
     Interactions[index].entity = entity
     return entity
 end
@@ -222,10 +222,17 @@ function CreateInteraction(data, selected)
         radius = data.radius or 1.0,
         interactRadius = data.interactRadius or Config.InteractDistance,
         distance = data.distance or Config.InteractDistance,
-        heading = data.heading,
+        rotation = data.rotation or vector3(0.0, 0.0, data.heading),
         vehicleInteract = data.vehicleInteract,
         hiddenKeypress = data.hiddenKeypress
     }
+    local pcoords = GetEntityCoords(PlayerPedId())
+    if data.coords then
+        local dist = #(pcoords-data.coords)
+        if (dist < Config.RenderDistance) then 
+            EnsureInteractionModel(index)
+        end
+    end
     if Config.UseTarget and not data.vehicleInteract then
         if data.target then
             AddTargetModel(data.target, Interactions[index].radius, Interactions[index].options)
@@ -250,6 +257,38 @@ function DeleteInteraction(index)
         end
     end
     Interactions[index] = nil
+end
+
+function GetPositiveRotation(rot)
+    if rot < 0 then 
+        return GetPositiveRotation(rot + 360.0)
+    elseif rot > 360 then 
+        return GetPositiveRotation(rot - 360.0)
+    else
+        return rot
+    end
+end
+
+function GetClampedHeading(heading, heading2)
+    local heading, rotZ = GetPositiveRotation(heading), GetPositiveRotation(heading2)
+    local diff = GetPositiveRotation(heading - rotZ) 
+    if diff > 90 and diff < 270 then 
+        local a = math.abs(diff - 90)
+        local b = math.abs(diff - 270)
+        if a < b then 
+            rotZ = nil
+        elseif b < a then
+            rotZ = nil
+        end
+    else
+        rotZ = heading2
+    end
+    return rotZ
+end
+
+function IsPlayerAlive()
+    local health = GetEntityHealth(PlayerPedId())
+    return health > 0
 end
 
 CreateThread(function()

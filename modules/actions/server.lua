@@ -1,6 +1,7 @@
 local HandcuffedPlayers = {}
 local DraggedPlayers = {}
 local StabSticks = {}
+local ObjectPlacement = {}
 
 function CreateStabSticks(sticks)
     local id
@@ -89,6 +90,29 @@ RegisterNetEvent("pickle_policejob:actions:deleteStabSticks", function(id)
     local source = source
     if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
     DeleteStabSticks(id)
+end)
+
+RegisterNetEvent("pickle_policejob:actions:placeObject", function(data)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    if not Config.ObjectPlacement.props[data.index] then return ShowNotification(source, _L("invalid_object")) end
+    local id
+    repeat
+        id = math.random(1, 1000000)
+    until not ObjectPlacement[id]
+    ObjectPlacement[id] = {
+        index = data.index,
+        coords = data.coords,
+        rotation = data.rotation,
+    }
+    TriggerClientEvent("pickle_policejob:actions:placeObject", -1, id, ObjectPlacement[id])
+end)
+
+RegisterNetEvent("pickle_policejob:actions:deleteObject", function(id)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    ObjectPlacement[id] = nil
+    TriggerClientEvent("pickle_policejob:actions:deleteObject", -1, id)
 end)
 
 CreateThread(function()

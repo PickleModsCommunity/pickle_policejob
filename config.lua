@@ -27,6 +27,11 @@ Config.AdminGroups = {
 
 Config.TargetIcons = {
     frontdesk = "fas fa-shield-alt",
+    stab_sticks = "fas fa-road-barrier",
+    escort = "fas fa-people-pulling",
+    handcuffs = "fas fa-handcuffs",
+    grappler = "fas fa-road-barrier",
+    objects = "fas fa-box",
 }
 
 Config.FrameworkSettings = {
@@ -68,6 +73,143 @@ Config.StabSticks = {
     renderDistance = 200.0, -- The distance at which the stab sticks will be rendered. Leave this alone please.
     burstDamage = 800.0, -- The damage to apply to the vehicle when a stab stick is deployed. Don't set this above 1000.0
     maxLength = 10, -- The maximum length of the stab sticks that can be deployed.
+}
+
+Config.Grappler = {
+    renderDistance = 100.0, -- The distance at which the grappler will be rendered. Leave this alone please.
+}
+
+Config.ObjectPlacement = {
+    renderDistance = 100.0, -- The distance at which the object placement will be rendered. Leave this alone please.
+    props = {
+        {label = "Traffic Cone", model = `prop_roadcone02a`, image = "nui://pickle_policejob/nui/images/prop_roadcone02a.png"},
+        {label = "Police Barrier", model = `prop_barrier_work05`, image = "nui://pickle_policejob/nui/images/prop_barrier_work05.png"},
+        {label = "Construction Barrier #1", model = `prop_barrier_work06a`, image = "nui://pickle_policejob/nui/images/prop_barrier_work06a.png"},
+        {label = "Construction Barrier #2", model = `prop_barrier_work06b`, image = "nui://pickle_policejob/nui/images/prop_barrier_work06b.png"},
+        {label = "Police Tent", model = `prop_gazebo_02`, image = "nui://pickle_policejob/nui/images/prop_gazebo_02.png", targetZOffset = -1.0},
+        {label = "Portable Light", model = `prop_worklight_03b`, image = "nui://pickle_policejob/nui/images/prop_worklight_03b.png"},
+    }
+}
+
+Config.Evidence = {
+    renderDistance = 25.0, -- The distance at which evidence will be rendered.
+    maxDisplayAmount = 3, -- The maximum amount of a group of evidence that can be displayed.
+    queueInterval = 1, -- The interval at which shell casings will be added to the queue. Leave this at 1.
+    evidenceGroupDistance = 2.0, -- The distance at which shell casings will be grouped together.
+    weaponGroups = {
+        ["GROUP_HEAVY"] = {
+            label = "Military-Grade Firearm",
+            shellModel = `w_pi_singleshot_shell`,
+            shellRotation = vector3(0.0, 0.0, 0.0),
+        },
+        ["GROUP_MG"] = {
+            label = "Class-D Automatic Firearm",
+            shellModel = `w_pi_singleshot_shell`,
+            shellRotation = vector3(0.0, 0.0, 0.0),
+        },
+        ["GROUP_SNIPER"] = {
+            label = "Class-D Sniper Rifle",
+            shellModel = `w_pi_singleshot_shell`,
+            shellRotation = vector3(0.0, 0.0, 0.0),
+        },
+        ["GROUP_SMG"] = {
+            label = "Class-C Automatic Firearm",
+            shellModel = `w_pi_singleshoth4_shell`,
+            shellRotation = vector3(0.0, 0.0, 0.0),
+        },
+        ["GROUP_RIFLE"] = {
+            label = "Class-C Semi-Automatic Rifle",
+            shellModel = `w_pi_singleshot_shell`,
+            shellRotation = vector3(0.0, 0.0, 0.0),
+        },
+        ["GROUP_SHOTGUN"] = {
+            label = "Class-B Shotgun",
+            shellModel = `w_sg_pumpshotgunh4_mag1`,
+            shellRotation = vector3(0.0, 0.0, 0.0),
+        },
+        ["GROUP_PISTOL"] = {
+            label = "Class-B Semi-Automatic Pistol",
+            shellModel = `w_pi_singleshoth4_shell`,
+            shellRotation = vector3(0.0, 0.0, 0.0),
+        },
+    }
+}
+
+Config.Helmets = {
+    EnableFlashlights = true, -- Set to false to disable flashlights 
+    AllowedProps = {
+        {
+            up = 117,
+            down = 116
+        },
+    }
+}
+
+Config.Bodycam = {
+    RequiredItem = "police_bodycam",
+}
+
+Config.EAS = {
+    RequiredItem = nil,
+}
+
+Config.Shields = {
+    RequiredItem = "police_shield",
+    Models = {
+        [`prop_riot_shield`] = {
+            Label = "Riot Shield",
+            DefaultOffset = {vector3(0.0, 0.45, 0.05), vector3(180.0, -90.0, 0.0)},
+            AimingOffset = {vector3(0.0, 0.35, 0.25), vector3(180.0, -90.0, 0.0)},
+            Groups = {
+                ["police"] = 0, 
+            },
+        },
+        [`prop_ballistic_shield`] = {
+            Label = "Police Shield",
+            DefaultOffset = {vector3(-0.1, 0.45, 0.05), vector3(180.0, -90.0, 0.0)},
+            AimingOffset = {vector3(-0.1, 0.35, 0.25), vector3(180.0, -90.0, 0.0)},
+            Groups = {
+                ["police"] = 0, 
+            },
+        },
+    }
+}
+
+Config.Snakecam = {
+    RequiredItem = "police_snakecam",
+    MaxLength = 10.0,
+    Controls = {
+        up = 32,
+        down = 33,
+
+        look_up = 172,
+        look_down = 173,
+        look_left = 174,
+        look_right = 175,
+
+        stop_cam = 177
+    }
+}
+
+Config.Panic = {
+    RequiredItem = "police_panic",
+    AlertLength = 10,
+    Blips = {
+        {
+            ID = 161,
+            Display = 8,
+            Scale = 0.65,
+            Color = 1,
+            Label = ""
+        },
+        {
+            ID = 61,
+            Display = 4,
+            Scale = 0.65,
+            Color = 1,
+            Label = "Alert: Panic Button"
+        },
+    }
 }
 
 Config.PoliceArmory = {
