@@ -38,6 +38,14 @@ Config.FrameworkSettings = {
     dirtyMoney = "DEFAULT",
 }
 
+Config.Photos = {
+    url = "https://fmapi.net/api/v2/image?apiKey=vX7G4UCDJLUSm19U1DGSdvUUpEiOSERv", -- By default, uses discord to host images.
+    uploadProtocol = 'file',
+    ResponseHandler = function(resp) -- Return URL from response.
+       return resp.data.url
+    end,
+}
+
 Config.VoiceTarget = 30 -- The channel to use for voice syncing while viewing a bodycam. Set to -1 to disable.
 
 Config.IsPlayerDead = function()

@@ -34,10 +34,10 @@ function GetDirectionFromRotation(rotation)
     return vector3(-math.sin(dm * rotation.z) * math.abs(math.cos(dm * rotation.x)), math.cos(dm * rotation.z) * math.abs(math.cos(dm * rotation.x)), math.sin(dm * rotation.x))
 end
 
-function GetDirectionCoords()
+function GetDirectionCoords(coords, rotation)
     local range = 1000.0
-	local coords = GetGameplayCamCoord()
-    local rot = GetGameplayCamRot(2)
+	local coords = coords or GetGameplayCamCoord()
+    local rot = rotation or GetGameplayCamRot(2)
     local dir = GetDirectionFromRotation(rot)
 	local ecoords = vector3(coords.x + dir.x * range, coords.y + dir.y * range, coords.z + dir.z * range)
     local retval, hit, endCoords, surfaceNormal, entityHit = GetShapeTestResult(StartShapeTestRay(coords.x, coords.y, coords.z, ecoords.x, ecoords.y, ecoords.z, -1, PlayerPedId(), 1))

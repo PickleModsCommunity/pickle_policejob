@@ -51,6 +51,12 @@ function StartGrapplerPlacement()
         rotation = GetEntityRotation(vehicle),
         keepRotation = true,
     })
+    if not result then 
+        DeleteEntity(object)
+        FreezeEntityPosition(vehicle, false)
+        GrapplerPlacement = nil
+        return
+    end
     local position = result.position
     local offset = GetOffsetFromEntityGivenWorldCoords(vehicle, position.x, position.y, position.z)
     DeleteEntity(object)
