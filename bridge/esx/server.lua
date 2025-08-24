@@ -2,10 +2,6 @@ if GetResourceState('es_extended') ~= 'started' then return end
 
 ESX = exports.es_extended:getSharedObject()
 
-function RegisterCallback(name, cb)
-    ESX.RegisterServerCallback(name, cb)
-end
-
 function RegisterUsableItem(...)
     ESX.RegisterUsableItem(...)
 end
@@ -258,8 +254,8 @@ CreateThread(function()
         return xPlayer.hasWeapon(name)
     end
 
-    RegisterCallback("pickle_policejob:getInventory", function(source, cb)
-        cb(Inventory.GetInventory(source))
+    lib.callback.register("pickle_policejob:getInventory", function(source)
+        return Inventory.GetInventory(source)
     end)
     
     if GetResourceState("ox_inventory") == "started" then 

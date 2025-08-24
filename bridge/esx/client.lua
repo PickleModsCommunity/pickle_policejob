@@ -6,10 +6,6 @@ function ShowNotification(text)
 	ESX.ShowNotification(text)
 end
 
-function ServerCallback(name, cb, ...)
-    ESX.TriggerServerCallback(name, cb,  ...)
-end
-
 function CanAccessGroup(data)
     if not data then return true end
     local pdata = ESX.GetPlayerData()

@@ -36,6 +36,13 @@ Config.TargetIcons = {
 
 Config.FrameworkSettings = {
     dirtyMoney = "DEFAULT",
+    usableItemMetadata = function(item, data)
+        if type(data) == "table" and data.metadata then return data.metadata end
+        if type(item) == "table" and item.metadata then return item.metadata end
+        if type(data) == "table" and data.info then return data.info end
+        if type(item) == "table" and item.info then return item.info end
+        print("^1ERROR: METADATA IS WRONGLY CONFIGURED, CHECK CONFIG.LUA:^0", item, data)
+    end
 }
 
 Config.Photos = {

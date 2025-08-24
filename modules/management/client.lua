@@ -199,7 +199,7 @@ RegisterNUICallback("editLocation", function(data, cb)
 end)
 
 RegisterNUICallback("getNearbyPlayers", function(data, cb)
-    ServerCallback("pickle_policejob:getNearbyPlayers", function(result)
+    lib.callback("pickle_policejob:getNearbyPlayers", false, function(result)
         cb(result)
     end)
 end)

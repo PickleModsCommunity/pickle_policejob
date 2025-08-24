@@ -3,7 +3,7 @@ local inArmory = false
 function OpenArmory()
     if inArmory then return end
     inArmory = true
-    ServerCallback("pickle_policejob:openArmory", function(result, err)
+    lib.callback("pickle_policejob:openArmory", false, function(result, err)
         if not result then 
             inArmory = false
             return ShowNotification(err)

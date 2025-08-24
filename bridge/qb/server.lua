@@ -2,10 +2,6 @@ if GetResourceState('qb-core') ~= 'started' then return end
 
 QBCore = exports['qb-core']:GetCoreObject()
 
-function RegisterCallback(name, cb)
-    QBCore.Functions.CreateCallback(name, cb)
-end
-
 function RegisterUsableItem(...)
     QBCore.Functions.CreateUseableItem(...)
 end
@@ -231,8 +227,8 @@ CreateThread(function()
         return (Inventory.GetItemCount(source, name) > 0)
     end
 
-    RegisterCallback("pickle_policejob:getInventory", function(source, cb)
-        cb(Inventory.GetInventory(source))
+    lib.callback.register("pickle_policejob:getInventory", function(source)
+        return Inventory.GetInventory(source)
     end)
 
     for item, data in pairs(QBCore.Shared.Items) do

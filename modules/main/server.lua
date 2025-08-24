@@ -306,18 +306,18 @@ function CanPermissionsAccessEntry(departmentId, permissions, entryId, entryType
     return false
 end
 
-RegisterCallback("pickle_policejob:openFrontdesk", function(source, cb, id)
+lib.callback.register("pickle_policejob:openFrontdesk", function(source, id)
     local department = GetDepartment(id)
     local departmentId, memberData = GetPlayerDepartment(source)
     local time = os.time()
-    cb({
+    return {
         departmentId = departmentId,
         memberData = memberData,
         time = time,
-    })
+    }
 end)
 
-RegisterCallback("pickle_policejob:getPlayers", function(source, cb)
+lib.callback.register("pickle_policejob:getPlayers", function(source)
     local players = {}
     for k, v in pairs(GetPlayers()) do
         players[#players + 1] = {
@@ -326,14 +326,14 @@ RegisterCallback("pickle_policejob:getPlayers", function(source, cb)
             name = GetPlayerCharacterName(v),
         }
     end
-    cb(players)
+    return players
 end)
 
-RegisterCallback("pickle_policejob:getPlayerInfo", function(source, cb)
-    cb({
+lib.callback.register("pickle_policejob:getPlayerInfo", function(source)
+    return {
         identifier = GetIdentifier(source),
         name = GetPlayerCharacterName(source),
-    })
+    }
 end)
 
 RegisterNetEvent("pickle_policejob:toggleDuty", function(id, entityId, report)
@@ -401,6 +401,12 @@ MySQL.ready(function()
                     misc = EnsureDepartmentData("misc", json.decode(v.misc)),
                 }, true)
             end
+            CreateThread(function()
+                Wait(1000)
+                for _, player in pairs(GetPlayers()) do
+                    SetPlayerDuty(player, true)
+                end
+            end)
         end)
     end)
 end)

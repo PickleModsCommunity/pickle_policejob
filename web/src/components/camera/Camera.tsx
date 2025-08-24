@@ -21,6 +21,10 @@ export default function Camera() {
   const textStyle = {
     WebkitTextStroke: "0px 0px 2px black",
   }
+//   useEffect(() => {
+//     setShow(true)
+//     setCameraState("idle")
+//   }, [])
   let cameraStateSettings = {
     "idle": {content: (
       <div className="flex items-center text-[30px] font-bold outlined text-white" style={textStyle}>
@@ -79,12 +83,27 @@ export default function Camera() {
         show ? "opacity-100" : "opacity-0"
       )} style={{ backgroundImage: 'url("/nui/images/camera_overlay.png")' }}>
         <div className={cn(
-          "absolute bottom-[11rem] left-1/2 translate-x-[-50%] translate-y-0 w-full h-[200px]",
+          "absolute bottom-[11rem] left-1/2 translate-x-[-50%] translate-y-0 h-[200px]",
           "flex flex-col items-center justify-center",
           "transition-opacity duration-200 opacity-100"
         )}>
           {(cameraState && cameraStateSettings[cameraState]) && (
             cameraStateSettings[cameraState].content
+          )}
+          {cameraState === "idle" && (
+            <div className="flex flex-col w-full gap-2">
+                <hr/>
+                <div className="flex flex-row justify-center gap-12 w-full">
+                    <div className="flex items-center text-[15px] font-bold outlined text-white" style={textStyle}>
+                        <KeyboardIcon style={{margin: "0 10px 0 0", padding: "12px 10px", fontSize: "15px", textShadow: "none"}} text={"E"}/> 
+                        {translate("camera_take_photo")} 
+                    </div>
+                    <div className="flex items-center text-[15px] font-bold outlined text-white" style={textStyle}>
+                        <KeyboardIcon style={{margin: "0 10px 0 0", padding: "12px 10px", fontSize: "15px", textShadow: "none"}} text={"S"}/> 
+                        {translate("camera_save_evidence")} 
+                    </div>
+                </div>
+            </div>
           )}
         </div>
         <div className="dark absolute top-[0] right-2 py-[8rem] w-[300px] h-[100%]">

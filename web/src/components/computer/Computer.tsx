@@ -12,6 +12,7 @@ import { useConfig } from "@/providers/config";
 import DocumentContainer, { Document, DocumentDisplay } from "../document/Document";
 import { Location } from "../management/Management";
 import { fetchNui } from "@/providers/nui/fetchNui";
+import FilesPage from "./EvidencePage";
 
 export type Rank = {
     rankId: number;
@@ -68,7 +69,8 @@ interface ComputerContextProps {
     windows: ComputerWindow[];
     department: Department;
     setDepartment: (department: Department) => void;
-    openWindow: (window: string, data?: any) => void;
+    openWindow: (window: string, data?: any) => number;
+    closeWindow: (id: number) => void;
 }
 
 const ComputerContext = createContext<ComputerContextProps | undefined>(undefined);
@@ -171,13 +173,18 @@ function Computer({info}: {info: ComputerInfo}) {
         }
     }, [isDragging, currentWindow, dragOffset]);
 
-    const handleShortcutSelect = (program: typeof programs[number], data?: any) => {
+    const handleShortcutSelect = (program: typeof programs[number], data?: any): number => {
         function generateUniqueId() {
-            let id = 1;
+            let id = Math.floor(Math.random() * 1000000);
+            let exists = false;
             for (const window of windows) {
                 if (window.id === id) {
-                    id = window.id + 1;
+                    exists = true;
+                    break;
                 }
+            }
+            if (exists) {
+                return generateUniqueId();
             }
             return id;
         }
@@ -185,7 +192,7 @@ function Computer({info}: {info: ComputerInfo}) {
         let y: number | undefined;
         if (windows.length > 0) {
             const container = document.querySelector('.relative.w-full.h-\\[calc\\(100\\%-40px\\)\\]') as HTMLElement;
-            if (!container) return;
+            if (!container) return -1;
             const containerRect = container.getBoundingClientRect();
             const windowWidth = containerRect.width * 0.75; // 75% of container width
             const windowHeight = containerRect.height * 0.75; // 75% of container height
@@ -210,6 +217,7 @@ function Computer({info}: {info: ComputerInfo}) {
                 window.id === id ? { ...window, visible: true } : window
             ));
         }, 10);
+        return id;
     };
 
     const handleProgramDeselect = (id: number) => {
@@ -236,8 +244,8 @@ function Computer({info}: {info: ComputerInfo}) {
             image: "/nui/images/LSPD.webp"
         },
         {
-            id: "evidence",
-            name: "page_evidence",
+            id: "files",
+            name: "page_files",
             image: "/nui/images/LSPD.webp"
         },
         {
@@ -266,8 +274,11 @@ function Computer({info}: {info: ComputerInfo}) {
             player: player as DepartmentMember,
             windows,
             setDepartment,
-            openWindow: (window: string, data?: any) => {
-                handleShortcutSelect(programs.find(program => program.id === window)!, data);
+            openWindow: (window: string, data?: any): number => {
+                return handleShortcutSelect(programs.find(program => program.id === window)!, data);
+            },
+            closeWindow: (id: number) => {
+                handleProgramDeselect(id);
             }
         }}>
             <div className="relative w-[1280px] h-[720px] flex flex-col items-center justify-center overflow-hidden" style={{
@@ -322,10 +333,10 @@ function Computer({info}: {info: ComputerInfo}) {
                             <div className="w-full h-[calc(100%-30px)] relative">
                                 {window.programId === "homepage" && <HomePage />}
                                 {window.programId === "roster" && <RosterPage />}
-                                {window.programId === "evidence" && <EvidencePage data={window.data} />}
+                                {window.programId === "files" && <FilesPage data={window.data} />}
                                 {window.programId === "settings" && <SettingsPage />}
                                 {window.programId === "file" && <DocumentDisplay
-                                    id={window.data.id}
+                                    documentInfo={window.data}
                                     dark={true} 
                                     width={600 * 0.8} 
                                     height={774 * 0.8} 
@@ -391,8 +402,8 @@ export const useComputer = (): ComputerContextProps => {
 }
 
 export default function ComputerContainer() {
-    const [visible, setVisible] = useState(false);
-    const [computerInfo, setComputerInfo] = useState<ComputerInfo | null>(true ? null : {
+    const [visible, setVisible] = useState(true);
+    const [computerInfo, setComputerInfo] = useState<ComputerInfo | null>(false ? null : {
         department: {
             id: 11,
             label: "Los Santos Police Department",

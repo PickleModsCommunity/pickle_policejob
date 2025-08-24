@@ -2,10 +2,6 @@ if GetResourceState('qb-core') ~= 'started' then return end
 
 QBCore = exports['qb-core']:GetCoreObject()
 
-function ServerCallback(name, cb, ...)
-    QBCore.Functions.TriggerCallback(name, cb,  ...)
-end
-
 function ShowNotification(text)
 	QBCore.Functions.Notify(text)
 end

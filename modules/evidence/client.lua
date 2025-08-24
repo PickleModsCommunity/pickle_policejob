@@ -58,9 +58,9 @@ function CameraLoop(trackData)
         CAMERA_VALUES.obj = obj
         local boneIndex = GetPedBoneIndex(playerPed, 28422)
         AttachEntityToEntity(obj, playerPed, boneIndex, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, true, true, false, true, 1, true)
-        local targetPed = nil
         local cameraState = "idle"
         local scanTime = 0
+        local enableInteract = true
         SendNUIMessage({
             type = "setCameraState",
             cameraState = cameraState
@@ -94,24 +94,40 @@ function CameraLoop(trackData)
             DisableControlAction(0, 141, true) -- Disable melee attack heavy
             DisableControlAction(0, 142, true) -- Disable melee attack alternate
             DisableControlAction(0, 143, true) -- Disable melee block
-            if IsControlJustPressed(0, 202) then
-                CreateThread(function()
-                    if #CAMERA_EVIDENCE <= 0 then return end
-                    local alert = lib.alertDialog({
-                        header = _L("camera_save_evidence"),
-                        content = _L("camera_save_evidence_desc"),
-                        centered = true,
-                        cancel = true
-                    })
-                    if alert == "confirm" then
-                        TriggerServerEvent("pickle_policejob:evidence:saveEvidence", CAMERA_EVIDENCE)
-                        CAMERA_EVIDENCE = {}
-                    end
-                end)
-                break
+            
+            if enableInteract then
+                if IsControlJustPressed(0, 202) then
+                    break
+                elseif IsDisabledControlJustPressed(0, 33) then
+                    TriggerServerEvent("pickle_policejob:evidence:saveEvidence", "camera", CAMERA_EVIDENCE)
+                    CAMERA_EVIDENCE = {}
+                    break
+                elseif IsDisabledControlJustPressed(1, 51) then
+                    enableInteract = false
+                    CreateThread(function()
+                        local p = promise.new()
+                        exports['screenshot-basic']:requestScreenshotUpload(Config.Photos.url, Config.Photos.uploadProtocol, function(data)
+                            local resp = json.decode(data)
+                            local image = Config.Photos.ResponseHandler(resp)
+                            table.insert(CAMERA_EVIDENCE, {
+                                label = _L("photo"),
+                                image = image,
+                                coords = GetEntityCoords(playerPed),
+                                heading = GetEntityHeading(playerPed),
+                            })
+                            SendNUIMessage({
+                                type = "setCameraEvidence",
+                                evidence = CAMERA_EVIDENCE,
+                            })
+                            p:resolve(true)
+                        end)
+                        Citizen.Await(p)
+                        enableInteract = true
+                    end)
+                end
             end
             if cameraState == "idle" then
-                if IsDisabledControlJustPressed(0, 22) then
+                if IsDisabledControlJustPressed(0, 22) and enableInteract then
                     cameraState = "scanning"
                     SendNUIMessage({
                         type = "setCameraState",
@@ -131,6 +147,8 @@ function CameraLoop(trackData)
                     if scanTime >= 25 then
                         local hit, hitCoords, entity = GetDirectionCoords(GetCamCoord(cam), GetCamRot(cam, 2))
                         local targetVisible = nil
+                        local isTargetVehicle = (DoesEntityExist(entity) and GetEntityType(entity) == 2)
+                        print(isTargetVehicle, entity)
                         if hit then
                             local closestDistance = 2.0
                             for id, evidence in pairs(Evidence) do
@@ -141,7 +159,7 @@ function CameraLoop(trackData)
                                 end
                             end
                         end
-                        cameraState = (targetVisible and "match" or "no_match")
+                        cameraState = ((targetVisible or isTargetVehicle) and "match" or "no_match")
                         scanTime = 0
                         SendNUIMessage({
                             type = "setCameraState",
@@ -156,26 +174,41 @@ function CameraLoop(trackData)
                                 })
                             end
                         end)
-                        if targetVisible then
+                        if targetVisible or isTargetVehicle then
                             local p = promise.new()
                             HIDE_EVIDENCE_MARKERS = true
                             CreateThread(function()
                                 Wait(100)
                                 exports['screenshot-basic']:requestScreenshotUpload(Config.Photos.url, Config.Photos.uploadProtocol, function(data)
                                     local resp = json.decode(data)
-                                    table.insert(CAMERA_EVIDENCE, {
-                                        label = Evidence[targetVisible].label,
-                                        image = Config.Photos.ResponseHandler(resp)
-                                    })
-                                    SendNUIMessage({
-                                        type = "setCameraEvidence",
-                                        evidence = CAMERA_EVIDENCE,
-                                    })
-                                    p:resolve(true)
+                                    local image = Config.Photos.ResponseHandler(resp)
+                                    if targetVisible then
+                                        local data = Evidence[targetVisible]
+                                        data.image = image
+                                        table.insert(CAMERA_EVIDENCE, data)
+                                        print(json.encode(data, {indent = true}))
+                                        SendNUIMessage({
+                                            type = "setCameraEvidence",
+                                            evidence = CAMERA_EVIDENCE,
+                                        })
+                                        p:resolve(true)
+                                    else
+                                        lib.callback("pickle_policejob:evidence:getVehicleInfo", false, function(data)
+                                            data.label = _L("vehicle")
+                                            data.image = image
+                                            table.insert(CAMERA_EVIDENCE, data)
+                                            print(json.encode(data, {indent = true}))
+                                            SendNUIMessage({
+                                                type = "setCameraEvidence",
+                                                evidence = CAMERA_EVIDENCE,
+                                            })
+                                            p:resolve(true)
+                                        end, VehToNet(entity))
+                                    end
                                 end)
                                 local success = Citizen.Await(p)
                                 HIDE_EVIDENCE_MARKERS = false
-                                if success then
+                                if success and targetVisible then
                                     TriggerServerEvent("pickle_policejob:evidence:pickupEvidence", targetVisible)
                                 end
                             end)
@@ -312,9 +345,9 @@ function RenderEvidence(id)
             table.insert(localEvidence.entities, entity)
         end
     elseif evidence.type == "blood" then
-        local width = 0.8
-        local height = 0.5
-        localEvidence.decal = AddDecal(1010, evidence.coords.x, evidence.coords.y, evidence.coords.z, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, width, height, 0.5, 0.0, 0.0, 1.0, -1, false, false, false)
+        localEvidence.decal = AddDecal(1010, evidence.coords.x, evidence.coords.y, evidence.coords.z, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.8, 0.5, 0.5, 0.0, 0.0, 1.0, -1, false, false, false)
+    elseif evidence.type == "fire" then
+        localEvidence.decal = AddDecal(4421, evidence.coords.x, evidence.coords.y, evidence.coords.z, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.8, 0.5, 0.5, 0.0, 0.0, 1.0, -1, false, false, false)
     end
 end
 
@@ -430,10 +463,21 @@ AddEventHandler("onResourceStop", function(resource)
 end)
 
 AddEventHandler('gameEventTriggered', function (name, args)
-    if name ~= "CEventNetworkEntityDamage" then return end
-    local victim = args[1]
-    local attacker = args[2]
-    if victim ~= PlayerPedId() or not DoesEntityExist(attacker) then return end
-    TriggerServerEvent("pickle_policejob:evidence:addBlood")
+    if name == "CEventNetworkEntityDamage" then 
+        local victim = args[1]
+        local attacker = args[2]
+        if victim ~= PlayerPedId() or not DoesEntityExist(attacker) then return end
+        TriggerServerEvent("pickle_policejob:evidence:addBlood")
+    elseif name == "CEventNetworkPlayerEnteredVehicle" then
+        local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+        if not DoesEntityExist(vehicle) or PlayerPedId() ~= GetPlayerPed(args[1]) then return end
+        for i=-1, 6 do
+            local pedSeat = GetPedInVehicleSeat(vehicle, i)
+            if pedSeat == PlayerPedId() then
+                TriggerServerEvent("pickle_policejob:evidence:addVehiclePrint", VehToNet(vehicle), i)
+                break
+            end
+        end
+    end
 end)
   

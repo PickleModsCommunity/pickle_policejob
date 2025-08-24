@@ -63,7 +63,7 @@ end
 function OpenFrontdesk(id, entityId)
     if OPENING_MENU then return end
     OPENING_MENU = true
-    ServerCallback("pickle_policejob:openFrontdesk", function(data)
+    lib.callback("pickle_policejob:openFrontdesk", false, function(data)
         OPENING_MENU = false
         if not data then return end
         local options = {}
@@ -279,7 +279,7 @@ function GetDepartmentLocation(departmentId, locationId)
 end
 
 RegisterNUICallback("getPlayers", function(data, cb)
-    ServerCallback("pickle_policejob:getPlayers", function(players)
+    lib.callback("pickle_policejob:getPlayers", false, function(players)
         cb({
             players = players,
         })
@@ -288,7 +288,7 @@ end)
 
 RegisterNUICallback("pageLoaded", function(data, cb)
     cb("ok")
-    ServerCallback("pickle_policejob:getPlayerInfo", function(player)
+    lib.callback("pickle_policejob:getPlayerInfo", false, function(player)
         while not Inventory or not Inventory.Ready do Wait(100) end
         SendNUIMessage({
             type = "setConfig",

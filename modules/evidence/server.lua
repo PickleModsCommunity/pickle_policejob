@@ -1,5 +1,6 @@
 local BulletTimeout = {}
 local Evidence = {}
+local VehiclePrints = {}
 
 function EnsureEvidence(coords, evidenceType, data)
     data.label = _L(evidenceType)
@@ -50,6 +51,62 @@ RegisterNetEvent("pickle_policejob:evidence:addBlood", function()
         identifier = GetIdentifier(source),
         heading = 0.0,
     })
+end)
+
+RegisterNetEvent("pickle_policejob:evidence:addVehiclePrint", function(vehicleNetId, seatIndex)
+    local source = source
+    if not VehiclePrints[vehicleNetId] then
+        VehiclePrints[vehicleNetId] = {}
+    end
+    VehiclePrints[vehicleNetId][seatIndex] = {
+        identifier = GetIdentifier(source),
+        time = os.time(),
+    }
+end)
+
+RegisterNetEvent("pickle_policejob:evidence:saveEvidence", function(evidenceType, evidence)
+    local source = source
+    Inventory.AddItem(source, "evidence_report", 1, {
+        evidenceType = evidenceType,
+        evidence = evidence,
+    })
+end)
+
+RegisterUsableItem("police_report", function(source, item, data)
+    local metadata = Config.FrameworkSettings.usableItemMetadata(item, data)
+    if not metadata then return end
+end)
+
+RegisterUsableItem("evidence_report", function(source, item, data)
+    local metadata = Config.FrameworkSettings.usableItemMetadata(item, data)
+    if not metadata then return end
+    print(json.encode(metadata, {indent = true}))
+end)
+
+lib.callback.register("pickle_policejob:evidence:getVehicleInfo", function(source, vehicleNetId)
+    local entity = NetworkGetEntityFromNetworkId(vehicleNetId)
+    return {
+        coords = GetEntityCoords(entity),
+        heading = GetEntityHeading(entity),
+        plate = GetVehicleNumberPlateText(entity) or "UNKNOWN",
+        seats = VehiclePrints[vehicleNetId] or {},
+    }
+end)
+
+AddEventHandler('explosionEvent', function(sender, ev)
+    local coords = vector3(ev.posX, ev.posY, ev.posZ)
+    AddEvidence(coords, "fire", {
+        explosionType = ev.explosionType,
+        identifier = GetIdentifier(sender),
+        heading = 0.0,
+    })
+end)
+
+AddEventHandler("entityRemoved", function(entity)
+    local vehicleNetId = NetworkGetNetworkIdFromEntity(entity)
+    if VehiclePrints[vehicleNetId] then 
+        VehiclePrints[vehicleNetId] = nil
+    end
 end)
 
 CreateThread(function()

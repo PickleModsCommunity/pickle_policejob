@@ -3,7 +3,7 @@ local inComputer = false
 function OpenComputer(id, locationId)
     if inComputer then return end
     inComputer = true
-    ServerCallback("pickle_policejob:openComputer", function(result, err)
+    lib.callback("pickle_policejob:openComputer", false, function(result, err)
         if not result then 
             inComputer = false
             return ShowNotification(err)

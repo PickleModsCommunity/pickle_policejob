@@ -61,6 +61,6 @@ RegisterNetEvent("pickle_policejob:buyArmoryItem", function(data)
     ShowNotification(source, _L("armory_purchased", GetItemLabel(item.name), data.quantity))
 end)
 
-RegisterCallback("pickle_policejob:openArmory", function(source, cb)
-    cb(GetDepartmentMemberArmory(source))
+lib.callback.register("pickle_policejob:openArmory", function(source)
+    return GetDepartmentMemberArmory(source)
 end)

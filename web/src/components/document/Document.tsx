@@ -12,13 +12,18 @@ type DocumentHeaderInfo = {
     rightInfo: string[];
 }
 
-type DocumentInfo = {
+type Document = {
     header: DocumentHeaderInfo;
     subContent: {
         label: string;
     }[];
     enableContent: boolean;
     content: string;
+}
+
+type DocumentInfo = {
+    id: any;
+    onDocumentSave?: (content: string) => void;
 }
 
 function DocumentHeader({ dark, headerInfo, scale }: { dark: boolean, headerInfo: DocumentHeaderInfo, scale: number }) {
@@ -40,12 +45,16 @@ function DocumentHeader({ dark, headerInfo, scale }: { dark: boolean, headerInfo
                 </div>
             </div>
             </div>
-            {headerInfo.subtitle && <h2 className={`text-lg font-bold ${dark ? "text-white" : "text-black"}`}>{headerInfo.subtitle}</h2>}
+            {headerInfo.subtitle ?
+             <h2 className={`text-lg font-bold ${dark ? "text-white" : "text-black"}`} style={{ fontSize: `${scale * 24}px` }}>{headerInfo.subtitle}</h2>
+            : <div className="h-[0px]"></div>}
         </div>
     );
 }
 
-export function Document({dark, width, height, canEdit, headerInfo, initialContent}: { dark: boolean, width?: number, height?: number, canEdit: boolean, headerInfo?: DocumentHeaderInfo, initialContent: string}) {
+export function Document({dark, width, height, canEdit, headerInfo, initialContent, onDocumentSave}: { dark: boolean, width?: number, height?: number, canEdit: boolean, headerInfo?: DocumentHeaderInfo, initialContent: string, onDocumentSave?: (content: string) => void
+    
+}) {
     const [content, setContent] = useState<string>(initialContent);
     const [editing, setEditing] = useState(false);
     return (
@@ -62,8 +71,8 @@ export function Document({dark, width, height, canEdit, headerInfo, initialConte
             {canEdit && (
                 !editing ? (<Edit className="absolute top-4 right-4 cursor-pointer" onClick={() => setEditing(!editing)} />) : (
                 <Save className="absolute top-4 right-4 cursor-pointer" onClick={() => {
-                    if (editing) {
-                        // onDocumentSave(content);
+                    if (editing && onDocumentSave) {
+                        onDocumentSave(content);
                     }
                     setEditing(!editing);
                 }} />
@@ -115,34 +124,39 @@ export function Document({dark, width, height, canEdit, headerInfo, initialConte
     );
 }
 
-export function DocumentDisplay({id, width, height, dark, canEdit}: {id: string, width?: number, height?: number, dark: boolean, canEdit: boolean}) {
-    const [document, setDocument] = useState<DocumentInfo | null>(null);
+export function DocumentDisplay({documentInfo, width, height, dark, canEdit}: {documentInfo: DocumentInfo, width?: number, height?: number, dark: boolean, canEdit: boolean}) {
+    const [document, setDocument] = useState<Document | null>(null);
     useEffect(() => {
         const thread = async () => {
             setTimeout(() => {
-                setDocument({
-                    header: {
-                        title: "LOS SANTOS POLICE DEPARTMENT",
-                        subtitle: "CASE REPORT #1234",
-                        image: "/nui/images/LSPD.webp",
-                        leftInfo: ["<b>Pickle Rick</b>", "1 Integrity Way"],
-                        rightInfo: ["<b>Chief of Police</b>", " L.S.P.D"],
-                    },
-                    subContent: [{ label: "Test" }],
-                    enableContent: true,
-                    content: "Test",
-                }); 
+                if (documentInfo.id !== -1) {
+                    setDocument({
+                        header: {
+                            title: "LOS SANTOS POLICE DEPARTMENT",
+                            subtitle: "CASE REPORT #1234",
+                            image: "/nui/images/LSPD.webp",
+                            leftInfo: ["<b>Pickle Rick</b>", "1 Integrity Way"],
+                            rightInfo: ["<b>Chief of Police</b>", " L.S.P.D"],
+                        },
+                        subContent: [{ label: "Test" }],
+                        enableContent: true,
+                        content: "Test",
+                    }); 
+                }
+                else {
+                    setDocument(documentInfo as unknown as Document);
+                }
             }, 0)
         }
         thread();
-    }, [id]);
+    }, [documentInfo]);
     return (
         <div className="w-full h-full relative" style={{
             width: `${width || 600}px`,
             height: `${height || 774}px`,
         }}>
             {document ? (
-                <Document dark={dark} width={width} height={height} canEdit={canEdit} headerInfo={document.header} initialContent={document.content} />
+                <Document onDocumentSave={documentInfo.onDocumentSave || undefined} dark={dark} width={width} height={height} canEdit={canEdit} headerInfo={document.header} initialContent={document.content} />
             ) : (
                 <div className="w-full h-full flex items-center justify-center">
                     <div className="text-sm text-muted-foreground">
@@ -154,7 +168,7 @@ export function DocumentDisplay({id, width, height, dark, canEdit}: {id: string,
     );
 }
 
-export default function DocumentContainer({document}: {document: DocumentInfo}) {
+export default function DocumentContainer({document}: {document: Document}) {
     return (
         <div className="w-screen h-screen absolute text-primary top-0 left-0 bg-gray-900 flex items-center justify-center">
             {/* <Document canEdit={true} headerInfo={document.header} initialContent={document.content} /> */}

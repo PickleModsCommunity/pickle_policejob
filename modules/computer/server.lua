@@ -12,20 +12,20 @@ function GenerateUniqueRankId(departmentId)
     return uniqueRankId
 end
 
-RegisterCallback("pickle_policejob:openComputer", function(source, cb)
+lib.callback.register("pickle_policejob:openComputer", function(source)
     local departmentId, member = GetPlayerDepartment(source)
-    if not departmentId then return cb(nil, _L("not_in_department")) end
+    if not departmentId then return nil, _L("not_in_department") end
     local department = Departments[departmentId]
-    if not department then return cb(nil, "ERROR_DEPARTMENT_NOT_FOUND") end
+    if not department then return nil, "ERROR_DEPARTMENT_NOT_FOUND" end
     IN_COMPUTER[source] = true
-    cb({
+    return {
         department = department,
         backgroundImage = "https://www.dojrp.com/uploads/monthly_2022_05/large.DOJRP-LSPD-PA-6.png.bc543f0c421f54fc03cbae19e505d8c8.png",
         homeImage = "/nui/images/LSPD.webp"
-    })
+    }
 end)
 
-RegisterCallback("pickle_policejob:getNearbyPlayers", function(source, cb)
+lib.callback.register("pickle_policejob:getNearbyPlayers", function(source)
     local ped = GetPlayerPed(source)
     local coords = GetEntityCoords(ped)
     local nearby = {}
@@ -42,7 +42,7 @@ RegisterCallback("pickle_policejob:getNearbyPlayers", function(source, cb)
             end
         end
     end 
-    cb(nearby)
+    return nearby
 end)
 
 RegisterNetEvent("pickle_policejob:closeComputer", function()
