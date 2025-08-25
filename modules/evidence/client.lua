@@ -4,6 +4,8 @@ local LocalEvidence = {}
 local IN_EVIDENCE_CAMERA = false
 local HIDE_EVIDENCE_MARKERS = false
 local CAMERA_EVIDENCE = {}
+local ReconstructScene
+
 
 -- EVIDENCE CAMERA
 
@@ -110,6 +112,7 @@ function CameraLoop(trackData)
                             local resp = json.decode(data)
                             local image = Config.Photos.ResponseHandler(resp)
                             table.insert(CAMERA_EVIDENCE, {
+                                type = "photo",
                                 label = _L("photo"),
                                 image = image,
                                 coords = GetEntityCoords(playerPed),
@@ -194,10 +197,11 @@ function CameraLoop(trackData)
                                         p:resolve(true)
                                     else
                                         lib.callback("pickle_policejob:evidence:getVehicleInfo", false, function(data)
+                                            data.type = "vehicle"
+                                            data.model = GetEntityModel(entity)
                                             data.label = _L("vehicle")
                                             data.image = image
                                             table.insert(CAMERA_EVIDENCE, data)
-                                            print(json.encode(data, {indent = true}))
                                             SendNUIMessage({
                                                 type = "setCameraEvidence",
                                                 evidence = CAMERA_EVIDENCE,
@@ -303,22 +307,10 @@ function RemoveLocalEvidence(id)
     LocalEvidence[id] = nil
 end
 
-function RenderEvidence(id)
-    local localEvidence = LocalEvidence[id]
-    local evidence = Evidence[id]
-    if not localEvidence or not evidence then return end
-    UnrenderEvidence(id)
-    localEvidence.rendered = true
-    localEvidence.entities = {}
-    print(evidence.coords)
-    localEvidence.interact = CreateInteraction({
-        label = _L("evidence_pickup"),
-        icon = Config.TargetIcons["evidence"],
-        coords = evidence.coords,
-        heading = evidence.heading,
-    }, function()
-        TriggerServerEvent("pickle_policejob:evidence:pickupEvidence", id)
-    end)
+function GenerateEvidenceEntities(evidence)
+    local entities = {}
+    local decals = {}
+    evidence.coords = vector3(evidence.coords.x, evidence.coords.y, evidence.coords.z)
     if evidence.type == "shell_casing" then
         local displayAmount = evidence.amount
         if displayAmount > Config.Evidence.maxDisplayAmount then
@@ -342,13 +334,40 @@ function RenderEvidence(id)
             SetEntityHeading(entity, evidence.heading + baseHeading + rotation.z)
             FreezeEntityPosition(entity, true)
             PlaceObjectOnGroundProperly(entity)
-            table.insert(localEvidence.entities, entity)
+            table.insert(entities, entity)
         end
     elseif evidence.type == "blood" then
-        localEvidence.decal = AddDecal(1010, evidence.coords.x, evidence.coords.y, evidence.coords.z, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.8, 0.5, 0.5, 0.0, 0.0, 1.0, -1, false, false, false)
+        table.insert(decals, AddDecal(1010, evidence.coords.x, evidence.coords.y, evidence.coords.z, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.8, 0.5, 0.5, 0.0, 0.0, 1.0, -1, false, false, false))
     elseif evidence.type == "fire" then
-        localEvidence.decal = AddDecal(4421, evidence.coords.x, evidence.coords.y, evidence.coords.z, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.8, 0.5, 0.5, 0.0, 0.0, 1.0, -1, false, false, false)
+        table.insert(decals, AddDecal(4421, evidence.coords.x, evidence.coords.y, evidence.coords.z, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.8, 0.5, 0.5, 0.0, 0.0, 1.0, -1, false, false, false))
+    elseif evidence.type == "vehicle" then
+        local vehicle = CreateVeh(evidence.model, evidence.coords, evidence.heading, false, false)
+        FreezeEntityPosition(vehicle, true)
+        SetEntityCollision(vehicle, false, false)
+        SetEntityInvincible(vehicle, true)
+        SetEntityAlpha(vehicle, 127, false)
+        table.insert(entities, vehicle)
     end
+    return entities, decals
+end
+
+function RenderEvidence(id)
+    local localEvidence = LocalEvidence[id]
+    local evidence = Evidence[id]
+    if not localEvidence or not evidence then return end
+    UnrenderEvidence(id)
+    localEvidence.rendered = true
+    localEvidence.interact = CreateInteraction({
+        label = _L("evidence_pickup"),
+        icon = Config.TargetIcons["evidence"],
+        coords = evidence.coords,
+        heading = evidence.heading,
+    }, function()
+        TriggerServerEvent("pickle_policejob:evidence:pickupEvidence", id)
+    end)
+    local entities, decals = GenerateEvidenceEntities(evidence)
+    localEvidence.entities = entities
+    localEvidence.decals = decals
 end
 
 function UnrenderEvidence(id)
@@ -359,15 +378,180 @@ function UnrenderEvidence(id)
         DeleteEntity(entity)
     end
     localEvidence.entities = {}
-    if localEvidence.decal then
-        RemoveDecal(localEvidence.decal)
-        localEvidence.decal = nil
+    if localEvidence.decals then
+        for _, decal in pairs(localEvidence.decals) do
+            RemoveDecal(decal)
+        end
+        localEvidence.decals = {}
     end
     if localEvidence.interact then
         DeleteInteraction(localEvidence.interact)
         localEvidence.interact = nil
     end
 end
+
+function DrawTextAtCoords(coords, text)
+    local coords = vector3(coords.x, coords.y, coords.z + 0.5)
+    local onScreen, screenX, screenY = GetScreenCoordFromWorldCoord(coords.x, coords.y, coords.z)
+    local playerCoords = GetEntityCoords(PlayerPedId())
+    local distance = #(coords - playerCoords)
+    local baseScale = 0.5
+    local scale = baseScale * math.max(0.1, 1.0 - (distance / 20.0))
+    if onScreen then
+        BeginTextCommandDisplayText('STRING')
+        SetTextScale(scale, scale)
+        SetTextFont(0)
+        SetTextColour(255, 255, 255, 255)
+        SetTextCentre(1)
+        SetTextOutline()
+        AddTextComponentString(text)
+        SetTextEntry("STRING")
+        DrawText(screenX, screenY)
+    end
+end
+
+function UnrenderReconstructedEvidence(id)
+    local renderedEvidence = ReconstructScene.renderedEvidence[id]
+    if not renderedEvidence then return end
+    for _, entity in pairs(renderedEvidence.entities) do
+        DeleteEntity(entity)
+    end
+    for _, decal in pairs(renderedEvidence.decals) do
+        RemoveDecal(decal)
+    end
+    ReconstructScene.renderedEvidence[id] = nil
+end
+
+function RenderReconstructedEvidence(id)
+    local evidence = ReconstructScene.evidence[id]
+    if not evidence then return end
+    UnrenderReconstructedEvidence(id)
+    local entities, decals = GenerateEvidenceEntities(evidence)
+    ReconstructScene.renderedEvidence[id] = {
+        entities = entities,
+        decals = decals,
+    }
+end
+
+function StopReconstructedScene()
+    if ReconstructScene then
+        for i=1, #ReconstructScene.evidence do
+            UnrenderReconstructedEvidence(i)
+        end
+        ReconstructScene = nil
+    end
+end
+
+RegisterNUICallback("getEvidenceItems", function(data, cb)
+    lib.callback("pickle_policejob:evidence:getEvidenceItems", false, function(data)
+        cb(data)
+    end)
+end)
+
+RegisterNUICallback("createFile", function(data, cb)
+    lib.callback("pickle_policejob:evidence:createFile", false, function(data)
+        SendNUIMessage({
+            type = "openFile",
+            file = data,
+        })
+        cb(true)
+    end, data)
+end)
+
+RegisterNUICallback("updateFileDocument", function(data, cb)
+    TriggerServerEvent("pickle_policejob:evidence:updateFileDocument", data.id, data.content)
+    cb(true)
+end)
+
+RegisterNUICallback("deleteEvidenceItem", function(data, cb)
+    lib.callback("pickle_policejob:evidence:deleteEvidenceItem", false, function(data)
+        cb(data)
+    end, data.name, data.slot)
+end)
+
+RegisterNUICallback("importEvidence", function(data, cb)
+    TriggerServerEvent("pickle_policejob:evidence:importEvidence", data.id, data.evidence)
+    cb(true)
+end)
+
+RegisterNUICallback("printFile", function(data, cb)
+    TriggerServerEvent("pickle_policejob:evidence:printFile", data.id)
+    cb(true)
+end)
+
+RegisterNUICallback("getFiles", function(data, cb)
+    lib.callback("pickle_policejob:evidence:getFiles", false, function(data)
+        local results = {}  
+        for _, row in ipairs(data) do
+            table.insert(results, {
+                id = row.id,
+                name = row.name,
+                authorIdentifier = row.authorIdentifier,
+                datetime = row.datetime,
+                evidence = json.decode(row.evidence),
+                document = json.decode(row.document),
+            })
+        end
+        cb(results)
+    end, data.search)
+end)
+
+RegisterNUICallback("closeFileViewer", function(data, cb)
+    SetNuiFocus(false, false)
+    SendNUIMessage({
+        type = "setFileViewer",
+    })
+    cb(true)
+end)
+
+RegisterNUICallback("reconstructScene", function(data, cb)
+    cb(true)
+    if ReconstructScene then
+        StopReconstructedScene()
+        return
+    end
+    ReconstructScene = {
+        id = data.file.id,
+        evidence = data.file.evidence,
+        renderedEvidence = {},
+    }
+    CreateThread(function()
+        while ReconstructScene do
+            local bulletEvidenceCount = 0
+            local playerCoords = GetEntityCoords(PlayerPedId())
+            for i=1, #ReconstructScene.evidence do
+                local evidence = ReconstructScene.evidence[i]
+                local coords = vector3(evidence.coords.x, evidence.coords.y, evidence.coords.z)
+                if ReconstructScene.renderedEvidence[i] then
+                    if not evidence.type or evidence.type == "photo" then
+                        DrawMarker(6, coords.x, coords.y, coords.z + 0.45, 0.0, 0.0, 0.0, 0.0, 0.0, evidence.heading, 0.6, 0.6, 0.6, 255, 255, 255, 100, false, false, 2, false, nil, nil, false)
+                        DrawMarker(6, coords.x, coords.y, coords.z + 0.45, 0.0, 0.0, 0.0, 0.0, 0.0, evidence.heading, 0.3, 0.3, 0.3, 255, 255, 255, 100, false, false, 2, false, nil, nil, false)
+                    elseif evidence.type ~= "vehicle" then
+                        DrawMarker(1, coords.x, coords.y, coords.z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.1, 255, 255, 255, 100, false, true, 2, false, nil, nil, false)
+                    end
+                    DrawTextAtCoords(coords, "#"..i)
+                    if evidence.type == "shell_casing" then
+                        bulletEvidenceCount = bulletEvidenceCount + 1
+                        DrawLine(coords.x, coords.y, coords.z + 1.5, evidence.direction.x, evidence.direction.y, evidence.direction.z, 255, 0, 0, 255 / (bulletEvidenceCount / 2))
+                    end
+                    if #(coords - playerCoords) > Config.Evidence.reconstructRenderDistance then
+                        UnrenderReconstructedEvidence(i)
+                    end
+                else
+                    if #(coords - playerCoords) < Config.Evidence.renderDistance then
+                        RenderReconstructedEvidence(i)
+                    end
+                end
+            end
+            Wait(0)
+        end
+    end)
+end)
+
+RegisterNUICallback("deleteEvidence", function(data, cb)
+    TriggerServerEvent("pickle_policejob:evidence:deleteEvidence", data.id, data.index)
+    cb(true)
+end)
 
 RegisterNetEvent("pickle_policejob:evidence:addEvidence", function(id, data)
     Evidence[id] = data
@@ -384,6 +568,15 @@ end)
 RegisterNetEvent("pickle_policejob:evidence:removeEvidence", function(id)
     Evidence[id] = nil
     RemoveLocalEvidence(id)
+end)
+
+RegisterNetEvent("pickle_policejob:evidence:viewFile", function(file)
+    SendNUIMessage({
+        type = "setFileViewer",
+        file = file,
+        reconstructSceneId = ReconstructScene and ReconstructScene.id or nil,
+    })
+    SetNuiFocus(true, true)
 end)
 
 CreateThread(function()
@@ -457,6 +650,7 @@ end)
 AddEventHandler("onResourceStop", function(resource)
     if resource ~= GetCurrentResourceName() then return end
     StopCameraLoop()
+    StopReconstructedScene()
     for id, data in pairs(LocalEvidence) do
         RemoveLocalEvidence(id)
     end
@@ -466,7 +660,7 @@ AddEventHandler('gameEventTriggered', function (name, args)
     if name == "CEventNetworkEntityDamage" then 
         local victim = args[1]
         local attacker = args[2]
-        if victim ~= PlayerPedId() or not DoesEntityExist(attacker) then return end
+        -- if victim ~= PlayerPedId() or not DoesEntityExist(attacker) then return end
         TriggerServerEvent("pickle_policejob:evidence:addBlood")
     elseif name == "CEventNetworkPlayerEnteredVehicle" then
         local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)

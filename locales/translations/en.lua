@@ -204,5 +204,13 @@ Language["en"] = {
     evidence_amount = "Amount",
     evidence_seat = "Seat #%s",
     evidence_identifier = "DNA ID",
+    evidence_plate = "Plate",
     add_file = "Create File",
+    filename = "Filename",
+    print_document = "Print Police Report",
+    select_evidence_item = "Select an evidence report to import.",
+    import_evidence = "Import Evidence",
+    save_document = "Save Document",
+    reconstruct_scene = "Scene Reconstruction",
+    stop_reconstruct_scene = "Stop Scene Reconstruction",
 }

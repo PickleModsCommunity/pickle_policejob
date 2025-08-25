@@ -20,7 +20,7 @@ Inventory.GetInventory = function(source)
             count = item.amount,
             weight = item.weight,
             slot = item.slot,
-            metadata = item.info
+            metadata = item.info or item.metadata
         }
     end
     return items

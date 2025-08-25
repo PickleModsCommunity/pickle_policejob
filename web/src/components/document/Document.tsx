@@ -12,7 +12,7 @@ type DocumentHeaderInfo = {
     rightInfo: string[];
 }
 
-type Document = {
+export type Document = {
     header: DocumentHeaderInfo;
     subContent: {
         label: string;
@@ -128,25 +128,7 @@ export function DocumentDisplay({documentInfo, width, height, dark, canEdit}: {d
     const [document, setDocument] = useState<Document | null>(null);
     useEffect(() => {
         const thread = async () => {
-            setTimeout(() => {
-                if (documentInfo.id !== -1) {
-                    setDocument({
-                        header: {
-                            title: "LOS SANTOS POLICE DEPARTMENT",
-                            subtitle: "CASE REPORT #1234",
-                            image: "/nui/images/LSPD.webp",
-                            leftInfo: ["<b>Pickle Rick</b>", "1 Integrity Way"],
-                            rightInfo: ["<b>Chief of Police</b>", " L.S.P.D"],
-                        },
-                        subContent: [{ label: "Test" }],
-                        enableContent: true,
-                        content: "Test",
-                    }); 
-                }
-                else {
-                    setDocument(documentInfo as unknown as Document);
-                }
-            }, 0)
+            setDocument(documentInfo as unknown as Document);
         }
         thread();
     }, [documentInfo]);

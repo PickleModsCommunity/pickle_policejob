@@ -202,7 +202,9 @@ CreateThread(function()
                     name = item.name,
                     label = item.label,
                     count = item.count,
-                    weight = item.weight
+                    weight = item.weight,
+                    slot = -1,
+                    metadata = {}
                 }
             end
         end

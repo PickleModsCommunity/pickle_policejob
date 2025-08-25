@@ -7,6 +7,7 @@ import { Translate } from "./providers/locale/Locale";
 import ManagementDisplay from "./components/management/Management";
 import Bodycam from "./components/bodycam/Bodycam";
 import Camera from "./components/camera/Camera";
+import FileViewer from "./components/fileviewer/FileViewer";
 
 export function GetItemLabel({item} : {item: string}) {
   const { config } = useConfig();
@@ -63,6 +64,7 @@ function App() {
       <GarageContainer />
       <Bodycam />
       <Camera />
+      <FileViewer />
     </div>
   )
 }

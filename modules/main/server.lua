@@ -343,10 +343,16 @@ RegisterNetEvent("pickle_policejob:toggleDuty", function(id, entityId, report)
 end)
 
 RegisterNetEvent("pickle_policejob:initializePlayer", function()
+    local source = source
     local xPlayer = ESX.GetPlayerFromId(source)
-    TriggerClientEvent("pickle_policejob:setupInventory", source, Inventory.Items)
-    TriggerClientEvent("pickle_policejob:initializeDepartment", source, Departments)
-    TriggerClientEvent("pickle_policejob:updateOnDuty", source, IsPlayerOnDuty(source))
+    CreateThread(function()
+        while not Inventory.Ready do
+            Wait(100)
+        end
+        TriggerClientEvent("pickle_policejob:setupInventory", source, Inventory.Items)
+        TriggerClientEvent("pickle_policejob:initializeDepartment", source, Departments)
+        TriggerClientEvent("pickle_policejob:updateOnDuty", source, IsPlayerOnDuty(source))
+    end)
 end)
 
 AddEventHandler("onPlayerDropped", function(source)

@@ -184,7 +184,9 @@ CreateThread(function()
                 name = item.name,
                 label = item.label,
                 count = item.amount,
-                weight = item.weight
+                weight = item.weight,
+                slot = slot,
+                metadata = item.info or item.metadata
             }
         end
         return items

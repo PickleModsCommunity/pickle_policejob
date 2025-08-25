@@ -402,8 +402,8 @@ export const useComputer = (): ComputerContextProps => {
 }
 
 export default function ComputerContainer() {
-    const [visible, setVisible] = useState(true);
-    const [computerInfo, setComputerInfo] = useState<ComputerInfo | null>(false ? null : {
+    const [visible, setVisible] = useState(false);
+    const [computerInfo, setComputerInfo] = useState<ComputerInfo | null>(true ? null : {
         department: {
             id: 11,
             label: "Los Santos Police Department",

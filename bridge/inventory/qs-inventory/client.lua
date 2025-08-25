@@ -6,8 +6,8 @@ Inventory.Items = {}
 
 Inventory.Ready = false
 
-RegisterNetEvent("pickle_policejob:setupInventory", function(data)
-    Inventory.Items = data.items
+RegisterNetEvent("pickle_policejob:setupInventory", function(items)
+    Inventory.Items = items
     Inventory.Ready = true
 end)
 

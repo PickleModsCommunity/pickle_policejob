@@ -108,9 +108,11 @@ Config.ObjectPlacement = {
 
 Config.Evidence = {
     renderDistance = 25.0, -- The distance at which evidence will be rendered.
+    reconstructRenderDistance = 100.0, -- The distance at which evidence will be rendered for the reconstructed scene.
     maxDisplayAmount = 3, -- The maximum amount of a group of evidence that can be displayed.
     queueInterval = 1, -- The interval at which shell casings will be added to the queue. Leave this at 1.
     evidenceGroupDistance = 2.0, -- The distance at which shell casings will be grouped together.
+    maxFilesQuery = 20, -- The maximum amount of results to return from the database when searching for files.
     weaponGroups = {
         ["GROUP_HEAVY"] = {
             label = "Military-Grade Firearm",
