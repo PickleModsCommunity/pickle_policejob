@@ -3,13 +3,14 @@ local IsHandcuffed = false
 local IsDragging = nil
 local IsMenuOpen = false
 local EquippedStabSticks = nil
+local EquippedBreathalyzer = nil
 local StabSticks = {}
 local RenderedStabSticks = {}
 local ObjectPlacement = {}
 local ObjectPlacementInteractions = {}
 
 function IsAnythingEquipped()
-    return Handcuffs ~= nil or EquippedStabSticks ~= nil
+    return Handcuffs ~= nil or EquippedStabSticks ~= nil or EquippedBreathalyzer ~= nil
 end
 
 function GetEntityPlayer(entity)
@@ -84,6 +85,7 @@ end
 function UnequipCurrentActions()
     UnequipHandcuffs()
     UnequipStabSticks()
+    UnequipBreathalyzer()
 end
 
 function RemoveHandcuffs()
@@ -314,6 +316,49 @@ function StabStickGameProcess(id)
     end
 end
 
+-- Breathalyzer
+
+function EquipBreathalyzer()
+    if not IsPlayerOnDuty() then return ShowNotification(_L("not_on_duty")) end
+    if IsAnythingEquipped() then return ShowNotification(_L("already_equipped")) end
+    ShowNotification(_L("equipped_breathalyzer"))
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+    EquippedBreathalyzer = {}
+    EquippedBreathalyzer.prop = CreateProp(`xm3_prop_xm3_vape_01a`, coords.x, coords.y, coords.z, true, true, false)
+    local boneIndex = GetPedBoneIndex(ped, 57005)
+    local coords, rot = vector3(0.1, 0.08, 0.0), vector3(-0.0, 0.0, 0.0)
+    AttachEntityToEntity(EquippedBreathalyzer.prop, ped, boneIndex, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, true, false, false, false, 0, true)
+    SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true)
+    CreateThread(function()
+        while EquippedBreathalyzer do
+            DisableControlAction(0, 24, true) -- Left click
+            DisableControlAction(0, 25, true) -- Right click
+            if IsControlJustPressed(0, 202) then
+                UnequipBreathalyzer()
+            elseif IsDisabledControlJustPressed(0, 24) then
+                local playerPed = PlayerPedId()
+                PlayAnim(playerPed, "molly@megaphone", "megaphone_clip", 2.0, -2.0, -1, 49, 0, false, false, false)
+                AttachEntityToEntity(EquippedBreathalyzer.prop, playerPed, boneIndex, coords.x + 0.05, coords.y - 0.06, coords.z - 0.015, rot.x + 45.0, rot.y + 45.0, rot.z - 90.0, true, false, false, false, 0, true)
+            elseif IsDisabledControlJustReleased(0, 24) then
+                local playerPed = PlayerPedId()
+                AttachEntityToEntity(EquippedBreathalyzer.prop, playerPed, boneIndex, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, true, false, false, false, 0, true)
+                ClearPedTasks(playerPed)
+            end
+            Wait(0)
+        end
+        ClearPedTasks(PlayerPedId())
+    end)
+end
+
+function UnequipBreathalyzer()
+    if not EquippedBreathalyzer then return end
+    DeleteEntity(EquippedBreathalyzer.prop)
+    EquippedBreathalyzer = nil
+    SetTimeout(10, function()
+        ClearPedTasks(PlayerPedId())
+    end)
+end
 
 function GetClosestPlayer()
     local ped = PlayerPedId()
@@ -486,7 +531,7 @@ function OpenPoliceActionsMenu()
 end
 
 CreateThread(function()
-    Wait(1000)
+    Wait(2000)
     if Config.UseTarget then
         AddTargetModel(`npds_p_pb`, 1.0, {
             {
@@ -512,6 +557,7 @@ CreateThread(function()
             }
         })
     end
+    EquipBreathalyzer()
     local wait = 1500
     while true do
         local closestId = nil
