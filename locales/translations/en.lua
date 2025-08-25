@@ -205,6 +205,7 @@ Language["en"] = {
     evidence_seat = "Seat #%s",
     evidence_identifier = "DNA ID",
     evidence_plate = "Plate",
+    add_evidence = "Add Evidence",
     add_file = "Create File",
     filename = "Filename",
     print_document = "Print Police Report",
@@ -213,4 +214,7 @@ Language["en"] = {
     save_document = "Save Document",
     reconstruct_scene = "Scene Reconstruction",
     stop_reconstruct_scene = "Stop Scene Reconstruction",
+    alcohol_status = "You are under the influence of alcohol.",
+    heavy_alcohol_status = "You are insanely drunk, maybe get a ride home.",
+    evidence_bac = "Blood Alcohol Content",
 }

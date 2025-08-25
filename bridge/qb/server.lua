@@ -155,6 +155,21 @@ function IsPlayerAdmin(source)
     return false
 end
 
+-- Evidence Status Support (For Breathalyzer)
+
+RegisterServerEvent("evidence:server:UpdateStatus", function(status)
+    local src = source
+    local xPlayer = QBCore.Functions.GetPlayer(src)
+    if not xPlayer then return end
+    local bac = 0.0
+    if status.heavyalcohol then
+        bac = 0.40 * ((status.heavyalcohol.time or 0) / 300)
+    elseif status.alcohol then
+        bac = 0.20 * ((status.alcohol.time or 0) / 300)
+    end
+    ExternalStatus.Alcohol[src] = math.floor(bac * 100) / 100 -- Format to 2 decimal places
+end)
+
 -- Inventory Fallback
 
 CreateThread(function()

@@ -2,6 +2,9 @@ local BulletTimeout = {}
 local Evidence = {}
 local VehiclePrints = {}
 local CachedDNA = {}
+local ExternalStatus = {
+    Alcohol = {},
+}
 
 function EnsureEvidence(coords, evidenceType, data)
     data.label = _L(evidenceType)
@@ -90,6 +93,14 @@ function GetPlayerDNA(source)
     return result[1].dna
 end
 
+function GetPlayerBAC(source)
+    if ExternalStatus.Alcohol[source] then return ExternalStatus.Alcohol[source] end
+    if GetPlayerStatus(source) then
+        return GetPlayerStatus(source).Alcohol
+    end
+    return 0.0
+end
+
 lib.callback.register("pickle_policejob:evidence:getFiles", function(source, search)
     local result
     if search == "" then
@@ -140,6 +151,28 @@ lib.callback.register("pickle_policejob:evidence:deleteEvidenceItem", function(s
     end)
     Citizen.Await(p)
     return GetPlayerEvidence(source)
+end)
+
+lib.callback.register("pickle_policejob:evidence:getBAC", function(source, target)
+    return GetPlayerBAC(target)
+end)
+
+RegisterNetEvent("pickle_policejob:evidence:addBAC", function(target, bac)
+    local source = source
+    Inventory.AddItem(source, "evidence_report", 1, {
+        evidenceType = "bac",
+        evidence = {
+            {
+                type = "bac",
+                identifier = GetPlayerDNA(target),
+                image = "nui://pickle_policejob/nui/images/bac.png",
+                time = os.time(),
+                coords = GetEntityCoords(GetPlayerPed(target)),
+                heading = GetEntityHeading(GetPlayerPed(target)),
+                bac = bac,
+            }
+        },
+    })
 end)
 
 RegisterNetEvent("pickle_policejob:evidence:addShellCasing", function(data)

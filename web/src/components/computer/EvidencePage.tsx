@@ -46,6 +46,7 @@ export type Evidence = {
         y: number;
         z: number;
     };
+    bac?: number;
 }
 
 export type EvidenceItems = {
@@ -181,6 +182,12 @@ export function SelectedEvidenceModal({ evidence, onClose, isModalVisible }: { e
                                         </div>
                                     )
                                 })
+                            )}
+                            {evidence.bac && (
+                                <div className="flex flex-row items-center gap-2">
+                                    <div className="font-semibold text-sm text-white"><Translate id="evidence_bac" />:</div>
+                                    <div className="text-xs text-white">{evidence.bac.toFixed(2)}</div>
+                                </div>
                             )}
                         </div>
                     </div>

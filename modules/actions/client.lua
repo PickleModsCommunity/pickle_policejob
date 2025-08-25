@@ -331,20 +331,66 @@ function EquipBreathalyzer()
     AttachEntityToEntity(EquippedBreathalyzer.prop, ped, boneIndex, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, true, false, false, false, 0, true)
     SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true)
     CreateThread(function()
+        local spriteDict, sprite = "darts", "dart_reticules"
+        local timer
         while EquippedBreathalyzer do
             DisableControlAction(0, 24, true) -- Left click
             DisableControlAction(0, 25, true) -- Right click
+            RequestStreamedTextureDict(spriteDict, false)
             if IsControlJustPressed(0, 202) then
                 UnequipBreathalyzer()
-            elseif IsDisabledControlJustPressed(0, 24) then
-                local playerPed = PlayerPedId()
-                PlayAnim(playerPed, "molly@megaphone", "megaphone_clip", 2.0, -2.0, -1, 49, 0, false, false, false)
-                AttachEntityToEntity(EquippedBreathalyzer.prop, playerPed, boneIndex, coords.x + 0.05, coords.y - 0.06, coords.z - 0.015, rot.x + 45.0, rot.y + 45.0, rot.z - 90.0, true, false, false, false, 0, true)
-            elseif IsDisabledControlJustReleased(0, 24) then
-                local playerPed = PlayerPedId()
-                AttachEntityToEntity(EquippedBreathalyzer.prop, playerPed, boneIndex, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, true, false, false, false, 0, true)
-                ClearPedTasks(playerPed)
             end
+            local hit, hitCoords, entity = GetDirectionCoords()
+            local hasTarget = false
+            local targetPlayer = GetEntityPlayer(entity)
+            if hit and targetPlayer and #(GetEntityCoords(ped) - hitCoords) < 1.5 then
+                hasTarget = true
+                if IsDisabledControlJustPressed(0, 24) then
+                    if not timer then
+                        PlaySoundFrontend(-1, "Beep_Red", "DLC_HEIST_HACKING_SNAKE_SOUNDS", 0)
+                        timer = 200
+                        CreateThread(function()
+                            while timer ~= nil do
+                                timer = timer - 1
+                                if timer <= 0 then break end
+                                Wait(0)
+                            end
+                            if timer and timer <= 0 then
+                                print("BEEP")
+                                PlaySoundFrontend(-1, "Beep_Red", "DLC_HEIST_HACKING_SNAKE_SOUNDS", 0)
+                                Wait(150)
+                                PlaySoundFrontend(-1, "Beep_Red", "DLC_HEIST_HACKING_SNAKE_SOUNDS", 0)
+                                Wait(150)
+                                PlaySoundFrontend(-1, "Beep_Red", "DLC_HEIST_HACKING_SNAKE_SOUNDS", 0)
+                                Wait(150)
+                                lib.callback("pickle_policejob:evidence:getBAC", false, function(result)
+                                    local alert = lib.alertDialog({
+                                        header = '## BAC: '..result,
+                                        content = 'Do you want to enter this into evidence?',
+                                        centered = true,
+                                        cancel = true
+                                    })
+                                    if alert == "confirm" then
+                                        TriggerServerEvent("pickle_policejob:evidence:addBAC", GetPlayerServerId(targetPlayer), result)
+                                    end
+                                end, GetPlayerServerId(targetPlayer))
+                            end
+                            timer = nil
+                        end)
+                    end
+                    local playerPed = PlayerPedId()
+                    PlayAnim(playerPed, "molly@megaphone", "megaphone_clip", 2.0, -2.0, -1, 49, 0, false, false, false)
+                    AttachEntityToEntity(EquippedBreathalyzer.prop, playerPed, boneIndex, coords.x + 0.05, coords.y - 0.06, coords.z - 0.015, rot.x + 45.0, rot.y + 45.0, rot.z - 90.0, true, false, false, false, 0, true)
+                elseif IsDisabledControlJustReleased(0, 24) then
+                    if timer then
+                        timer = nil
+                    end
+                    local playerPed = PlayerPedId()
+                    AttachEntityToEntity(EquippedBreathalyzer.prop, playerPed, boneIndex, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, true, false, false, false, 0, true)
+                    ClearPedTasks(playerPed)
+                end
+            end
+            DrawSprite(spriteDict, sprite, 0.5, 0.5, 0.015, 0.025, 180.0, (hasTarget and 127 or 255), (hasTarget and 127 or 255), 255, 255)
             Wait(0)
         end
         ClearPedTasks(PlayerPedId())

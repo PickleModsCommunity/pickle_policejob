@@ -62,6 +62,46 @@ RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
     TriggerServerEvent("pickle_policejob:initializePlayer")
 end)
 
+-- Evidence Status Support (For Breathalyzer)
+
+local CurrentStatus
+local Statuses = {
+    ["alcohol"] = _L("alcohol_status"),
+    ["heavyalcohol"] = _L("heavy_alcohol_status"),
+}
+
+RegisterNetEvent("evidence:client:SetStatus", function(statusId, time)
+    if not Statuses[statusId] then return end -- If the status is not in the list, return.
+    if time > 0 then
+        if (CurrentStatus == nil or CurrentStatus[statusId] == nil) or (CurrentStatus[statusId] and CurrentStatus[statusId].time < 20) then
+            CurrentStatus[statusId] = {text = Statuses[statusId], time = time}
+            ShowNotification(CurrentStatus[statusId].text)
+        end
+    else
+        CurrentStatus[statusId] = nil
+    end
+    TriggerServerEvent("evidence:server:UpdateStatus", CurrentStatus)
+end)
+
+CreateThread(function()
+    local refreshRate = 10
+    while true do
+        if LocalPlayer.state.isLoggedIn then
+            if CurrentStatus then
+                local updatedStatus = false
+                for k, v in pairs(CurrentStatus) do
+                    updatedStatus = true
+                    CurrentStatus[k].time = (CurrentStatus[k].time > 0 and (CurrentStatus[k].time - 10) or 0)
+                end
+                if updatedStatus then
+                    TriggerServerEvent('evidence:server:UpdateStatus', CurrentStatus)
+                end
+            end
+        end
+        Wait(refreshRate * 1000)
+    end
+end)
+
 -- Inventory Fallback
 
 CreateThread(function()

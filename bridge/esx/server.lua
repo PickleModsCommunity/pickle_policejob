@@ -168,6 +168,16 @@ function AddOwnedVehicle(source, model)
     })
 end
 
+function GetPlayerStatus(source)
+    local p = promise.new()
+    local maxValue = 1000000
+    TriggerEvent("esx_status:getStatus", source, 'drunk', function(status)
+        p:resolve(0.40 * (status.val / maxValue))
+    end)
+    local bac = Citizen.Await(p)
+    return {Alcohol = math.floor(bac * 100) / 100}
+end
+
 -- Inventory Fallback
 
 CreateThread(function()
