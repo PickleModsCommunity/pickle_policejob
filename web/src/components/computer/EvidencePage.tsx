@@ -47,6 +47,7 @@ export type Evidence = {
         z: number;
     };
     bac?: number;
+    name?: string;
 }
 
 export type EvidenceItems = {
@@ -67,7 +68,7 @@ export type File = {
 function EvidenceImage({ evidence }: { evidence: Evidence }) {
     const [loaded, setLoaded] = useState(false);
     return (
-        <div className="relative rounded-sm bg-background">
+        <div className="relative rounded-sm bg-background w-full aspect-video">
             {!loaded && (
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -76,7 +77,7 @@ function EvidenceImage({ evidence }: { evidence: Evidence }) {
             <img 
             src={evidence.image} 
             alt={evidence.label} 
-            className="w-full h-full rounded-sm" 
+            className="w-full h-full object-contain rounded-sm" 
             onLoad={() => setLoaded(true)}
             />
         </div>
@@ -85,8 +86,10 @@ function EvidenceImage({ evidence }: { evidence: Evidence }) {
 
 export function EvidenceDisplay({ evidence, index }: { evidence: Evidence, index?: number }) {
     return (
-        <div className="relative flex flex-col justify-center items-center select-none">
-            <EvidenceImage evidence={evidence} />
+        <div className="relative flex flex-col justify-center items-center select-none w-full">
+            <div className="w-full" style={{aspectRatio: "16/9"}}>
+                <EvidenceImage evidence={evidence} />
+            </div>
             {(index !== undefined) && (
                 <div className="absolute top-0 left-0 bg-background/95 rounded-br-sm h-[20px] font-semibold text-xs text-white flex items-center px-1">
                     #{index + 1}
@@ -189,6 +192,12 @@ export function SelectedEvidenceModal({ evidence, onClose, isModalVisible }: { e
                                     <div className="text-xs text-white">{evidence.bac.toFixed(2)}</div>
                                 </div>
                             )}
+                            {evidence.name && (
+                                <div className="flex flex-row items-center gap-2">
+                                    <div className="font-semibold text-sm text-white"><Translate id="evidence_name" />:</div>
+                                    <div className="text-xs text-white">{evidence.name}</div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -200,6 +209,8 @@ export function SelectedEvidenceModal({ evidence, onClose, isModalVisible }: { e
 function AddEvidenceModal({ onClose, importEvidence, isModalVisible }: { onClose: () => void, importEvidence: (evidence: Evidence[]) => void, isModalVisible: boolean }) {
     const [evidenceItems, setEvidenceItems] = useState<EvidenceItems[] | null>(null);
     const [selectedEvidenceItem, setSelectedEvidenceItem] = useState<EvidenceItems | null>(null);
+    const [selectedEvidence, setSelectedEvidence] = useState<Evidence | null>(null);
+    const [isEvidenceVisible, setIsEvidenceVisible] = useState(false);
     const [isDeletingEvidenceItem, setIsDeletingEvidenceItem] = useState(false);
     useEffect(() => {
         const thread = async () => {
@@ -240,6 +251,12 @@ function AddEvidenceModal({ onClose, importEvidence, isModalVisible }: { onClose
                     </div>
                 </div>
                 <div className="w-full h-[calc(100%-30px)] flex flex-col gap-2 relative">
+                    {selectedEvidence && (
+                        <SelectedEvidenceModal evidence={selectedEvidence} onClose={() => {
+                            setIsEvidenceVisible(false);
+                            setSelectedEvidence(null);
+                        }} isModalVisible={isEvidenceVisible} />
+                    )}
                     {!evidenceItems ? (
                         <div className="w-full h-full flex items-center justify-center">
                             <div className="text-sm text-muted-foreground">
@@ -275,7 +292,12 @@ function AddEvidenceModal({ onClose, importEvidence, isModalVisible }: { onClose
                                     <div className="grid grid-cols-2 gap-2 px-1 overflow-y-auto w-full max-h-[250px]">
                                         {selectedEvidenceItem.evidence?.map((evidence: Evidence, index: number) => {
                                             return (
-                                                <div className="w-full">
+                                                <div className="w-full cursor-pointer" onClick={() => {
+                                                    setSelectedEvidence(evidence);
+                                                    setTimeout(() => {
+                                                        setIsEvidenceVisible(true);
+                                                    }, 10);
+                                                }}> 
                                                     <EvidenceDisplay evidence={evidence} index={index} />
                                                 </div>
                                             );
@@ -286,6 +308,7 @@ function AddEvidenceModal({ onClose, importEvidence, isModalVisible }: { onClose
                                             importEvidence(selectedEvidenceItem.evidence);
                                             setIsDeletingEvidenceItem(false);
                                             setSelectedEvidenceItem(null);
+                                            onClose();
                                         }}>
                                             <Translate id="import_evidence" />
                                         </Button>

@@ -164,6 +164,7 @@ RegisterNetEvent("pickle_policejob:evidence:addBAC", function(target, bac)
         evidence = {
             {
                 type = "bac",
+                label = _L("breathalyzer_results"),
                 identifier = GetPlayerDNA(target),
                 image = "nui://pickle_policejob/nui/images/bac.png",
                 time = os.time(),
@@ -289,6 +290,26 @@ RegisterNetEvent("pickle_policejob:evidence:printFile", function(id)
     }
     Inventory.AddItem(source, "police_report", 1, {
         fileId = id,
+    })
+end)
+
+RegisterNetEvent("pickle_policejob:evidence:addFingerprint", function(targetId)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    Inventory.AddItem(source, "evidence_report", 1, {
+        evidenceType = "fingerprint",
+        evidence = {
+            {
+                type = "fingerprint",
+                label = _L("fingerprint"),
+                identifier = GetPlayerDNA(targetId),
+                image = "nui://pickle_policejob/nui/images/fingerprint.png",
+                time = os.time(),
+                coords = GetEntityCoords(GetPlayerPed(targetId)),
+                heading = GetEntityHeading(GetPlayerPed(targetId)),
+                name = GetPlayerCharacterName(targetId),
+            }
+        },
     })
 end)
 

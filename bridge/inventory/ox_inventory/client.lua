@@ -11,5 +11,9 @@ RegisterNetEvent("pickle_policejob:setupInventory", function(items)
     Inventory.Ready = true
 end)
 
+function OpenNearbyInventory()
+    return exports.ox_inventory:openNearbyInventory()
+end
+
 function InitializeInventory()
 end

@@ -46,7 +46,7 @@ function CameraControls(cam, zoom)
     end
 end
 
-function CameraLoop(trackData)
+function EquipEvidenceCamera(trackData)
     if IN_EVIDENCE_CAMERA then return end
     IN_EVIDENCE_CAMERA = true
     local playerPed = PlayerPedId()
@@ -244,7 +244,7 @@ function StopCameraLoop()
 end
 
 RegisterCommand("ecam", function()
-    CameraLoop()
+    EquipEvidenceCamera()
 end, false)
 
 -- Evidence Core

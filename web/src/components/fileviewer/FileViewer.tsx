@@ -52,7 +52,7 @@ export default function FileViewer() {
                 "weaponGroup": "GROUP_PISTOL",
                 "amount": 2,
                 "weaponHash": 453432689,
-                "image": "https://r2.fivemanage.com/2OthvhJFCzp3qiOWIvKTq/SYlVp4CtLde6.jpg"
+                "image": "/nui/images/bac.png"
             },
             {
                 "type": "blood",

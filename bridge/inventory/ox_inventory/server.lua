@@ -42,6 +42,13 @@ Inventory.GetItemCount = function(source, name)
     return exports.ox_inventory:Search(source, "count", name) or 0
 end
 
+RegisterServerEvent("pickle_policejob:searchPlayer", function(targetId)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    ShowNotification(targetId, _L("search_started"))
+    ShowNotification(source, _L("search_started_police", GetPlayerCharacterName(targetId)))
+end)
+
 function InitializeInventory()
     lib.callback.register("pickle_policejob:getInventory", function(source)
         return Inventory.GetInventory(source)

@@ -32,6 +32,10 @@ Config.TargetIcons = {
     handcuffs = "fas fa-handcuffs",
     grappler = "fas fa-road-barrier",
     objects = "fas fa-box",
+    evidence_camera = "fas fa-camera",
+    breathalyzer = "fas fa-vial",
+    search = "fas fa-search",
+    fingerprint_scanner = "fas fa-fingerprint",
 }
 
 Config.FrameworkSettings = {
@@ -403,6 +407,11 @@ Config.Frontdesk = {
 }
 
 Config.Integrations = {
+    inventory = {
+        OpenNearbyInventory = function()
+            -- Replace this with your export / event to open the nearby inventory when searching a player.
+        end,
+    },
     duty = {
         client = function(departmentId, isOnDuty, report)
         end,

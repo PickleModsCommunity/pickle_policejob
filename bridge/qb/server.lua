@@ -177,6 +177,18 @@ CreateThread(function()
     
     if InitializeInventory then return InitializeInventory() end -- Already loaded through inventory folder.
     
+    -- Search Player
+
+    RegisterServerEvent("pickle_policejob:searchPlayer", function()
+        local src = source
+        local player, distance = QBCore.Functions.GetClosestPlayer(src)
+        if player ~= -1 and distance < 2.5 then
+            exports['qb-inventory']:OpenInventoryById(src, tonumber(player))
+            ShowNotification(tonumber(player), _L("search_started"))
+        else
+            ShowNotification(src, _L("no_player_nearby"))
+        end
+    end)
     Inventory = {}
 
     Inventory.Items = {}

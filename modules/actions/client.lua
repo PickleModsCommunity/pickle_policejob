@@ -4,13 +4,14 @@ local IsDragging = nil
 local IsMenuOpen = false
 local EquippedStabSticks = nil
 local EquippedBreathalyzer = nil
+local EquippedFingerprintScanner = nil
 local StabSticks = {}
 local RenderedStabSticks = {}
 local ObjectPlacement = {}
 local ObjectPlacementInteractions = {}
 
 function IsAnythingEquipped()
-    return Handcuffs ~= nil or EquippedStabSticks ~= nil or EquippedBreathalyzer ~= nil
+    return Handcuffs ~= nil or EquippedStabSticks ~= nil or EquippedBreathalyzer ~= nil or EquippedFingerprintScanner ~= nil
 end
 
 function GetEntityPlayer(entity)
@@ -86,6 +87,7 @@ function UnequipCurrentActions()
     UnequipHandcuffs()
     UnequipStabSticks()
     UnequipBreathalyzer()
+    UnequipFingerprintScanner()
 end
 
 function RemoveHandcuffs()
@@ -365,8 +367,8 @@ function EquipBreathalyzer()
                                 Wait(150)
                                 lib.callback("pickle_policejob:evidence:getBAC", false, function(result)
                                     local alert = lib.alertDialog({
-                                        header = '## BAC: '..result,
-                                        content = 'Do you want to enter this into evidence?',
+                                        header = _L("breathalyzer_result", result),
+                                        content = _L("breathalyzer_result_content"),
                                         centered = true,
                                         cancel = true
                                     })
@@ -405,6 +407,88 @@ function UnequipBreathalyzer()
         ClearPedTasks(PlayerPedId())
     end)
 end
+
+-- Fingerprint Scanner
+
+function EquipFingerprintScanner()
+    if not IsPlayerOnDuty() then return ShowNotification(_L("not_on_duty")) end
+    if IsAnythingEquipped() then return ShowNotification(_L("already_equipped")) end
+    ShowNotification(_L("equipped_fingerprint_scanner"))
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+    EquippedFingerprintScanner = {}
+    EquippedFingerprintScanner.entities = {} 
+    table.insert(EquippedFingerprintScanner.entities, CreateProp(`prop_police_id_board`, coords.x, coords.y, coords.z, true, true, false))
+    table.insert(EquippedFingerprintScanner.entities, CreateProp(`ch_prop_fingerprint_scanner_01e`, coords.x, coords.y, coords.z, true, true, false))
+    local boneIndex = GetPedBoneIndex(ped, 58868)
+    local coords, rot = vector3(0.12, 0.24, 0.0), vector3(5.0, 0.0, 70.0)
+    AttachEntityToEntity(EquippedFingerprintScanner.entities[1], ped, boneIndex, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, true, false, false, false, 0, true)
+    AttachEntityToEntity(EquippedFingerprintScanner.entities[2], EquippedFingerprintScanner.entities[1], 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, true, false, false, false, 0, true)
+    SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true)
+    PlayAnim(ped, "mp_character_creation@customise@male_a", "loop", 2.0, -2.0, -1, 49, 0, false, false, false)
+    CreateThread(function()
+        local spriteDict, sprite = "darts", "dart_reticules"
+        while EquippedFingerprintScanner do
+            DisableControlAction(0, 24, true) -- Left click
+            DisableControlAction(0, 25, true) -- Right click
+            RequestStreamedTextureDict(spriteDict, false)
+            if IsControlJustPressed(0, 202) then
+                UnequipFingerprintScanner()
+            end
+            local hit, hitCoords, entity = GetDirectionCoords()
+            local hasTarget = false
+            local targetPlayer = GetEntityPlayer(entity)
+            if hit and targetPlayer and #(GetEntityCoords(ped) - hitCoords) < 1.5 then
+                hasTarget = true
+                if IsDisabledControlJustPressed(0, 24) then
+                    TriggerServerEvent("pickle_policejob:actions:requestFingerprint", GetPlayerServerId(targetPlayer))
+                end
+            end
+            DrawSprite(spriteDict, sprite, 0.5, 0.5, 0.015, 0.025, 180.0, (hasTarget and 127 or 255), (hasTarget and 127 or 255), 255, 255)
+            Wait(0)
+        end
+        ClearPedTasks(PlayerPedId())
+    end)
+end
+
+RegisterNetEvent("pickle_policejob:actions:requestFingerprint", function(requestId, result, targetId)
+    local serverId = GetPlayerServerId(PlayerId())
+    print(serverId, requestId)
+    if serverId ~= requestId then 
+        local alert = lib.alertDialog({
+            header = _L("fingerprint_scan_request"),
+            content = _L("fingerprint_scan_request_content"),
+            centered = true,
+            cancel = true
+        })
+        if alert == "confirm" then
+            TriggerServerEvent("pickle_policejob:actions:grantFingerprintConsent", requestId)
+        end
+    else
+        local alert = lib.alertDialog({
+            header = _L("fingerprint_scan_result", result),
+            content = _L("fingerprint_scan_result_content"),
+            centered = true,
+            cancel = true
+        })
+        if alert == "confirm" then
+            TriggerServerEvent("pickle_policejob:evidence:addFingerprint", targetId)
+        end
+    end
+end)
+
+function UnequipFingerprintScanner()
+    if not EquippedFingerprintScanner then return end
+    for _, entity in ipairs(EquippedFingerprintScanner.entities) do
+        DeleteEntity(entity)
+    end
+    EquippedFingerprintScanner = nil
+    SetTimeout(10, function()
+        ClearPedTasks(PlayerPedId())
+    end)
+end
+
+-- Misc
 
 function GetClosestPlayer()
     local ped = PlayerPedId()
@@ -536,6 +620,42 @@ function OpenPoliceActionsMenu()
             end,
         },
         {
+            title = _L("actions_search"),
+            description = _L("actions_search_description"),
+            icon = Config.TargetIcons.search,
+            onSelect = function()
+                IsMenuOpen = false
+                OpenNearbyInventory()
+            end,
+        },
+        {
+            title = _L("actions_evidence_camera"),
+            description = _L("actions_evidence_camera_description"),
+            icon = Config.TargetIcons.evidence_camera,
+            onSelect = function()
+                IsMenuOpen = false
+                EquipEvidenceCamera()
+            end,
+        },
+        {
+            title = _L("actions_breathalyzer"),
+            description = _L("actions_breathalyzer_description"),
+            icon = Config.TargetIcons.breathalyzer,
+            onSelect = function()
+                IsMenuOpen = false
+                EquipBreathalyzer()
+            end,
+        },
+        {
+            title = _L("actions_fingerprint_scanner"),
+            description = _L("actions_fingerprint_scanner_description"),
+            icon = Config.TargetIcons.fingerprint_scanner,
+            onSelect = function()
+                IsMenuOpen = false
+                EquipFingerprintScanner()
+            end,
+        },
+        {
             title = _L("actions_stab_sticks"),
             description = _L("actions_stab_sticks_description"),
             icon = Config.TargetIcons.stab_sticks,
@@ -603,7 +723,7 @@ CreateThread(function()
             }
         })
     end
-    EquipBreathalyzer()
+    EquipFingerprintScanner()
     local wait = 1500
     while true do
         local closestId = nil

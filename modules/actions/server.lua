@@ -115,6 +115,18 @@ RegisterNetEvent("pickle_policejob:actions:deleteObject", function(id)
     TriggerClientEvent("pickle_policejob:actions:deleteObject", -1, id)
 end)
 
+RegisterNetEvent("pickle_policejob:actions:requestFingerprint", function(targetId)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    ShowNotification(source, _L("sent_fingerprint_scan_request", GetPlayerCharacterName(targetId)))
+    TriggerClientEvent("pickle_policejob:actions:requestFingerprint", targetId, source)
+end)
+
+RegisterNetEvent("pickle_policejob:actions:grantFingerprintConsent", function(requestId)
+    local source = source
+    TriggerClientEvent("pickle_policejob:actions:requestFingerprint", requestId, requestId, GetPlayerDNA(source), source)
+end)
+
 CreateThread(function()
     Wait(2000)
     CreateStabSticks({

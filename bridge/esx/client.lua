@@ -71,6 +71,10 @@ function ToggleOutfit(onduty)
     end
 end
 
+function OpenNearbyInventory()
+    Config.Integrations.Inventory.OpenNearbyInventory()
+end
+
 -- Inventory Fallback
 
 CreateThread(function()
