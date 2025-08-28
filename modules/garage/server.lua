@@ -1,5 +1,4 @@
 function GetDepartmentMemberGarage(source, garageType)
-    print(source, garageType)
     local departmentId, member = GetPlayerDepartment(source)
     if not departmentId or not member then return end
     local department = GetDepartment(departmentId)

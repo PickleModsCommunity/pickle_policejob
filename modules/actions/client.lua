@@ -88,6 +88,7 @@ function UnequipCurrentActions()
     UnequipStabSticks()
     UnequipBreathalyzer()
     UnequipFingerprintScanner()
+    StopCameraLoop()
 end
 
 function RemoveHandcuffs()
@@ -358,7 +359,6 @@ function EquipBreathalyzer()
                                 Wait(0)
                             end
                             if timer and timer <= 0 then
-                                print("BEEP")
                                 PlaySoundFrontend(-1, "Beep_Red", "DLC_HEIST_HACKING_SNAKE_SOUNDS", 0)
                                 Wait(150)
                                 PlaySoundFrontend(-1, "Beep_Red", "DLC_HEIST_HACKING_SNAKE_SOUNDS", 0)
@@ -453,7 +453,6 @@ end
 
 RegisterNetEvent("pickle_policejob:actions:requestFingerprint", function(requestId, result, targetId)
     local serverId = GetPlayerServerId(PlayerId())
-    print(serverId, requestId)
     if serverId ~= requestId then 
         local alert = lib.alertDialog({
             header = _L("fingerprint_scan_request"),
@@ -486,6 +485,28 @@ function UnequipFingerprintScanner()
     SetTimeout(10, function()
         ClearPedTasks(PlayerPedId())
     end)
+end
+
+-- Jail
+
+function OpenPoliceJailMenu()
+    local players = GetPlayersInArea()
+    local players_list = {}
+    local prisons = {}
+    for i=1, #players do
+        local id = GetPlayerServerId(players[i])
+        players_list[#players_list + 1] = {label = _L("jail_dialog_player", GetPlayerName(players[i]), id), value = id}
+    end
+    for k,v in pairs(Config.Prisons) do 
+        prisons[#prisons + 1] = {label = v.label, value = k}
+    end
+    if #prisons < 1 or #players_list < 1 then return end
+    local input = lib.inputDialog(_L("jail_dialog_title"), {
+        {type = 'select', label = _L("jail_dialog_prisoner"), default = players_list[1].value, required = true, options = players_list},
+        {type = 'number', label = _L("jail_dialog_sentence"), default = 1, required = true, min = 1, max = Config.Jail.maxJailTime},
+    }) 
+    if not input then return end
+    TriggerServerEvent("pickle_policejob:actions:jailPlayer", input[1], input[2])
 end
 
 -- Misc
@@ -629,30 +650,44 @@ function OpenPoliceActionsMenu()
             end,
         },
         {
-            title = _L("actions_evidence_camera"),
-            description = _L("actions_evidence_camera_description"),
-            icon = Config.TargetIcons.evidence_camera,
+            title = _L("actions_fines"),
+            description = _L("actions_fines_description"),
+            icon = Config.TargetIcons.fines,
             onSelect = function()
                 IsMenuOpen = false
-                EquipEvidenceCamera()
+                local targetPlayer = GetClosestPlayer()
+                if not targetPlayer then return ShowNotification(_L("no_player_nearby")) end
+                ViewFines(GetPlayerServerId(targetPlayer))
             end,
         },
         {
-            title = _L("actions_breathalyzer"),
-            description = _L("actions_breathalyzer_description"),
-            icon = Config.TargetIcons.breathalyzer,
+            title = _L("actions_jail"),
+            description = _L("actions_jail_description"),
+            icon = Config.TargetIcons.jail,
             onSelect = function()
                 IsMenuOpen = false
-                EquipBreathalyzer()
+                if Config.Integrations.jail.openJailMenu() then return end
+                OpenPoliceJailMenu()
             end,
         },
         {
-            title = _L("actions_fingerprint_scanner"),
-            description = _L("actions_fingerprint_scanner_description"),
-            icon = Config.TargetIcons.fingerprint_scanner,
+            title = _L("actions_shields"),
+            description = _L("actions_shields_description"),
+            icon = Config.TargetIcons.shields,
             onSelect = function()
                 IsMenuOpen = false
-                EquipFingerprintScanner()
+                UnequipCurrentActions()
+                OpenShields()
+            end,
+        },
+        {
+            title = _L("actions_snakecam"),
+            description = _L("actions_snakecam_description"),
+            icon = Config.TargetIcons.snakecam,
+            onSelect = function()
+                IsMenuOpen = false
+                UnequipCurrentActions()
+                StartSnakeCam()
             end,
         },
         {
@@ -664,15 +699,7 @@ function OpenPoliceActionsMenu()
                 EquipStabSticks()
             end,
         },
-        {
-            title = _L("actions_grappler"),
-            description = _L("actions_grappler_description"),
-            icon = Config.TargetIcons.grappler,
-            onSelect = function()
-                IsMenuOpen = false
-                StartGrapplerPlacement()
-            end,
-        },
+
         {
             title = _L("actions_objects"),
             description = _L("actions_objects_description"),
@@ -685,6 +712,46 @@ function OpenPoliceActionsMenu()
             end,
         }
     }
+    if Config.Grappler.enabled then
+        table.insert(options, {
+            title = _L("actions_grappler"),
+            description = _L("actions_grappler_description"),
+            icon = Config.TargetIcons.grappler,
+            onSelect = function()
+                IsMenuOpen = false
+                StartGrapplerPlacement()
+            end,
+        })
+    end
+    if Config.Evidence.enabled then
+        table.insert(options, {
+            title = _L("actions_evidence_camera"),
+            description = _L("actions_evidence_camera_description"),
+            icon = Config.TargetIcons.evidence_camera,
+            onSelect = function()
+                IsMenuOpen = false
+                EquipEvidenceCamera()
+            end,
+        })
+        table.insert(options, {
+            title = _L("actions_breathalyzer"),
+            description = _L("actions_breathalyzer_description"),
+            icon = Config.TargetIcons.breathalyzer,
+            onSelect = function()
+                IsMenuOpen = false
+                EquipBreathalyzer()
+            end,
+        })
+        table.insert(options, {
+            title = _L("actions_fingerprint_scanner"),
+            description = _L("actions_fingerprint_scanner_description"),
+            icon = Config.TargetIcons.fingerprint_scanner,
+            onSelect = function()
+                IsMenuOpen = false
+                EquipFingerprintScanner()
+            end,
+        })
+    end
     lib.registerContext({
         id = menuId,
         title = _L("police_actions_menu"),
@@ -697,7 +764,7 @@ function OpenPoliceActionsMenu()
 end
 
 CreateThread(function()
-    Wait(2000)
+    Wait(1000)
     if Config.UseTarget then
         AddTargetModel(`npds_p_pb`, 1.0, {
             {
@@ -723,7 +790,6 @@ CreateThread(function()
             }
         })
     end
-    EquipFingerprintScanner()
     local wait = 1500
     while true do
         local closestId = nil

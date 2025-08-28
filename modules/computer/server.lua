@@ -12,6 +12,12 @@ function GenerateUniqueRankId(departmentId)
     return uniqueRankId
 end
 
+function SendComputerEvent(event, ...)
+    for k, v in pairs(IN_COMPUTER) do
+        TriggerClientEvent(event, tonumber(k), ...)
+    end
+end
+
 lib.callback.register("pickle_policejob:openComputer", function(source)
     local departmentId, member = GetPlayerDepartment(source)
     if not departmentId then return nil, _L("not_in_department") end
@@ -69,12 +75,11 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             onDutyTime = 0,
         })
         UpdateDepartmentSQL(departmentId, "members")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateMembers",
-                members = department.members,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateMembers",
+            members = department.members,
+        })
+        ShowNotification(source, _L("member_added", characterName))
     elseif updateType == "removeMember" then
         local targetDepartmentId, targetMember = GetIdentifierDepartment(data.identifier)
         if not targetDepartmentId then return ShowNotification(source, _L("player_not_in_department")) end
@@ -87,17 +92,17 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "members")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateMembers",
-                members = department.members,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateMembers",
+            members = department.members,
+        })
+        ShowNotification(source, _L("member_removed", member.name))
     elseif updateType == "addRank" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         local rankId = GenerateUniqueRankId(departmentId)
         table.insert(department.ranks, {
             rankId = rankId,
+            salary = data.salary or 0,
             label = data.label,
             jobLevel = data.jobLevel or 0,
             managingRankIds = {},
@@ -105,12 +110,11 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             vehicles = {},
         })
         UpdateDepartmentSQL(departmentId, "ranks")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateRanks",
-                ranks = department.ranks,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateRanks",
+            ranks = department.ranks,
+        })
+        ShowNotification(source, _L("rank_added", data.label))
     elseif updateType == "deleteRank" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if department.ranks[1].rankId == data.rankId then return ShowNotification(source, _L("cannot_delete_leader_rank")) end
@@ -127,21 +131,18 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "members")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateMembers",
-                members = department.members,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateMembers",
+            members = department.members,
+        })
         SetTimeout(500, function()
             UpdateDepartmentSQL(departmentId, "ranks")
-            for k, v in pairs(IN_COMPUTER) do
-                TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                    type = "updateRanks",
-                    ranks = department.ranks,
-                })
-            end
+            SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+                type = "updateRanks",
+                ranks = department.ranks,
+            })
         end)
+        ShowNotification(source, _L("rank_deleted", data.label))
     elseif updateType == "moveRank" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         local rank, rankIndex = GetDepartmentRank(departmentId, data.rankId)
@@ -156,12 +157,10 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             table.insert(department.ranks, rankIndex + 1, rank)
         end
         UpdateDepartmentSQL(departmentId, "ranks")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateRanks",
-                ranks = department.ranks,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateRanks",
+            ranks = department.ranks,
+        })
     elseif updateType == "updateMemberRank" then
         local targetDepartmentId, targetMember = GetIdentifierDepartment(data.identifier)
         if not targetDepartmentId then return ShowNotification(source, _L("player_not_in_department")) end
@@ -175,12 +174,12 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "members")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateMembers",
-                members = department.members,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateMembers",
+            members = department.members,
+        })
+        local newRank, newRankIndex = GetDepartmentRank(departmentId, data.rankId)
+        ShowNotification(source, _L("member_rank_updated", characterName, newRank.label))
     elseif updateType == "addPermission" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if department.permissions[data.label] then return ShowNotification(source, _L("permission_already_exists")) end
@@ -190,12 +189,11 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             vehicles = {},
         }
         UpdateDepartmentSQL(departmentId, "permissions")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updatePermissions",
-                permissions = department.permissions,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updatePermissions",
+            permissions = department.permissions,
+        })
+        ShowNotification(source, _L("permission_added", data.label))
     elseif updateType == "deletePermission" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if not department.permissions[data.label] then return ShowNotification(source, _L("permission_not_found")) end
@@ -208,22 +206,19 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "members")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateMembers",
-                members = department.members,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateMembers",
+            members = department.members,
+        })
         SetTimeout(500, function()
             department.permissions[data.label] = nil
             UpdateDepartmentSQL(departmentId, "permissions")
-            for k, v in pairs(IN_COMPUTER) do
-                TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
+            SendComputerEvent("pickle_policejob:updateComputerDepartment", {
                 type = "updatePermissions",
-                    permissions = department.permissions,
-                })
-            end
+                permissions = department.permissions,
+            })
         end)
+        ShowNotification(source, _L("permission_deleted", data.label))
     elseif updateType == "addPermissionRankManager" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if not department.permissions[data.permission] then return ShowNotification(source, _L("permission_not_found")) end
@@ -234,12 +229,10 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
         end
         table.insert(department.permissions[data.permission].managingRankIds, data.managingRankId)
         UpdateDepartmentSQL(departmentId, "permissions")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updatePermissions",
-                permissions = department.permissions,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updatePermissions",
+            permissions = department.permissions,
+        })
     elseif updateType == "deletePermissionRankManager" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if not department.permissions[data.permission] then return ShowNotification(source, _L("permission_not_found")) end
@@ -250,12 +243,10 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "permissions")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updatePermissions",
-                permissions = department.permissions,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updatePermissions",
+            permissions = department.permissions,
+        })
     elseif updateType == "addPermissionArmory" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if not department.permissions[data.permission] then return ShowNotification(source, _L("permission_not_found")) end
@@ -266,12 +257,10 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
         end
         table.insert(department.permissions[data.permission].armory, data.item)
         UpdateDepartmentSQL(departmentId, "permissions")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updatePermissions",
-                permissions = department.permissions,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updatePermissions",
+            permissions = department.permissions,
+        })
     elseif updateType == "deletePermissionArmory" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if not department.permissions[data.permission] then return ShowNotification(source, _L("permission_not_found")) end
@@ -282,12 +271,10 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "permissions")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updatePermissions",
-                permissions = department.permissions,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updatePermissions",
+            permissions = department.permissions,
+        })
     elseif updateType == "addPermissionVehicle" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if not department.permissions[data.permission] then return ShowNotification(source, _L("permission_not_found")) end
@@ -314,12 +301,10 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "permissions")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updatePermissions",
-                permissions = department.permissions,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updatePermissions",
+            permissions = department.permissions,
+        })
     elseif updateType == "addMemberPermission" then
         local targetDepartmentId, targetMember = GetIdentifierDepartment(data.identifier)
         if not targetDepartmentId then return ShowNotification(source, _L("player_not_in_department")) end
@@ -358,12 +343,10 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
         end
         if not found then return ShowNotification(source, _L("permission_not_found")) end
         UpdateDepartmentSQL(targetDepartmentId, "members")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateMembers",
-                members = department.members,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateMembers",
+            members = department.members,
+        })
     elseif updateType == "updateRankLabel" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         for i=1, #department.ranks do
@@ -373,12 +356,10 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "ranks")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateRanks",
-                ranks = department.ranks,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateRanks",
+            ranks = department.ranks,
+        })
     elseif updateType == "updateRankJobLevel" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         for i=1, #department.ranks do
@@ -388,12 +369,29 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "ranks")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateRanks",
-                ranks = department.ranks,
-            })
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateRanks",
+            ranks = department.ranks,
+        })
+    elseif updateType == "updateRankSalary" then
+        if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
+        if not data.salary or not tonumber(data.salary) then data.salary = 0 end
+        if data.salary <= 0 then data.salary = 0 end
+        if data.salary > Config.Finance.maxRankSalary then data.salary = Config.Finance.maxRankSalary end
+        local rank
+        for i=1, #department.ranks do
+            if department.ranks[i].rankId == data.rankId then
+                department.ranks[i].salary = data.salary
+                rank = department.ranks[i]
+                break
+            end
         end
+        UpdateDepartmentSQL(departmentId, "ranks")
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateRanks",
+            ranks = department.ranks,
+        })
+        ShowNotification(source, _L("salary_updated", rank.label, NumberWithCommas(data.salary)))
     elseif updateType == "addRankManager" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if department.ranks[1].rankId == data.rankId then return ShowNotification(source, _L("cannot_update_leader_rank")) end
@@ -404,12 +402,10 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "ranks")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateRanks",
-                ranks = department.ranks,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateRanks",
+            ranks = department.ranks,
+        })
     elseif updateType == "deleteRankManager" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if department.ranks[1].rankId == data.rankId then return ShowNotification(source, _L("cannot_update_leader_rank")) end
@@ -425,12 +421,10 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "ranks")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateRanks",
-                ranks = department.ranks,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateRanks",
+            ranks = department.ranks,
+        })
     elseif updateType == "addRankArmory" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if department.ranks[1].rankId == data.rankId then return ShowNotification(source, _L("cannot_update_leader_rank")) end
@@ -446,12 +440,10 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "ranks")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateRanks",
-                ranks = department.ranks,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateRanks",
+            ranks = department.ranks,
+        })
     elseif updateType == "deleteRankArmory" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if department.ranks[1].rankId == data.rankId then return ShowNotification(source, _L("cannot_update_leader_rank")) end
@@ -467,12 +459,10 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "ranks")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateRanks",
-                ranks = department.ranks,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateRanks",
+            ranks = department.ranks,
+        })
     elseif updateType == "addRankVehicle" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if department.ranks[1].rankId == data.rankId then return ShowNotification(source, _L("cannot_update_leader_rank")) end
@@ -488,12 +478,10 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "ranks")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateRanks",
-                ranks = department.ranks,
-            })
-        end
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateRanks",
+            ranks = department.ranks,
+        })
     elseif updateType == "deleteRankVehicle" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if department.ranks[1].rankId == data.rankId then return ShowNotification(source, _L("cannot_update_leader_rank")) end
@@ -509,12 +497,40 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             end
         end
         UpdateDepartmentSQL(departmentId, "ranks")
-        for k, v in pairs(IN_COMPUTER) do
-            TriggerClientEvent("pickle_policejob:updateComputerDepartment", tonumber(k), {
-                type = "updateRanks",
-                ranks = department.ranks,
+        SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+            type = "updateRanks",
+            ranks = department.ranks,
+        })
+    elseif updateType == "exchangeDepartmentFunds" then
+        if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
+        if data.amount <= 0 then return ShowNotification(source, _L("invalid_amount")) end
+        if data.withdraw then
+            if department.money < data.amount then return ShowNotification(source, _L("department_not_enough_money", NumberWithCommas(data.amount - department.money))) end
+            RemoveDepartmentMoney(departmentId, data.amount)
+            AddMoney(source, data.amount)
+            AddDepartmentTransaction(departmentId, source, "withdraw", data.amount, _L("finance_withdraw"))
+            SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+                type = "updateFinance",
+                money = department.money,
             })
+            ShowNotification(source, _L("finance_withdrew", NumberWithCommas(data.amount)))
+        else
+            local money = GetMoney(source)
+            if money < data.amount then return ShowNotification(source, _L("not_enough_money", NumberWithCommas(data.amount - money))) end
+            AddDepartmentMoney(departmentId, data.amount)
+            RemoveMoney(source, data.amount)
+            AddDepartmentTransaction(departmentId, source, "deposit", data.amount, _L("finance_deposit"))
+            SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+                type = "updateFinance",
+                money = department.money,
+            })
+            ShowNotification(source, _L("finance_deposited", NumberWithCommas(data.amount)))
         end
     end
-    --SendDepartmentDiscordLog(departmentId, source, updateType, data)
+    ConfigSV.WebhookHandler("computer", {
+        updateType = updateType,
+        player = GetPlayerCharacterName(source) .. " (ID: " .. source .. " / " .. GetPlayerIdentifier(source) .. ")",
+        department = department.label,
+        data = "```json\n" .. json.encode(data) .. "\n```",
+    })
 end)

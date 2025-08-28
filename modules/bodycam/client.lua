@@ -9,6 +9,18 @@ function DoesPlayerLocallyExist(target)
     return false
 end
 
+RegisterNUICallback("viewBodycam", function(data, cb)
+    cb(true)
+    lib.callback("pickle_policejob:bodycam:startView", false, function(result)
+        if not result then return ShowNotification(_L("failed_to_view_bodycam")) end
+        SendNUIMessage({
+            type = "setComputerVisible",
+            visible = false,
+        })
+        SetNuiFocus(false, false)
+    end, data.identifier)
+end)
+
 RegisterNetEvent("pickle_policejob:bodycam:startView", function(target, data)
     if CurrentBodycam then return end
     CurrentBodycam = {
@@ -55,33 +67,38 @@ RegisterNetEvent("pickle_policejob:bodycam:startView", function(target, data)
             SetFocusEntity(PlayerPedId())
             break
         end
-        -- DisableControlAction(0, 22, true) 
-        -- DisableControlAction(0, 23, true) 
-        -- DisableControlAction(0, 24, true)
-        -- DisableControlAction(0, 25, true) 
-        -- DisableControlAction(0, 30, true) 
-        -- DisableControlAction(0, 31, true) 
-        -- DisableControlAction(0, 32, true) 
-        -- DisableControlAction(0, 34, true) 
-        -- DisableControlAction(0, 36, true) 
-        -- DisableControlAction(0, 44, true) 
-        -- DisableControlAction(0, 45, true) 
-        -- DisableControlAction(0, 47, true) 
-        -- DisableControlAction(0, 75, true)  
-        -- DisableControlAction(0, 140, true) 
-        -- DisableControlAction(0, 141, true) 
-        -- DisableControlAction(0, 142, true) 
-        -- DisableControlAction(0, 143, true) 
-        -- DisableControlAction(0, 257, true) 
-        -- DisableControlAction(0, 263, true) 
-        -- DisableControlAction(0, 264, true) 
-        -- DisableControlAction(0, 289, true) 
+        DisableControlAction(0, 22, true) 
+        DisableControlAction(0, 23, true) 
+        DisableControlAction(0, 24, true)
+        DisableControlAction(0, 25, true) 
+        DisableControlAction(0, 30, true) 
+        DisableControlAction(0, 31, true) 
+        DisableControlAction(0, 32, true) 
+        DisableControlAction(0, 34, true) 
+        DisableControlAction(0, 36, true) 
+        DisableControlAction(0, 44, true) 
+        DisableControlAction(0, 45, true) 
+        DisableControlAction(0, 47, true) 
+        DisableControlAction(0, 75, true)  
+        DisableControlAction(0, 140, true) 
+        DisableControlAction(0, 141, true) 
+        DisableControlAction(0, 142, true) 
+        DisableControlAction(0, 143, true) 
+        DisableControlAction(0, 257, true) 
+        DisableControlAction(0, 263, true) 
+        DisableControlAction(0, 264, true) 
+        DisableControlAction(0, 289, true) 
         Wait(0)
     end
-    print("Stopping bodycam")
+    SendNUIMessage({
+        type = "setComputerVisible",
+        visible = true,
+    })
+    SetNuiFocus(true, true)
     SetTimecycleModifier("default")
     SetTimecycleModifierStrength(0.0)
     ClearTimecycleModifier()
+    MumbleClearVoiceChannel()
 end)
 
 AddEventHandler("onResourceStop", function(resource)

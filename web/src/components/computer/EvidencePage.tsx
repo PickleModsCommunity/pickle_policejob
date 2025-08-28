@@ -363,12 +363,12 @@ function SelectedFileModal({ file, onClose, isModalVisible }: { file: File | nul
     }
     const defaultDocument: Document = {
         header: {
-            title: "LOS SANTOS BALLS DEPARTMENT",
-            image: "/nui/images/LSPD.webp",
-            leftInfo: ["<b>Pickle Rick</b>", "1 Integrity Way"],
-            rightInfo: ["<b>Chief of Police</b>", " L.S.P.D"],
+            title: department.label.toUpperCase(),
+            image: department.image,
+            leftInfo: [`<b>${player.name}</b>`, `Los Santos, San Andreas`],
+            rightInfo: [`<b>${department.ranks[0].label}</b>`, `${new Date(Date.now()).toLocaleString()}`],
         },
-        subContent: [{ label: "Test" }],
+        subContent: [],
         enableContent: true,
         content: ""
     }

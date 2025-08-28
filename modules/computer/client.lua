@@ -16,6 +16,30 @@ function OpenComputer(id, locationId)
     end)
 end
 
+CreateThread(function()
+    local lastVehicle = nil
+    while true do
+        if IsPlayerOnDuty() then
+            local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+            if DoesEntityExist(vehicle) then
+                if not lastVehicle or lastVehicle ~= vehicle then
+                    lastVehicle = vehicle
+                    ShowNotification(_L("police_vehicle_entered", Config.Computer.vehicleCommand))
+                end
+            elseif lastVehicle then
+                lastVehicle = nil
+            end
+        end
+        Wait(1500)
+    end
+end)
+
+RegisterCommand(Config.Computer.vehicleCommand, function()
+    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+    if not DoesEntityExist(vehicle) then return ShowNotification(_L("not_in_vehicle")) end
+    OpenComputer()
+end)
+
 RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(data)
     SendNUIMessage({
         type = "updateComputerDepartment",

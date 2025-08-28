@@ -1,3 +1,5 @@
+if not Config.Evidence.enabled then return end
+
 local shellCasingQueue = {}
 local Evidence = {}
 local LocalEvidence = {}
@@ -151,7 +153,6 @@ function EquipEvidenceCamera(trackData)
                         local hit, hitCoords, entity = GetDirectionCoords(GetCamCoord(cam), GetCamRot(cam, 2))
                         local targetVisible = nil
                         local isTargetVehicle = (DoesEntityExist(entity) and GetEntityType(entity) == 2)
-                        print(isTargetVehicle, entity)
                         if hit then
                             local closestDistance = 2.0
                             for id, evidence in pairs(Evidence) do
@@ -189,7 +190,6 @@ function EquipEvidenceCamera(trackData)
                                         local data = Evidence[targetVisible]
                                         data.image = image
                                         table.insert(CAMERA_EVIDENCE, data)
-                                        print(json.encode(data, {indent = true}))
                                         SendNUIMessage({
                                             type = "setCameraEvidence",
                                             evidence = CAMERA_EVIDENCE,
@@ -261,7 +261,6 @@ function AddShellCasingToQueue(data)
     table.insert(shellCasingQueue, data)
     if #shellCasingQueue > 1 then return end
     CreateThread(function()
-        print("STARTING QUEUE")
         while #shellCasingQueue > 0 do
             Wait(math.floor(1000 * Config.Evidence.queueInterval))
             local firstCasing = shellCasingQueue[1]
@@ -359,10 +358,19 @@ function RenderEvidence(id)
     localEvidence.rendered = true
     localEvidence.interact = CreateInteraction({
         label = _L("evidence_pickup"),
-        icon = Config.TargetIcons["evidence"],
+        icon = Config.TargetIcons["evidence_pickup"],
         coords = evidence.coords,
         heading = evidence.heading,
     }, function()
+        local ped = PlayerPedId()
+        TaskStartScenarioInPlace(ped, "CODE_HUMAN_MEDIC_TEND_TO_DEAD", 0, true)
+        local success = lib.skillCheck({'easy', 'medium', 'medium', 'medium'}, {'w', 'a', 's', 'd'})
+        ClearPedTasks(ped)
+        if not success then
+            ShowNotification(_L("failed_evidence_collection"))
+            return
+        end
+        ShowNotification(_L("evidence_picked_up"))
         TriggerServerEvent("pickle_policejob:evidence:pickupEvidence", id)
     end)
     local entities, decals = GenerateEvidenceEntities(evidence)
@@ -660,7 +668,7 @@ AddEventHandler('gameEventTriggered', function (name, args)
     if name == "CEventNetworkEntityDamage" then 
         local victim = args[1]
         local attacker = args[2]
-        -- if victim ~= PlayerPedId() or not DoesEntityExist(attacker) then return end
+        if victim ~= PlayerPedId() or not DoesEntityExist(attacker) then return end
         TriggerServerEvent("pickle_policejob:evidence:addBlood")
     elseif name == "CEventNetworkPlayerEnteredVehicle" then
         local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)

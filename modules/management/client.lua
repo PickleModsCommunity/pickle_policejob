@@ -132,13 +132,11 @@ RegisterNUICallback("exitManagementEditor", function(data, cb)
 end)
 
 RegisterNUICallback("managementAction", function(data, cb)
-    print(json.encode(data, {indent = true}))
     TriggerServerEvent("pickle_policejob:managementAction", data.action, data.data)
     cb("ok")
 end)
 
 RegisterNUICallback("editLocation", function(data, cb)
-    print(json.encode(data, {indent = true}))
     cb("ok")
     SendNUIMessage({
         type = "setManagementHidden",
@@ -208,7 +206,6 @@ RegisterNUICallback("setCurrentLocation", function(data, cb)
     cb("ok")
     if inGizmo then return end
     if not data.location then
-        print("deleting temporary entity", json.encode(data, {indent = true}))
         DeleteTemporaryEntity()
     elseif temporaryEntity then
         local coords = data.location.positions.point.coords

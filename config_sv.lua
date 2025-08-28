@@ -1,11 +1,23 @@
 ConfigSV = {}
 ConfigSV.Webhooks = {
-    ["onAirdropLooted"] = { 
-        url = "DISCORD_WEBHOOK_URL",
-        title = "Airdrop Loot Granted to Player",
+    ["computer"] = { 
+        url = "WEBHOOK_URL",
+        title = "Computer Terminal Update",
         fields = {
             { name = "Player", value = "player", inline = false },
-            { name = "Reward", value = "reward", inline = false },
+            { name = "Department", value = "department", inline = false },
+            { name = "Update Type", value = "updateType", inline = false },
+            { name = "Data", value = "data", inline = false },
+        }
+    },
+    ["management"] = {
+        url = "WEBHOOK_URL",
+        title = "Management Update",
+        fields = {
+            { name = "Player", value = "player", inline = false },
+            { name = "Department", value = "department", inline = false },
+            { name = "Action", value = "action", inline = false },
+            { name = "Data", value = "data", inline = false },
         }
     },
 }
@@ -17,7 +29,7 @@ ConfigSV.Webhooks = {
 ConfigSV.WebhookHandler = function(webhookId, fields)
     local webhook = ConfigSV.Webhooks[webhookId]
     if webhook then
-        if webhook.url == "DISCORD_WEBHOOK_URL" then return end
+        if webhook.url == "DISCORD_WEBHOOK_URL" then return end -- DONT CHANGE IT WILL BREAK THE WEBHOOKS
         local embed = {
             {
                 ["title"] = webhook.title,
@@ -36,7 +48,9 @@ ConfigSV.WebhookHandler = function(webhookId, fields)
                 ["inline"] = field.inline or false
             })
         end
-        PerformHttpRequest(webhook.url, function(err, text, headers) end, "POST", json.encode({embeds = embed}), {["Content-Type"] = "application/json"})
+        PerformHttpRequest(webhook.url, function(err, text, headers)
+            print(err, text, headers)
+        end, "POST", json.encode({embeds = embed}), {["Content-Type"] = "application/json"})
     end
 end
 

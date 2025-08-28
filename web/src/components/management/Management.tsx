@@ -1,7 +1,7 @@
 import { Translate, translateText } from "@/providers/locale/Locale"
 import { createContext, useContext, useEffect, useState } from "react"
 import { Button } from "../ui/button"
-import { ArrowLeft, Edit, EyeIcon, Plus, Save, Trash, X } from "lucide-react"
+import { ArrowLeft, Edit, EyeIcon, Loader2, Plus, Save, Trash, X } from "lucide-react"
 import { AppControls } from "@/App"
 import { useNuiEvent } from "@/providers/nui/useNui"
 import { fetchNui } from "@/providers/nui/fetchNui"
@@ -83,7 +83,8 @@ function ManagementDepartmentList() {
                     <div key={department.id} className="p-4 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
                         setCurrentDepartmentId(department.id)
                     }}>
-                        <div className="flex flex-row items-center justify-between">
+                        <div className="flex flex-row items-center gap-2">
+                            <img src={department.image} className="w-8 h-8" style={{display: department.image ? 'block' : 'none'}} />
                             <h2 className="text-md font-bold">{department.label}</h2>
                         </div>
                     </div>
@@ -264,10 +265,12 @@ function ManagementDepartment() {
     const { config } = useConfig();
     const [label, setLabel] = useState<string>(creatingDepartment ? translateText(config, "default_department_name", []) : currentDepartment?.label || "");
     const [editingLabel, setEditingLabel] = useState(false);
+    const [image, setImage] = useState<string>(creatingDepartment ? "" : (currentDepartment?.image || ""));
     const [player, setPlayer] = useState<Player | null>(currentDepartment ? GetDepartmentLeader(currentDepartment) : null);
-    const [job, setJob] = useState<string>(creatingDepartment ? Object.keys(config.jobs)[0] : currentDepartment?.job || "");
+    const [job, setJob] = useState<string>(creatingDepartment ? Object.keys(config.jobs)[0] : (currentDepartment?.job || ""));
     const [currentLocation, setCurrentLocation] = useState<DepartmentLocation | null>(null);
     const [locations, setLocations] = useState<DepartmentLocation[]>(currentDepartment?.locations || []);
+    const [imageLoaded, setImageLoaded] = useState(false);
     useEffect(() => {
         if (!currentDepartment) return;
         setPlayer(GetDepartmentLeader(currentDepartment))
@@ -284,6 +287,19 @@ function ManagementDepartment() {
             locationId: null,
         })
     }, [currentLocation])
+    useEffect(() => {
+        if (creatingDepartment) return;
+        const debouncedSetImage = setTimeout(() => {
+            fetchNui("managementAction", {
+                action: "updateImage",
+                data: {
+                    departmentId: currentDepartmentId,
+                    image: image,
+                },
+            })
+        }, 500)
+        return () => clearTimeout(debouncedSetImage)
+    }, [image])
     return (
         <div className="flex flex-col gap-2 select-none">
             <div className="flex flex-row gap-2 items-center justify-between w-full">
@@ -412,6 +428,18 @@ function ManagementDepartment() {
                             <option key={job} value={job}>{config.jobs[job].label}</option>
                         ))}
                     </select>
+                </div>
+                <div className="flex flex-row gap-2 items-center justify-between w-full">
+                    <div className="flex flex-row gap-2 items-center">
+                        {image != "" && <div className="relative w-8 h-8">
+                            {!imageLoaded && (
+                                <Loader2 className="w-8 h-8 animate-spin" />
+                            )}
+                            <img src={image} className="w-8 h-8" onLoad={() => setImageLoaded(true)} style={{display: image ? 'block' : 'none'}} />
+                        </div>}
+                        <div className="font-semibold text-md"><Translate id="department_image" />:</div>
+                    </div>
+                    <input type="text" className="bg-background text-sm text-muted-foreground cursor-pointer transition-all duration-200" placeholder="https://example.com/image.png" value={image} onChange={(e) => setImage(e.target.value)} />
                 </div>
                 {!creatingDepartment && (
                     <>
@@ -561,6 +589,7 @@ function ManagementDepartment() {
                             action: "createDepartment",
                             data: {
                                 label: label,
+                                image: image,
                                 leader: player ? player.source : null,
                                 job: job,
                             },
@@ -762,6 +791,16 @@ function Management({ defaultDepartments }: { defaultDepartments: Department[] }
                     return {
                         ...department,
                         label: data.label,
+                    }
+                }
+                return department;
+            }))
+        } else if (data.type === "updateImage") {
+            setDepartments(departments.map((department) => {
+                if (department.id === data.departmentId) {
+                    return {
+                        ...department,
+                        image: data.image,
                     }
                 }
                 return department;

@@ -19,6 +19,17 @@ local TARGET_OPTIONS = {
                 end
             end
             if closestDistance < 2.0 then
+                if true or not IsPlayerOnDuty() then 
+                    local ped = PlayerPedId()
+                    TaskPlayAnim(ped, "mini@repair", "fixing_a_ped", 1.0, -1.0, -1, 0, 0, false, false, false)
+                    local success = lib.skillCheck({'easy', 'medium', 'medium', 'medium'}, {'w', 'a', 's', 'd'})
+                    ClearPedTasks(ped)
+                    if not success then
+                        ShowNotification(_L("failed_grappler_removal"))
+                        return
+                    end
+                end
+                ShowNotification(_L("grappler_removed"))
                 TriggerServerEvent("pickle_policejob:grappler:remove", closestGrappler)
             end
         end,
@@ -76,7 +87,6 @@ function UnrenderVehicleGrappler(vehicleNetId)
     if not LocalGrapplerVehicles[vehicleNetId] then return end
     DeleteEntity(LocalGrapplerVehicles[vehicleNetId].grappler)
     if LocalGrapplerVehicles[vehicleNetId].rope then
-        print("DELETE ROPE", LocalGrapplerVehicles[vehicleNetId].rope)
         DeleteRope(LocalGrapplerVehicles[vehicleNetId].rope)
         LocalGrapplerVehicles[vehicleNetId].rope = nil
     end

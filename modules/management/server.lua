@@ -5,11 +5,13 @@ function GetManagementData()
     for id, department in pairs(Departments) do
         departments[#departments + 1] = {
             id = id,
+            image = department.image,
             label = department.label,
             location = department.location,
             locations = department.locations,
             members = department.members,
             ranks = department.ranks,
+            job = department.job,
         }
     end
     return {
@@ -80,6 +82,16 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
                 label = data.label,
             })
         end
+    elseif action == "updateImage" then
+        department.image = data.image
+        UpdateDepartmentSQL(data.departmentId, "image")
+        for k, v in pairs(InManagement) do
+            TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
+                type = "updateImage",
+                departmentId = data.departmentId,
+                image = data.image,
+            })
+        end
     elseif action == "setDepartmentJob" then
         local jobCfg = Config.PoliceJobs[data.job]
         if not jobCfg then print("ERROR: Job not found: " .. data.job) return end
@@ -129,6 +141,7 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
         local department = {
             job = data.job,
             label = data.label,
+            image = data.image,
             location = data.location,
             members = members,
             ranks = {
@@ -152,10 +165,12 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
             permissions = {},
             outfits = {},
             locations = {},
-            misc = {},
+            misc = {
+                transactions = {},
+            },
         }
-        MySQL.insert('INSERT INTO `pickle_police_departments` (label, job, location, members, ranks, permissions, outfits, locations, misc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', {
-            department.label, department.job, json.encode(department.location), json.encode(department.members), json.encode(department.ranks), json.encode(department.permissions), json.encode(department.outfits), json.encode(department.locations), json.encode(department.misc)
+        MySQL.insert('INSERT INTO `pickle_police_departments` (label, image, job, location, members, ranks, permissions, outfits, locations, misc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {
+            department.label, department.image, department.job, json.encode(department.location), json.encode(department.members), json.encode(department.ranks), json.encode(department.permissions), json.encode(department.outfits), json.encode(department.locations), json.encode(department.misc)
         }, function(id)
             department.id = id
             InitializeDepartment(id, department)
@@ -178,6 +193,12 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
                 })
             end
         end)
+        MySQL.query('DELETE FROM `pickle_police_files` WHERE `departmentId` = ?', {
+            data.departmentId,
+        })
+        MySQL.query('DELETE FROM `pickle_police_fines` WHERE `departmentId` = ?', {
+            data.departmentId,
+        })
     elseif action == "createLocation" then
         local location = data.location
         local departmentId = data.departmentId
@@ -262,6 +283,12 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
             locationId = data.locationId,
         })
     end
+    ConfigSV.WebhookHandler("management", {
+        action = action,
+        department = department.label,
+        player = GetPlayerCharacterName(source) .. " (ID: " .. source .. " / " .. GetPlayerIdentifier(source) .. ")",
+        data = "```json\n" .. json.encode(data) .. "\n```",
+    })
 end)
 
 RegisterNetEvent("pickle_policejob:closeManagement", function()

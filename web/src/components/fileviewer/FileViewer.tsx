@@ -254,24 +254,26 @@ export default function FileViewer() {
                     </div>
                 </div>
                 <div className="w-full flex flex-col p-2 gap-2 relative justify-between h-[calc(100%-30px)]">
-                    {reconstructSceneId != null ? (
-                        <div className="w-full h-[30px] bg-secondary hover:bg-secondary/80 transition-all duration-300 cursor-pointer rounded-md flex items-center justify-center gap-2 select-none" onClick={() => {
-                            fetchNui("reconstructScene", {});
-                            setReconstructSceneId(null);
-                        }}>
-                            <Eye className="w-4 h-4" />
-                            <div className="font-semibold text-sm text-white"><Translate id="stop_reconstruct_scene" /></div>
-                        </div>
-                    ) : (
-                        <div className="w-full h-[30px] bg-secondary hover:bg-secondary/80 transition-all duration-300 cursor-pointer rounded-md flex items-center justify-center gap-2 select-none" onClick={() => {
-                            fetchNui("reconstructScene", {
-                                file: file,
-                            });
-                            fetchNui("closeFileViewer", {});
-                        }}>
-                            <Eye className="w-4 h-4" />
-                            <div className="font-semibold text-sm text-white"><Translate id="reconstruct_scene" /></div>
-                        </div>
+                    {file.evidence.length > 0 && (
+                        reconstructSceneId != null ? (
+                            <div className="w-full h-[30px] bg-secondary hover:bg-secondary/80 transition-all duration-300 cursor-pointer rounded-md flex items-center justify-center gap-2 select-none" onClick={() => {
+                                fetchNui("reconstructScene", {});
+                                setReconstructSceneId(null);
+                            }}>
+                                <Eye className="w-4 h-4" />
+                                <div className="font-semibold text-sm text-white"><Translate id="stop_reconstruct_scene" /></div>
+                            </div>
+                        ) : (
+                            <div className="w-full h-[30px] bg-secondary hover:bg-secondary/80 transition-all duration-300 cursor-pointer rounded-md flex items-center justify-center gap-2 select-none" onClick={() => {
+                                fetchNui("reconstructScene", {
+                                    file: file,
+                                });
+                                fetchNui("closeFileViewer", {});
+                            }}>
+                                <Eye className="w-4 h-4" />
+                                <div className="font-semibold text-sm text-white"><Translate id="reconstruct_scene" /></div>
+                            </div>
+                        )   
                     )}
                     <div className="flex flex-row gap-2">
                         <div className="w-[600px] h-[774px]">

@@ -6,6 +6,13 @@ Config.InteractDistance = 2.0
 Config.UseTarget = true -- This enables the use of the target system when available.
 Config.ImageDirectory = "nui://ox_inventory/web/images/"
 Config.WeaponsAreItems = true -- This enables the use of weapons as items. If set to false, weapons will be treated as items and not as weapons.
+Config.Finance = {
+    deductSalaryFromDepartment = true, -- When true, the salary will be deducted from the department's funds - if it is too much it will not pay. False pays out without deducting.
+    maxRankSalary = 100000, -- The maximum salary a rank can have.
+    salarySchedule = "*/15 * * * *", -- The CRON schedule at which the salary will be paid. Default is every 15 minutes.
+    maxTransactions = 100, -- The maximum number of transactions to store per department.
+}
+
 Config.Peds = {
     {
         label = "Male Officer #1",
@@ -36,6 +43,11 @@ Config.TargetIcons = {
     breathalyzer = "fas fa-vial",
     search = "fas fa-search",
     fingerprint_scanner = "fas fa-fingerprint",
+    fines = "fas fa-money-bill-wave",
+    shields = "fas fa-shield-alt",
+    snakecam = "fas fa-camera",
+    jail = "fas fa-lock",
+    evidence_pickup = "fas fa-broom",
 }
 
 Config.FrameworkSettings = {
@@ -88,6 +100,15 @@ Config.PoliceJobs = { -- You can use multiple departments with the same job, no 
     },
 }
 
+Config.Jail = {
+    maxJailTime = 120, -- The maximum amount of time a player can be jailed for.
+}
+
+Config.Fines = {
+    maxFineAmount = 100000,
+    viewFinesCommand = "fines",
+}
+
 Config.StabSticks = {
     renderDistance = 200.0, -- The distance at which the stab sticks will be rendered. Leave this alone please.
     burstDamage = 800.0, -- The damage to apply to the vehicle when a stab stick is deployed. Don't set this above 1000.0
@@ -95,6 +116,7 @@ Config.StabSticks = {
 }
 
 Config.Grappler = {
+    enabled = true,
     renderDistance = 100.0, -- The distance at which the grappler will be rendered. Leave this alone please.
 }
 
@@ -110,7 +132,12 @@ Config.ObjectPlacement = {
     }
 }
 
+Config.Computer = {
+    vehicleCommand = "pdterminal",
+}
+
 Config.Evidence = {
+    enabled = true,
     renderDistance = 25.0, -- The distance at which evidence will be rendered.
     reconstructRenderDistance = 100.0, -- The distance at which evidence will be rendered for the reconstructed scene.
     maxDisplayAmount = 3, -- The maximum amount of a group of evidence that can be displayed.
@@ -170,12 +197,7 @@ Config.Bodycam = {
     RequiredItem = "police_bodycam",
 }
 
-Config.EAS = {
-    RequiredItem = nil,
-}
-
 Config.Shields = {
-    RequiredItem = "police_shield",
     Models = {
         [`prop_riot_shield`] = {
             Label = "Riot Shield",
@@ -197,7 +219,6 @@ Config.Shields = {
 }
 
 Config.Snakecam = {
-    RequiredItem = "police_snakecam",
     MaxLength = 10.0,
     Controls = {
         up = 32,
@@ -209,27 +230,6 @@ Config.Snakecam = {
         look_right = 175,
 
         stop_cam = 177
-    }
-}
-
-Config.Panic = {
-    RequiredItem = "police_panic",
-    AlertLength = 10,
-    Blips = {
-        {
-            ID = 161,
-            Display = 8,
-            Scale = 0.65,
-            Color = 1,
-            Label = ""
-        },
-        {
-            ID = 61,
-            Display = 4,
-            Scale = 0.65,
-            Color = 1,
-            Label = "Alert: Panic Button"
-        },
     }
 }
 
@@ -407,9 +407,20 @@ Config.Frontdesk = {
 }
 
 Config.Integrations = {
-    inventory = {
-        OpenNearbyInventory = function()
-            -- Replace this with your export / event to open the nearby inventory when searching a player.
+    jail = {
+        openJailMenu = function()
+            -- Replace this with your export / event to open the jail menu. (Client-side ONLY)
+            if GetResourceState("pickle_prisons") == "started" then
+                ExecuteCommand("jailmenu")
+                return true -- Return true to prevent the default jail menu from being opened.
+            end
+            return false
+        end,
+        jailPlayer = function(source, time, reason)
+            -- Replace this with your export / event to jail a player. (Server-side ONLY)
+            if GetResourceState("pickle_prisons") == "started" then
+                -- client side menu
+            end
         end,
     },
     duty = {

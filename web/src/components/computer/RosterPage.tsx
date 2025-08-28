@@ -3,7 +3,7 @@ import { useContext, useEffect, useState } from "react";
 import Table from "../table/Table";
 import { Translate, translateText } from "@/providers/locale/Locale";
 import { Button } from "../ui/button";
-import { ArrowDown, ArrowUp, Check, CheckIcon, DoorOpen, Edit, EyeIcon, LogOut, Pencil, PlusIcon, SaveIcon, Trash, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CheckIcon, DoorOpen, Edit, EyeIcon, InfoIcon, LogOut, Pencil, PlusIcon, SaveIcon, Trash, X } from "lucide-react";
 import ComputerContext, { useComputer } from "./Computer";
 import { ItemDisplay } from "../armory/Armory";
 import { useConfig } from "@/providers/config";
@@ -23,6 +23,7 @@ export type DepartmentMember = {
     rankId: number;
     recentDutyLogs: DutyLog[];
     permissions: string[];
+    onDuty?: number;
     onDutyTime: number;
 }
 
@@ -370,11 +371,22 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
     const [isEditingJobLevel, setIsEditingJobLevel] = useState(false);
     const [isAddingManagingRank, setIsAddingManagingRank] = useState(false);
     const [selectedManagingRank, setSelectedManagingRank] = useState<number | null>(null);
+    const [inputSalary, setInputSalary] = useState(rank.salary || 0);
     const [isDeletingRank, setIsDeletingRank] = useState(false);
     let managingRankIds: number[] = [];
     for (let i = 0; i < rank.managingRankIds.length; i++) {
         managingRankIds.push(rank.managingRankIds[i]);
     }
+    useEffect(() => {
+        const debounceTimeout = setTimeout(() => {  
+            fetchNui("updateComputerDepartment", {
+                type: "updateRankSalary",
+                rankId: rankId,
+                salary: inputSalary,
+            });
+        }, 500);
+        return () => clearTimeout(debounceTimeout);
+    }, [inputSalary]);
     return (
         <div className={`absolute inset-0 bg-background/50 backdrop-blur-sm z-[50] flex items-center justify-center transition-opacity duration-200 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
             <div className="bg-background/95 w-[75%] h-[75%] shadow-lg transition-all duration-200">
@@ -436,6 +448,10 @@ function SelectedRankModal({rankId, onClose, isModalVisible}: {rankId: number, o
                                             </select>
                                         </div>
                                     )}
+                                    <div className="flex flex-row gap-2 items-center">
+                                        <div className="text-sm font-semibold"><Translate id="salary" />:</div>
+                                        <input type="number" className="text-sm bg-secondary px-2 rounded-md" value={inputSalary} onChange={(e) => setInputSalary(parseInt(e.target.value))} />
+                                    </div>
                                     {rankIndex !== 0 && (
                                         <div className="w-full select-none whitespace-nowrap flex items-center justify-center gap-2 bg-destructive hover:bg-destructive/80 transition-colors duration-200 cursor-pointer rounded-md p-1 font-semibold text-xs text-center" onClick={() => {
                                             if (isDeletingRank) {
@@ -897,6 +913,7 @@ function SelectedPermissionModal({permission, onClose, isModalVisible}: {permiss
                                                     <ItemDisplay item={{
                                                         label: item.label,
                                                         name: item.model,
+                                                        image: item.image,
                                                         itemType: "vehicle",
                                                     }} />
                                                     {isIncluded ? (
@@ -1111,8 +1128,17 @@ function Roster() {
                     onDutyTimeDisplay: GetStopwatchTime(member.onDutyTime),
                     lastShift: member.recentDutyLogs.length > 0 ? new Date((member.recentDutyLogs[0].finish - member.recentDutyLogs[0].duration) * 1000).toLocaleString() : "Never",
                     action: (<div className="flex items-center gap-2 justify-end">
+                        {member.onDuty && (
+                            <Button variant="outline" size="icon" onClick={() => {
+                                fetchNui("viewBodycam", {
+                                    identifier: member.identifier,
+                                });
+                            }} >
+                                <EyeIcon className="w-4 h-4"/>
+                            </Button>
+                        )}
                         <Button variant="outline" size="icon" onClick={() => handleMemberSelect(member)} >
-                            <EyeIcon className="w-4 h-4"/>
+                            <InfoIcon className="w-4 h-4"/>
                         </Button>
                     </div>)
                 })) || []} columns={

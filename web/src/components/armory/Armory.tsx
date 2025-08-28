@@ -25,13 +25,13 @@ type ArmoryInfo = {
 export function ItemDisplay({item}: {item: ArmoryItem | {label?: string, image?: string, name: string, itemType?: string}}) {
     return (
         <div className="relative w-24 h-24 bg-background/50 rounded-md overflow-hidden select-none flex flex-col gap-0 items-center justify-between transition-transform duration-200 ease-in-out">
-            <div className="w-full h-full flex flex-col gap-0 items-center justify-center relative">
-                <img src={item.image ? item.image : GetItemImage(item.name)} alt={""} className="w-14 h-14" draggable={false} onError={(e) => {
+            <div className="w-full h-full flex flex-col gap-0 items-center justify-center absolute top-0 left-0 p-1">
+                <img src={item.image ? item.image : GetItemImage(item.name)} alt={""} className="w-full h-full object-contain" draggable={false} onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = "none"; // hides the image
                 }} />                            
             </div>
-            <div className="w-full z-10 px-[4px] py-[2px] bg-background/50">
+            <div className="w-full z-10 px-[4px] py-[2px] bg-background/50 mt-auto">
                     <div className="font-semibold text-xs text-center truncate">
                         {item.label ? (
                             item.label

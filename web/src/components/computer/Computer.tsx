@@ -3,10 +3,9 @@ import { Translate, translateText } from "@/providers/locale/Locale";
 import { useNuiEvent } from "@/providers/nui/useNui";
 import { Maximize, Maximize2, Minus, MinusIcon, PictureInPicture, PictureInPicture2, X } from "lucide-react";
 import { useContext, useEffect, useState, useRef } from "react";
-import HomePage from "./HomePage";
 import RosterPage, { DepartmentMember } from "./RosterPage";
 import EvidencePage from "./EvidencePage";
-import SettingsPage from "./SettingsPage";
+import FinancePage from "./FinancePage";
 import { createContext } from "react";
 import { useConfig } from "@/providers/config";
 import DocumentContainer, { Document, DocumentDisplay } from "../document/Document";
@@ -18,6 +17,7 @@ export type Rank = {
     rankId: number;
     jobLevel: number;
     label: string;
+    salary: number;
     managingRankIds: number[];
     armory: string[];
     vehicles: number[];
@@ -29,14 +29,29 @@ export type DepartmentPermission = {
     vehicles: number[];
 }
 
+export type DepartmentTransactions = {
+    id: number;
+    identifier: string;
+    name: string;
+    amount: number;
+    reason: string;
+    type: "withdraw" | "deposit";
+    time: number;
+}
+
 export type Department = {
     id: number;
+    money: number;
     job: string;
     label: string;
+    image: string;
     ranks: Rank[];
     permissions: Record<string, DepartmentPermission>;
     members: DepartmentMember[];
     locations: DepartmentLocation[];
+    misc: {
+        transactions: DepartmentTransactions[];
+    }
 }
 
 export type DepartmentLocation = {
@@ -91,6 +106,7 @@ function Computer({info}: {info: ComputerInfo}) {
         permissions: {},
         onDutyTime: 0,
     }
+    const rankIndex = department.ranks.findIndex(rank => rank.rankId === player.rankId);
     if (player.identifier === "ERR_CLOSE") {
         fetchNui("closeComputer");
     }
@@ -111,6 +127,19 @@ function Computer({info}: {info: ComputerInfo}) {
             setDepartment(prev => ({
                 ...prev,
                 permissions: data.permissions,
+            }));
+        } else if (data.type == "updateFinance") {
+            setDepartment(prev => ({
+                ...prev,
+                money: data.money,
+            }));
+        } else if (data.type == "updateTransactions") {
+            setDepartment(prev => ({
+                ...prev,
+                misc: {
+                    ...prev.misc,
+                    transactions: data.transactions,
+                },
             }));
         }
     });
@@ -234,11 +263,6 @@ function Computer({info}: {info: ComputerInfo}) {
 
     const programs = [
         {
-            id: "homepage",
-            name: "page_homepage",
-            image: "/nui/images/LSPD.webp"
-        },
-        {
             id: "roster",
             name: "page_roster",
             image: "/nui/images/LSPD.webp"
@@ -255,9 +279,10 @@ function Computer({info}: {info: ComputerInfo}) {
             hideShortcut: true,
         },
         {
-            id: "settings",
-            name: "page_settings",
-            image: "/nui/images/LSPD.webp"
+            id: "finance",
+            name: "page_finance",
+            image: "/nui/images/LSPD.webp",
+            hideShortcut: rankIndex !== 0,
         },
     ]
     const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
@@ -331,10 +356,9 @@ function Computer({info}: {info: ComputerInfo}) {
                                 </div>
                             </div>
                             <div className="w-full h-[calc(100%-30px)] relative">
-                                {window.programId === "homepage" && <HomePage />}
                                 {window.programId === "roster" && <RosterPage />}
                                 {window.programId === "files" && <FilesPage data={window.data} />}
-                                {window.programId === "settings" && <SettingsPage />}
+                                {window.programId === "finance" && <FinancePage />}
                                 {window.programId === "file" && <DocumentDisplay
                                     documentInfo={window.data}
                                     dark={true} 
@@ -406,8 +430,21 @@ export default function ComputerContainer() {
     const [computerInfo, setComputerInfo] = useState<ComputerInfo | null>(true ? null : {
         department: {
             id: 11,
+            image: "nui/images/LSPD.webp",
+            money: 1000000,
             label: "Los Santos Police Department",
             job: "police",
+            misc: {
+                transactions: Array.from({length: 20}, (_, i) => ({
+                    id: i,
+                    identifier: "char1:eeee",
+                    name: "Michael Rodriguez (" + (i+1) + ")",
+                    amount: 1000000 + (i * 25000),
+                    reason: "Salary",
+                    type: i % 3 === 0 ? "withdraw" : "deposit",
+                    time: (Date.now() - (i * 1000)) / 1000,
+                })),
+            },
             ranks: [
                 {
                     "rankId":1,
@@ -416,6 +453,7 @@ export default function ComputerContainer() {
                     "managingRankIds":[],
                     "armory": [],
                     "vehicles": [],
+                    "salary": 1000000,
                 },
                 {
                     "rankId":2,
@@ -424,6 +462,7 @@ export default function ComputerContainer() {
                     "managingRankIds":[],
                     "armory": [],
                     "vehicles": [],
+                    "salary": 1000000,
                 },
                 {
                     "rankId":3,
@@ -432,6 +471,7 @@ export default function ComputerContainer() {
                     "managingRankIds":[2],
                     "armory": [],
                     "vehicles": [],
+                    "salary": 1000000,
                 },
                 {
                     "rankId":4,
@@ -440,6 +480,7 @@ export default function ComputerContainer() {
                     "managingRankIds":[1,2,3],
                     "armory": [],
                     "vehicles": [],
+                    "salary": 1000000,
                 },
                 {
                     "rankId":5,
@@ -448,6 +489,7 @@ export default function ComputerContainer() {
                     "managingRankIds":[1,2,3],
                     "armory": [],
                     "vehicles": [],
+                    "salary": 1000000,
                 },
             ],
             members: [
@@ -664,6 +706,9 @@ export default function ComputerContainer() {
         }
     }
     useNuiEvent("updateComputerInfo", updateComputerInfo);
+    useNuiEvent("setComputerVisible", (data: any) => {
+        setVisible(data.visible);
+    });
     return (
         computerInfo && (
             <div className="dark w-screen h-screen absolute text-primary top-0 left-0 flex items-center justify-center transition-opacity duration-300" style={{opacity: visible ? 1 : 0}}>

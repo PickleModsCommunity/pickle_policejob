@@ -6,7 +6,6 @@ function GetDepartmentMemberArmory(source)
     local armory = {}
     for i=1, #Config.PoliceArmory do
         local allowed = false
-        print(departmentId, member.rankId, Config.PoliceArmory[i].name, "armory")
         if CanRankAccessEntry(departmentId, member.rankId, Config.PoliceArmory[i].name, "armory") then
             allowed = true
         elseif CanPermissionsAccessEntry(departmentId, member.permissions, Config.PoliceArmory[i].name, "armory") then

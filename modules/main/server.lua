@@ -3,6 +3,8 @@ function InitializeDepartment(id, data, dontSync)
         id = id,
         job = data.job,
         label = data.label,
+        image = data.image,
+        money = data.money,
         location = data.location,
         locations = EnsureDepartmentData("locations", data.locations),
         members = data.members,
@@ -22,6 +24,16 @@ function UpdateDepartmentSQL(id, columnId)
     if columnId == "label" then
         MySQL.Async.execute("UPDATE pickle_police_departments SET label = @label WHERE id = @id", {
             label = department.label,
+            id = id,
+        })
+    elseif columnId == "image" then
+        MySQL.Async.execute("UPDATE pickle_police_departments SET image = @image WHERE id = @id", {
+            image = department.image,
+            id = id,
+        })
+    elseif columnId == "money" then
+        MySQL.Async.execute("UPDATE pickle_police_departments SET money = @money WHERE id = @id", {
+            money = department.money,
             id = id,
         })
     elseif columnId == "job" then
@@ -63,6 +75,11 @@ function UpdateDepartmentSQL(id, columnId)
             outfits = json.encode(department.outfits),
             id = id,
         })
+    elseif columnId == "misc" then
+        MySQL.Async.execute("UPDATE pickle_police_departments SET misc = @misc WHERE id = @id", {
+            misc = json.encode(department.misc),
+            id = id,
+        })
     end
 end
 
@@ -83,11 +100,16 @@ end
 
 function GetDepartmentMember(id, source)
     local department = GetDepartment(id)
-    local identifier = GetIdentifier(source)
+    local identifier
+    if type(source) == "string" and not tonumber(source) then
+        identifier = source
+    else
+        identifier = GetIdentifier(source)
+    end
     if not department then return nil end
     for i=1, #department.members do
         if department.members[i].identifier == identifier then
-            return department.members[i], i
+            return department.members[i], i, GetSourceFromIdentifier(identifier)
         end
     end
 end
@@ -122,6 +144,52 @@ function GetDepartmentEntity(id, entityId)
         end
     end
     return nil
+end
+
+function AddDepartmentMoney(id, amount)
+    local department = GetDepartment(id)
+    if not department then return end
+    department.money = (department.money or 0) + amount
+    UpdateDepartmentSQL(id, "money")
+    SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+        type = "updateFinance",
+        money = department.money,
+    })
+end
+
+function RemoveDepartmentMoney(id, amount)
+    local department = GetDepartment(id)
+    if not department then return end
+    department.money = (department.money or 0) - amount
+    UpdateDepartmentSQL(id, "money")
+end 
+
+function GetDepartmentMoney(id)
+    local department = GetDepartment(id)
+    if not department then return 0 end
+    return department.money
+end
+
+function AddDepartmentTransaction(id, source, transactionType, amount, reason)
+    local department = GetDepartment(id)
+    if not department then return end
+    table.insert(department.misc.transactions, 1, {
+        id = os.time() .. "_" .. math.random(1, 50),
+        identifier = source == -1 and "SYSTEM" or GetIdentifier(source),
+        name = source == -1 and _L("system") or GetPlayerCharacterName(source),
+        amount = amount,
+        reason = reason,
+        type = transactionType,
+        time = os.time(),
+    })
+    if #department.misc.transactions > Config.Finance.maxTransactions then
+        table.remove(department.misc.transactions, Config.Finance.maxTransactions)
+    end
+    UpdateDepartmentSQL(id, "misc")
+    SendComputerEvent("pickle_policejob:updateComputerDepartment", {
+        type = "updateTransactions",
+        transactions = department.misc.transactions,
+    })
 end
 
 function IsPlayerOnDuty(source)
@@ -162,6 +230,10 @@ function EnsureDepartmentData(key, data)
             }
         end
         return locations
+    elseif key == "misc" then
+        if not data or type(data) ~= "table" then return {} end
+        if not data.transactions or type(data.transactions) ~= "table" then data.transactions = {} end
+        return data
     else
         return data or {}
     end
@@ -200,7 +272,6 @@ function SetPlayerDuty(source, onDuty, report)
     local rank, rankIndex = GetDepartmentRank(departmentId, memberData.rankId)
     if onDuty and not memberData.onDuty then
         memberData.onDuty = os.time()
-        print("Setting player job to ", department.job, rank.jobLevel)
         SetPlayerJob(source, department.job, rank.jobLevel)
         ShowNotification(source, _L("duty_on"))
         ExecuteIntegration(source, "duty", departmentId, true)
@@ -349,6 +420,14 @@ RegisterNetEvent("pickle_policejob:initializePlayer", function()
         while not Inventory.Ready do
             Wait(100)
         end
+        local departmentId, memberData = GetPlayerDepartment(source)
+        if departmentId then
+            local department = Departments[departmentId]
+            local rank, rankIndex = GetDepartmentRank(departmentId, memberData.rankId)
+            if department.job == "police" then
+                SetPlayerDuty(source, true)
+            end
+        end
         TriggerClientEvent("pickle_policejob:setupInventory", source, Inventory.Items)
         TriggerClientEvent("pickle_policejob:initializeDepartment", source, Departments)
         TriggerClientEvent("pickle_policejob:updateOnDuty", source, IsPlayerOnDuty(source))
@@ -360,6 +439,48 @@ AddEventHandler("onPlayerDropped", function(source)
     if not departmentId then return end
     if memberData.onDuty then
         SetPlayerDuty(source, false)
+    end
+end)
+
+lib.cron.new(Config.Finance.salarySchedule, function()
+    for _, department in pairs(Departments) do
+        local totalCost = 0
+        local totalMembers = 0
+        for _, member in pairs(department.members) do
+            local source = GetSourceFromIdentifier(member.identifier)
+            if member.onDuty and source then
+                local rank = GetDepartmentRank(department.id, member.rankId)
+                if rank then 
+                    totalCost = totalCost + (rank.salary or 0)
+                    totalMembers = totalMembers + 1
+                end
+            end
+        end
+        if totalCost > 0 then
+            local payMembers = false
+            local money = GetDepartmentMoney(department.id)
+            if Config.Finance.deductSalaryFromDepartment then
+                if money >= totalCost then
+                    RemoveDepartmentMoney(department.id, totalCost)
+                    AddDepartmentTransaction(department.id, -1, "withdraw", totalCost, _L("salary_paid_reason", totalMembers))
+                    payMembers = true
+                end
+            else
+                payMembers = true
+            end
+            for _, member in pairs(department.members) do
+                local source = GetSourceFromIdentifier(member.identifier)
+                if member.onDuty and source then
+                    if payMembers then
+                        local rank = GetDepartmentRank(department.id, member.rankId)
+                        AddMoney(source, rank.salary, "bank")
+                        ShowNotification(source, _L("salary_paid",  NumberWithCommas(rank.salary)))
+                    else
+                        ShowNotification(source, _L("salary_not_paid"))
+                    end
+                end
+            end
+        end
     end
 end)
 
@@ -380,6 +501,8 @@ MySQL.ready(function()
             `id` INT NOT NULL AUTO_INCREMENT,
             `job` VARCHAR(255) NOT NULL,
             `label` VARCHAR(255) NOT NULL,
+            `image` TEXT NOT NULL,
+            `money` INT NOT NULL DEFAULT 0,
             `location` JSON NOT NULL,
             `locations` JSON NOT NULL,
             `members` JSON NOT NULL,
@@ -397,7 +520,9 @@ MySQL.ready(function()
                 end
                 InitializeDepartment(v.id, {
                     label = EnsureDepartmentData("label", v.label),
+                    image = v.image,
                     job = v.job,
+                    money = v.money,
                     location = EnsureDepartmentData("location", json.decode(v.location)),
                     members = EnsureDepartmentData("members", json.decode(v.members)),
                     locations = EnsureDepartmentData("locations", json.decode(v.locations)),
