@@ -125,7 +125,7 @@ end
 function GetPlayerJob(source)
     local xPlayer = ESX.GetPlayerFromId(tonumber(source))
     if not xPlayer then return "Unknown Job", "Unknown Grade" end
-    return {label = xPlayer.job.label, rank_label = xPlayer.job.grade_label}
+    return {name = xPlayer.job.name, label = xPlayer.job.label, rank_label = xPlayer.job.grade_label}
 end
 
 function SetPlayerJob(source, job, grade)

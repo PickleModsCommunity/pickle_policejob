@@ -141,7 +141,7 @@ end
 function GetPlayerJob(source)
     local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
     if not xPlayer then return end
-    return {label = xPlayer.PlayerData.job.label, rank_label = xPlayer.PlayerData.job.grade.name}
+    return {name = xPlayer.PlayerData.job.name, label = xPlayer.PlayerData.job.label, rank_label = xPlayer.PlayerData.job.grade.name}
 end
 
 function SetPlayerJob(source, job, grade)
