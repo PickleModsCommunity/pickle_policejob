@@ -48,6 +48,7 @@ Config.TargetIcons = {
     snakecam = "fas fa-camera",
     jail = "fas fa-lock",
     evidence_pickup = "fas fa-broom",
+    id_card = "fas fa-id-card",
 }
 
 Config.FrameworkSettings = {
@@ -407,6 +408,17 @@ Config.Frontdesk = {
 }
 
 Config.Integrations = {
+    fines = {
+        onFineIssued = function(id,source, target, title, description, amount)
+            -- Called when a fine is issued.
+        end,
+        onFinePaid = function(id, source, issuingIdentifier, title, description, amount)
+            -- Called when a fine is paid.
+        end,
+        onFineRemoved = function(id, source, issuingIdentifier, title, description, amount)
+            -- Called when a fine is removed.
+        end,
+    },
     jail = {
         openJailMenu = function()
             -- Replace this with your export / event to open the jail menu. (Client-side ONLY)
@@ -429,41 +441,9 @@ Config.Integrations = {
         server = function(source, departmentId, isOnDuty, report)
         end,
     },
-}
-
-Config.DocumentTemplates = {
-    -- Feel free to change these as you wish, but note we will not support any issues that arise from your changes as this is considered a customisation.
-
-    -- SHARED VARIABLES:
-    -- {department} - The name of the officer's department.
-    -- {name} - The name of the officer.
-    -- {rank} - The rank of the officer.
-
-    ["shift_report"] = {
-        -- AVAILABLE VARIABLES:
-        -- {shiftStart} - The start date & time of the shift.
-        -- {shiftEnd} - The end date & time of the shift.
-        -- {duration} - The duration of the shift.
-        title = "{department}", -- The top title of the document.
-        subtitle = "SHIFT REPORT", -- The subtitle of the document.
-        header = {
-            showImage = true, -- Whether to show the image of the department at the top of the document.
-            leftInfo = {
-                { label = "<span class='font-bold'>{name}</span>" },
-                { label = "{rank}" },
-            },
-            rightInfo = {
-                { label = "<span class='font-bold'>Shift Start</span>" },
-                { label = "{shiftStart}" },
-                { label = "<span class='font-bold'>Shift End</span>" },
-                { label = "{shiftEnd}" },
-                { label = "<span class='font-bold'>Shift Duration</span>" },
-                { label = "{duration}" },
-            },
-        },
-        content = {
-            { label = "<span class='font-bold'>{name}</span>" },
-            { label = "{rank}" },
-        }
+    inventory = {
+        OpenNearbyInventory = function()
+            -- Replace this with your export / event to open the nearby inventory. (Client-side ONLY)
+        end,
     }
 }

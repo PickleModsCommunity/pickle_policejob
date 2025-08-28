@@ -27,6 +27,18 @@ function GetPlayerCharacterName(source)
     return xPlayer.getName()
 end
 
+function GetPlayerDateOfBirth(source)
+    local xPlayer = ESX.GetPlayerFromId(source)
+    if not xPlayer then return "Unknown" end
+    return xPlayer.get('dateofbirth')
+end
+
+function GetPlayerGender(source)
+    local xPlayer = ESX.GetPlayerFromId(source)
+    if not xPlayer then return "Unknown" end
+    return xPlayer.sex == 0 and _L("male") or _L("female")
+end
+
 function CanAccessGroup(source, data)
     if not data then return true end
     local pdata = ESX.GetPlayerFromId(source)

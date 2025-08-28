@@ -25,6 +25,14 @@ function DeleteStabSticks(id)
     TriggerClientEvent("pickle_policejob:actions:deleteStabSticks", -1, id)
 end
 
+lib.callback.register("pickle_policejob:actions:getIDCard", function(source, targetId)
+    local target = GetPlayerCharacterName(targetId)
+    local dob = GetPlayerDateOfBirth(targetId) or "Unknown"
+    local gender = GetPlayerGender(targetId) or "Unknown"
+    local job = (GetPlayerJob(targetId)?.label or GetPlayerJob(targetId)?.name) or "Unknown"
+    return {name = target, dob = dob, gender = gender, job = job}
+end)
+
 RegisterNetEvent("pickle_policejob:actions:detainment", function(targetPlayer, data)
     local source = source
     if data.eventType ~= "stopDrag" and not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end

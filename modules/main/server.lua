@@ -377,6 +377,18 @@ function CanPermissionsAccessEntry(departmentId, permissions, entryId, entryType
     return false
 end
 
+function GetTotalCopsOnline()
+    local total = 0
+    for _, player in pairs(GetPlayers()) do
+        if IsPlayerOnDuty(player) then
+            total = total + 1
+        end
+    end
+    return total
+end
+
+exports("GetTotalCopsOnline", GetTotalCopsOnline)
+
 lib.callback.register("pickle_policejob:openFrontdesk", function(source, id)
     local department = GetDepartment(id)
     local departmentId, memberData = GetPlayerDepartment(source)

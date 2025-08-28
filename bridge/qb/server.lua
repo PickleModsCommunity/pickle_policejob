@@ -138,6 +138,18 @@ function UpdateVehiclePlate(source, plate, newPlate)
     })
 end
 
+function GetPlayerDateOfBirth(source)
+    local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
+    if not xPlayer then return "Unknown" end
+    return xPlayer.PlayerData.charinfo.dob
+end
+
+function GetPlayerGender(source)
+    local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
+    if not xPlayer then return "Unknown" end
+    return xPlayer.PlayerData.charinfo.gender == 0 and _L("male") or _L("female")
+end
+
 function GetPlayerJob(source)
     local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
     if not xPlayer then return end

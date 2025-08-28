@@ -580,11 +580,63 @@ function OpenObjectPlacementMenu()
     lib.showContext(menuId)
 end
 
+function OpenIDCardMenu()
+    local player = GetClosestPlayer()
+    if not player then return ShowNotification(_L("no_player_nearby")) end
+    local targetId = GetPlayerServerId(player)
+    lib.callback("pickle_policejob:actions:getIDCard", false, function(result)
+        if not result then return ShowNotification(_L("no_id_card")) end
+        local menuId = "pickle_policejob:actions:idcard"
+        local options = {
+            {
+                title = _L("id_card_name"),
+                description = result.name,
+                icon = Config.TargetIcons.id_card,
+            },
+            {
+                title = _L("id_card_dob"),
+                description = result.dob,
+                icon = "fas fa-calendar-alt",
+            },
+            {
+                title = _L("id_card_gender"),
+                description = result.gender,
+                icon = "fas fa-venus-mars",
+            },
+            {
+                title = _L("id_card_job"),
+                description = result.job,
+                icon = "fas fa-briefcase",
+            },
+        }
+        lib.registerContext({
+            id = menuId,
+            title = _L("actions_id_card"),
+            options = options,
+            onExit = function()
+                SetTimeout(100, function()
+                    OpenPoliceActionsMenu()
+                end)
+            end
+        })
+        lib.showContext(menuId)
+    end, targetId)
+end
+
 function OpenPoliceActionsMenu()
     if IsMenuOpen then return end
     IsMenuOpen = true
     local menuId = "pickle_policejob:actions:menu"
     local options = {
+        {
+            title = _L("actions_id_card"),
+            description = _L("actions_id_card_description"),
+            icon = Config.TargetIcons.id_card,
+            onSelect = function()
+                IsMenuOpen = false
+                OpenIDCardMenu()
+            end,
+        },
         {
             title = _L("actions_handcuffs"),
             description = _L("actions_handcuffs_description"),

@@ -27,6 +27,7 @@ RegisterNetEvent("pickle_policejob:fines:payFine", function(fineId)
     AddDepartmentMoney(fine.departmentId, fine.amount)
     MySQL.query("DELETE FROM pickle_police_fines WHERE id = ?", {fineId})
     ShowNotification(source, _L("fine_paid", NumberWithCommas(fine.amount)))
+    Config.Integrations.fines.onFinePaid(fineId, source, fine.issuingIdentifier, fine.title, fine.description, fine.amount)
 end)
 
 RegisterNetEvent("pickle_policejob:fines:removeFine", function(fineId)
@@ -41,6 +42,7 @@ RegisterNetEvent("pickle_policejob:fines:removeFine", function(fineId)
     if fine.issuingIdentifier ~= GetIdentifier(source) and rankIndex > 1 then return ShowNotification(source, _L("fine_no_permission")) end
     MySQL.query("DELETE FROM pickle_police_fines WHERE id = ?", {fineId})
     ShowNotification(source, _L("fine_removed", NumberWithCommas(fine.amount)))
+    Config.Integrations.fines.onFineRemoved(fineId, source, fine.issuingIdentifier, fine.title, fine.description, fine.amount)
 end)
 
 RegisterNetEvent("pickle_policejob:fines:createFine", function(targetId, amount, title, description)
@@ -50,9 +52,10 @@ RegisterNetEvent("pickle_policejob:fines:createFine", function(targetId, amount,
     if not title then return ShowNotification(source, _L("invalid_fine_title")) end
     if not description then return ShowNotification(source, _L("invalid_fine_description")) end
     local departmentId = GetPlayerDepartment(source)
-    MySQL.query("INSERT INTO pickle_police_fines (identifier, issuingIdentifier, issuingName, departmentId, amount, title, description) VALUES (?, ?, ?, ?, ?, ?, ?)", {GetIdentifier(targetId), GetIdentifier(source), GetPlayerCharacterName(source), departmentId, amount, title, description})
+    local fineId = MySQL.insert.await("INSERT INTO pickle_police_fines (identifier, issuingIdentifier, issuingName, departmentId, amount, title, description) VALUES (?, ?, ?, ?, ?, ?, ?)", {GetIdentifier(targetId), GetIdentifier(source), GetPlayerCharacterName(source), departmentId, amount, title, description})
     ShowNotification(targetId, _L("fined_victim", NumberWithCommas(amount), title, Config.Fines.viewFinesCommand))
     ShowNotification(source, _L("fined_issuer", GetPlayerCharacterName(targetId), NumberWithCommas(amount)))
+    Config.Integrations.fines.onFineIssued(fineId, source, targetId, title, description, amount)
 end)
 
 MySQL.ready(function()
