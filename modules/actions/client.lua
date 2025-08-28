@@ -861,6 +861,7 @@ CreateThread(function()
 end)
 
 RegisterCommand("policeactions", function()
+    if not IsPlayerOnDuty() then return end
     OpenPoliceActionsMenu()
 end)
 
