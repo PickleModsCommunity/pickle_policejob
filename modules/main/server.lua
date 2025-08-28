@@ -415,7 +415,6 @@ end)
 
 RegisterNetEvent("pickle_policejob:initializePlayer", function()
     local source = source
-    local xPlayer = ESX.GetPlayerFromId(source)
     CreateThread(function()
         while not Inventory.Ready do
             Wait(100)
@@ -424,7 +423,7 @@ RegisterNetEvent("pickle_policejob:initializePlayer", function()
         if departmentId then
             local department = Departments[departmentId]
             local rank, rankIndex = GetDepartmentRank(departmentId, memberData.rankId)
-            if department.job == "police" then
+            if GetPlayerJob(source) and department.job == GetPlayerJob(source).name then
                 SetPlayerDuty(source, true)
             end
         end

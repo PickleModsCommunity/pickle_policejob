@@ -94,7 +94,7 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
         end
     elseif action == "setDepartmentJob" then
         local jobCfg = Config.PoliceJobs[data.job]
-        if not jobCfg then print("ERROR: Job not found: " .. data.job) return end
+        if not jobCfg then print("ERROR: Job not found: ", data.job) return end
         for i=1, #department.members do
             local rank, rankIndex = GetDepartmentRank(data.departmentId, department.members[i].rankId)
             if rankIndex == 1 then
@@ -124,7 +124,7 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
         end)
     elseif action == "createDepartment" then
         local jobCfg = Config.PoliceJobs[data.job]
-        if not jobCfg then print("ERROR: Job not found: " .. data.job) return end
+        if not jobCfg then print("ERROR: Job not found: ", data.job) return end
         local leader = data.leader
         local members = {}
         if leader and GetIdentifier(leader) then
