@@ -1,6 +1,7 @@
 local LocalDepartments = {}
 local CurrentDepartment = nil
 local OnDuty = false
+local PAGE_READY = false
 
 function IsPlayerOnDuty()
     return OnDuty
@@ -288,27 +289,7 @@ end)
 
 RegisterNUICallback("pageLoaded", function(data, cb)
     cb("ok")
-    lib.callback("pickle_policejob:getPlayerInfo", false, function(player)
-        while not Inventory or not Inventory.Ready do Wait(100) end
-        SendNUIMessage({
-            type = "setConfig",
-            config = {
-                imageDirectory = Config.ImageDirectory,
-                identifier = player.identifier,
-                name = player.name,
-                locale = Language[Config.Language],
-                countryCode = Config.Currency.countryCode,
-                currency = Config.Currency.currency,
-                items = Inventory.Items,
-                jobs = Config.PoliceJobs or {},
-                policeArmory = Config.PoliceArmory or {},
-                policeGarage = Config.PoliceGarage or {},
-                peds = Config.Peds or {},
-                garageTypes = Config.PoliceGarageTypes or {},
-                locationTypes = LOCATION_TYPES,
-            }
-        })
-    end)
+    PAGE_READY = true
 end)
 
 RegisterNetEvent("pickle_policejob:integration", function(integration, ...)
@@ -363,6 +344,31 @@ RegisterNetEvent("pickle_policejob:updateDepartment", function(data)
             end
         end
     end
+end)
+
+RegisterNetEvent("pickle_policejob:initializePlayer", function()
+    while not PAGE_READY do Wait(100) end
+    lib.callback("pickle_policejob:getPlayerInfo", false, function(player)
+        while not Inventory or not Inventory.Ready do Wait(100) end
+        SendNUIMessage({
+            type = "setConfig",
+            config = {
+                imageDirectory = Config.ImageDirectory,
+                identifier = player.identifier,
+                name = player.name,
+                locale = Language[Config.Language],
+                countryCode = Config.Currency.countryCode,
+                currency = Config.Currency.currency,
+                items = Inventory.Items,
+                jobs = Config.PoliceJobs or {},
+                policeArmory = Config.PoliceArmory or {},
+                policeGarage = Config.PoliceGarage or {},
+                peds = Config.Peds or {},
+                garageTypes = Config.PoliceGarageTypes or {},
+                locationTypes = LOCATION_TYPES,
+            }
+        })
+    end)
 end)
 
 RegisterNetEvent("pickle_policejob:updateOnDuty", function(onDuty)

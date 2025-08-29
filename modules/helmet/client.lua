@@ -177,7 +177,7 @@ if Config.Helmets.EnableFlashlights then
                     if ped ~= localPed then 
                         local pedCoords = GetEntityCoords(ped)
                         local dist = #(localCoords - pedCoords)
-                        if dist < 100 then 
+                        if dist < 100 and dist > 1.0 then 
                             wait = 0
                             DrawHelmetFlashlight(ped, GetPedConfigFlag(ped, 78, true))
                         end

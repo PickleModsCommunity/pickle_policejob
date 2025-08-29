@@ -41,6 +41,7 @@ RegisterNetEvent("pickle_policejob:bodycam:startView", function(target, data)
     HardAttachCamToPedBone(cam, targetPed, 0x796E, 0.0, 90.0, 0.0, 0.0, 0.1, -0.05, true)
     SetTimecycleModifier("scanline_cam")
     SetTimecycleModifierStrength(1.0)
+    local oldChannel = MumbleGetVoiceChannelFromServerId(GetPlayerServerId(PlayerId()))
     CreateThread(function()
         SendNUIMessage({
             type = "setBodycamInfo",
@@ -98,7 +99,7 @@ RegisterNetEvent("pickle_policejob:bodycam:startView", function(target, data)
     SetTimecycleModifier("default")
     SetTimecycleModifierStrength(0.0)
     ClearTimecycleModifier()
-    MumbleClearVoiceChannel()
+    MumbleSetVoiceChannel(oldChannel)
 end)
 
 AddEventHandler("onResourceStop", function(resource)
