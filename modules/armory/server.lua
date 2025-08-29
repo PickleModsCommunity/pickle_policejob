@@ -1,3 +1,5 @@
+local Cooldown = {}
+
 function GetDepartmentMemberArmory(source)
     local departmentId, member = GetPlayerDepartment(source)
     if not departmentId or not member then return end
@@ -33,6 +35,11 @@ function CanPlayerBuyArmoryItem(source, itemName, quantity)
 end
 
 RegisterNetEvent("pickle_policejob:buyArmoryItem", function(data)
+    if Cooldown[source] then return ShowNotification(source, _L("cooldown")) end
+    Cooldown[source] = true
+    SetTimeout(1000, function()
+        Cooldown[source] = false
+    end)
     local source = source
     local departmentId, member = GetPlayerDepartment(source)
     if not departmentId or not member then return end

@@ -293,7 +293,7 @@ RegisterNetEvent("pickle_policejob:evidence:importEvidence", function(id, import
                 end
             end
             if found then
-                Inventory.RemoveItem(source, evidence[i].item.name, 1, slot)
+                Inventory.RemoveItem(source, evidence[i].item.name, evidence[i].item.count, slot)
             end
         end
     end
@@ -317,7 +317,7 @@ RegisterNetEvent("pickle_policejob:evidence:deleteEvidence", function(id, index)
     if result[1].authorIdentifier ~= GetIdentifier(source) and rankIndex > 1 then return ShowNotification(source, _L("no_department_permission")) end
     local evidence = json.decode(result[1].evidence)
     if evidence[index].type == "item" then
-        Inventory.AddItem(source, evidence[index].item.name, 1, evidence[index].item.metadata)
+        Inventory.AddItem(source, evidence[index].item.name, evidence[index].item.count, evidence[index].item.metadata)
     end
     table.remove(evidence, index)
     MySQL.query("UPDATE pickle_police_files SET evidence = ? WHERE id = ?", {

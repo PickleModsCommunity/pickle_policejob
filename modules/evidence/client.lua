@@ -529,25 +529,27 @@ RegisterNUICallback("reconstructScene", function(data, cb)
             local playerCoords = GetEntityCoords(PlayerPedId())
             for i=1, #ReconstructScene.evidence do
                 local evidence = ReconstructScene.evidence[i]
-                local coords = vector3(evidence.coords.x, evidence.coords.y, evidence.coords.z)
-                if ReconstructScene.renderedEvidence[i] then
-                    if not evidence.type or evidence.type == "photo" then
-                        DrawMarker(6, coords.x, coords.y, coords.z + 0.45, 0.0, 0.0, 0.0, 0.0, 0.0, evidence.heading, 0.6, 0.6, 0.6, 255, 255, 255, 100, false, false, 2, false, nil, nil, false)
-                        DrawMarker(6, coords.x, coords.y, coords.z + 0.45, 0.0, 0.0, 0.0, 0.0, 0.0, evidence.heading, 0.3, 0.3, 0.3, 255, 255, 255, 100, false, false, 2, false, nil, nil, false)
-                    elseif evidence.type ~= "vehicle" then
-                        DrawMarker(1, coords.x, coords.y, coords.z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.1, 255, 255, 255, 100, false, true, 2, false, nil, nil, false)
-                    end
-                    DrawTextAtCoords(coords, "#"..i)
-                    if evidence.type == "shell_casing" then
-                        bulletEvidenceCount = bulletEvidenceCount + 1
-                        DrawLine(coords.x, coords.y, coords.z + 1.5, evidence.direction.x, evidence.direction.y, evidence.direction.z, 255, 0, 0, 255 / (bulletEvidenceCount / 2))
-                    end
-                    if #(coords - playerCoords) > Config.Evidence.reconstructRenderDistance then
-                        UnrenderReconstructedEvidence(i)
-                    end
-                else
-                    if #(coords - playerCoords) < Config.Evidence.renderDistance then
-                        RenderReconstructedEvidence(i)
+                if evidence.coords then
+                    local coords = vector3(evidence.coords.x, evidence.coords.y, evidence.coords.z)
+                    if ReconstructScene.renderedEvidence[i] then
+                        if not evidence.type or evidence.type == "photo" then
+                            DrawMarker(6, coords.x, coords.y, coords.z + 0.45, 0.0, 0.0, 0.0, 0.0, 0.0, evidence.heading, 0.6, 0.6, 0.6, 255, 255, 255, 100, false, false, 2, false, nil, nil, false)
+                            DrawMarker(6, coords.x, coords.y, coords.z + 0.45, 0.0, 0.0, 0.0, 0.0, 0.0, evidence.heading, 0.3, 0.3, 0.3, 255, 255, 255, 100, false, false, 2, false, nil, nil, false)
+                        elseif evidence.type ~= "vehicle" then
+                            DrawMarker(1, coords.x, coords.y, coords.z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.1, 255, 255, 255, 100, false, true, 2, false, nil, nil, false)
+                        end
+                        DrawTextAtCoords(coords, "#"..i)
+                        if evidence.type == "shell_casing" then
+                            bulletEvidenceCount = bulletEvidenceCount + 1
+                            DrawLine(coords.x, coords.y, coords.z + 1.5, evidence.direction.x, evidence.direction.y, evidence.direction.z, 255, 0, 0, 255 / (bulletEvidenceCount / 2))
+                        end
+                        if #(coords - playerCoords) > Config.Evidence.reconstructRenderDistance then
+                            UnrenderReconstructedEvidence(i)
+                        end
+                    else
+                        if #(coords - playerCoords) < Config.Evidence.renderDistance then
+                            RenderReconstructedEvidence(i)
+                        end
                     end
                 end
             end

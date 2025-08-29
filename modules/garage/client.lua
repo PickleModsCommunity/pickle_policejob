@@ -2,6 +2,7 @@ local inGarage = false
 local SelectedVehicle = nil
 local GarageInfo = nil
 local CurrentCamera = nil
+local LOADING_CAR = false
 
 function EnsureGarageCamera()
     if not CurrentCamera then
@@ -71,6 +72,7 @@ function SetVehicleColorData(vehicle, type, hex)
 end
 
 function SelectGarageVehicle(index)
+    if LOADING_CAR then return end
     if not GarageInfo or not GarageInfo.vehicles[index] then return end
     if SelectedVehicle then
         DeleteEntity(SelectedVehicle.entity)
@@ -83,6 +85,7 @@ function SelectGarageVehicle(index)
     local vehicle = GarageInfo.vehicles[index]
     local vehiclePreview = location.positions.vehicle_preview
     local offsetHeading = 140.0
+    LOADING_CAR = true
     local entity = CreateVeh(vehicle.model, vehiclePreview.coords.x, vehiclePreview.coords.y, vehiclePreview.coords.z, vehiclePreview.rotation.z + offsetHeading, false, false)
     FreezeEntityPosition(entity, true)
     SetEntityCollision(entity, false, false)
@@ -117,6 +120,7 @@ function SelectGarageVehicle(index)
             templates = SelectedVehicle.templates,
         },
     })
+    LOADING_CAR = false
 end
 
 function RotateVehicle(distance, speed)
@@ -268,6 +272,7 @@ RegisterNUICallback("takeVehicle", function(data, cb)
         Wait(1100)
         DeleteEntity(tempVehicle)
         local vehicle = CreateVeh(model, spawn.coords.x, spawn.coords.y, spawn.coords.z, spawn.rotation.z, true, false)
+        Config.GiveKeys(vehicle, GetVehicleNumberPlateText(vehicle))
         SetEntityCoords(PlayerPedId(), spawn.coords.x, spawn.coords.y, spawn.coords.z)
         SetEntityHeading(PlayerPedId(), spawn.rotation.z)
         SetVehicleDirtLevel(vehicle, 0)

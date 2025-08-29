@@ -330,4 +330,5 @@ Language["en"] = {
     id_card_job = "Job",
     male = "Male",
     female = "Female",
+    cooldown = "Please slow down and try again.",
 }
