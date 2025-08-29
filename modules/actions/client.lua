@@ -623,6 +623,67 @@ function OpenIDCardMenu()
     end, targetId)
 end
 
+function OpenVehicleInteractMenu()
+    local vehicle = GetNearestVehicle()
+    if not vehicle then return ShowNotification(_L("no_vehicle_nearby")) end
+    lib.callback("pickle_policejob:actions:getVehicleInfo", false, function(result)
+        if not vehicle then return ShowNotification(_L("no_vehicle_nearby")) end
+        local menuId = "pickle_policejob:actions:vehicleinteract"
+        local options = {
+            {
+                title = _L("vehicle_owner"),
+                description = result.owner,
+                icon = "fas fa-id-card",
+            },
+            {
+                title = _L("vehicle_plate"),
+                description = result.plate,
+                icon = "fas fa-car",
+            },
+            {
+                title = _L("vehicle_lockpick"),
+                description = _L("vehicle_lockpick_description"),
+                icon = "fas fa-lock",
+                onSelect = function()
+                    local ped = PlayerPedId()
+                    PlayAnim(ped, "mini@repair", "fixing_a_ped", 1.0, -1.0, -1, 0, 0, false, false, false)
+                    local success = lib.skillCheck({'easy', 'medium', 'medium', 'medium'}, {'w', 'a', 's', 'd'})
+                    ClearPedTasks(ped)
+                    if not success then
+                        ShowNotification(_L("failed_lockpick"))
+                        return OpenVehicleInteractMenu()
+                    end
+                    TriggerServerEvent("pickle_policejob:actions:lockpickVehicle", VehToNet(vehicle))
+                end,
+            },
+            {
+                title = _L("vehicle_impound"),
+                description = _L("vehicle_impound_description"),
+                icon = "fas fa-shuttle-van",
+                onSelect = function()
+                    local ped = PlayerPedId()
+                    PlayAnim(ped, "mini@repair", "fixing_a_ped", 1.0, -1.0, -1, 0, 0, false, false, false)
+                    lib.progressCircle({
+                        duration = 5000,
+                        label = _L("vehicle_impound_progress"),
+                        disable = {
+                            move = true,
+                        }
+                    })
+                    ClearPedTasks(ped)
+                    TriggerServerEvent("pickle_policejob:actions:impoundVehicle", VehToNet(vehicle))
+                end,
+            }
+        }
+        lib.registerContext({
+            id = menuId,
+            title = _L("actions_vehicle_interact"),
+            options = options,
+        })
+        lib.showContext(menuId)
+    end, VehToNet(vehicle))
+end
+
 function OpenPoliceActionsMenu()
     if IsMenuOpen then return end
     IsMenuOpen = true
@@ -635,6 +696,15 @@ function OpenPoliceActionsMenu()
             onSelect = function()
                 IsMenuOpen = false
                 OpenIDCardMenu()
+            end,
+        },
+        {
+            title = _L("actions_vehicle_interact"),
+            description = _L("actions_vehicle_interact_description"),
+            icon = Config.TargetIcons.vehicle_interact,
+            onSelect = function()
+                IsMenuOpen = false
+                OpenVehicleInteractMenu()
             end,
         },
         {
@@ -1069,6 +1139,13 @@ RegisterNetEvent("pickle_policejob:actions:deleteObject", function(id)
     DeleteInteraction(ObjectPlacementInteractions[id])
     ObjectPlacement[id] = nil
     ObjectPlacementInteractions[id] = nil
+end)
+
+RegisterNetEvent("pickle_policejob:actions:lockpickVehicle", function(netId)
+    if not NetworkDoesNetworkIdExist(netId) then return end
+    local vehicle = NetworkGetEntityFromNetworkId(netId)
+    if not vehicle or not DoesEntityExist(vehicle) then return end
+    SetVehicleDoorsLocked(vehicle, 0)
 end)
 
 AddEventHandler("onResourceStop", function(resource)

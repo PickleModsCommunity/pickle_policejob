@@ -49,6 +49,7 @@ Config.TargetIcons = {
     jail = "fas fa-lock",
     evidence_pickup = "fas fa-broom",
     id_card = "fas fa-id-card",
+    vehicle_interact = "fas fa-car",
 }
 
 Config.FrameworkSettings = {

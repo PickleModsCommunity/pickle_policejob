@@ -35,6 +35,7 @@ function CanPlayerBuyArmoryItem(source, itemName, quantity)
 end
 
 RegisterNetEvent("pickle_policejob:buyArmoryItem", function(data)
+    local source = source
     if Cooldown[source] then return ShowNotification(source, _L("cooldown")) end
     Cooldown[source] = true
     SetTimeout(1000, function()

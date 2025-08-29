@@ -21,7 +21,7 @@ local TARGET_OPTIONS = {
             if closestDistance < 2.0 then
                 if true or not IsPlayerOnDuty() then 
                     local ped = PlayerPedId()
-                    TaskPlayAnim(ped, "mini@repair", "fixing_a_ped", 1.0, -1.0, -1, 0, 0, false, false, false)
+                    PlayAnim(ped, "mini@repair", "fixing_a_ped", 1.0, -1.0, -1, 0, 0, false, false, false)
                     local success = lib.skillCheck({'easy', 'medium', 'medium', 'medium'}, {'w', 'a', 's', 'd'})
                     ClearPedTasks(ped)
                     if not success then

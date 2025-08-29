@@ -49,7 +49,6 @@ ConfigSV.WebhookHandler = function(webhookId, fields)
             })
         end
         PerformHttpRequest(webhook.url, function(err, text, headers)
-            print(err, text, headers)
         end, "POST", json.encode({embeds = embed}), {["Content-Type"] = "application/json"})
     end
 end

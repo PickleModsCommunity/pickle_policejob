@@ -138,6 +138,10 @@ function UpdateVehiclePlate(source, plate, newPlate)
     })
 end
 
+function ImpoundVehiclePlate(plate)
+    MySQL.query("UPDATE player_vehicles SET state = 0 WHERE plate = ?", { plate })
+end
+
 function GetPlayerDateOfBirth(source)
     local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
     if not xPlayer then return "Unknown" end

@@ -33,6 +33,34 @@ lib.callback.register("pickle_policejob:actions:getIDCard", function(source, tar
     return {name = target, dob = dob, gender = gender, job = job}
 end)
 
+lib.callback.register("pickle_policejob:actions:getVehicleInfo", function(source, netId)
+    local vehicle = NetworkGetEntityFromNetworkId(netId)
+    if not vehicle or not DoesEntityExist(vehicle) then return nil end
+    local plate = GetVehicleNumberPlateText(vehicle) or "UNKNOWN"
+    local data = GetOwnedVehicleFromPlate(plate) or {owner = "UNKNOWN"}
+    local owner = GetPlayerCharacterName(data.owner)
+    if owner == "ERR_UNK_NAME" then owner = "UNKNOWN" end
+    return {plate = plate, owner = owner, identifier = data.owner}
+end)
+
+RegisterNetEvent("pickle_policejob:actions:lockpickVehicle", function(netId)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    ShowNotification(source, _L("lockpicked_vehicle"))
+    TriggerClientEvent("pickle_policejob:actions:lockpickVehicle", -1, netId)
+end)
+
+RegisterNetEvent("pickle_policejob:actions:impoundVehicle", function(netId)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    if not NetworkDoesNetworkIdExist(netId) then return ShowNotification(source, _L("no_vehicle_nearby")) end
+    local vehicle = NetworkGetEntityFromNetworkId(netId)
+    if not vehicle or not DoesEntityExist(vehicle) then return ShowNotification(source, _L("no_vehicle_nearby")) end
+    ImpoundVehiclePlate(GetVehicleNumberPlateText(vehicle))
+    ShowNotification(source, _L("vehicle_impounded", GetVehicleNumberPlateText(vehicle)))
+    DeleteVehicle(vehicle)
+end)
+
 RegisterNetEvent("pickle_policejob:actions:detainment", function(targetPlayer, data)
     local source = source
     if data.eventType ~= "stopDrag" and not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end

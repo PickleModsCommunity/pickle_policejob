@@ -179,7 +179,7 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             members = department.members,
         })
         local newRank, newRankIndex = GetDepartmentRank(departmentId, data.rankId)
-        ShowNotification(source, _L("member_rank_updated", characterName, newRank.label))
+        ShowNotification(source, _L("member_rank_updated", member.name, newRank.label))
     elseif updateType == "addPermission" then
         if not IsPlayerDepartmentLeader(source) then return ShowNotification(source, _L("no_permission")) end
         if department.permissions[data.label] then return ShowNotification(source, _L("permission_already_exists")) end

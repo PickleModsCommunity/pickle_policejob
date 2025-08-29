@@ -173,6 +173,7 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
             department.label, department.image, department.job, json.encode(department.location), json.encode(department.members), json.encode(department.ranks), json.encode(department.permissions), json.encode(department.outfits), json.encode(department.locations), json.encode(department.misc)
         }, function(id)
             department.id = id
+            department.money = 0
             InitializeDepartment(id, department)
             for k, v in pairs(InManagement) do
                 TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {

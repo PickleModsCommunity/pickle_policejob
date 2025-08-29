@@ -106,6 +106,10 @@ function GetMoney(source, currency)
     return money
 end
 
+function ImpoundVehiclePlate(plate)
+    MySQL.query("UPDATE owned_vehicles SET stored = 0 WHERE plate = ?", { plate })
+end
+
 function GetOwnedVehicleFromPlate(plate)
     local data = MySQL.Sync.fetchAll("SELECT * FROM owned_vehicles WHERE plate=@plate;", {
         ['@plate'] = plate,
