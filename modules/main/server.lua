@@ -439,6 +439,7 @@ RegisterNetEvent("pickle_policejob:initializePlayer", function()
                 SetPlayerDuty(source, true)
             end
         end
+        TriggerClientEvent("pickle_policejob:initializePlayer", source)
         TriggerClientEvent("pickle_policejob:setupInventory", source, Inventory.Items)
         TriggerClientEvent("pickle_policejob:initializeDepartment", source, Departments)
         TriggerClientEvent("pickle_policejob:updateOnDuty", source, IsPlayerOnDuty(source))
