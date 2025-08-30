@@ -39,6 +39,12 @@ server_scripts {
 	"config_sv.lua",
 }
 
+
+provides {
+	"qb-policejob",
+	"esx_policejob",
+}
+
 lua54 'yes'
 
 escrow_ignore {

@@ -5,6 +5,7 @@ import { useNuiEvent } from './nui/useNui';
 export type Config = {
     name: string;
     identifier: string;
+    evidenceEnabled: boolean;
     permissions: {
         name: string;
     }[];
@@ -151,6 +152,7 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         currency: "GBP",
         countryCode: "en-GB",
         permissions: [],
+        evidenceEnabled: true,
         items: {
             "rifle": {
                 label: "Rifle"

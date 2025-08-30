@@ -353,6 +353,7 @@ RegisterNetEvent("pickle_policejob:initializePlayer", function()
         SendNUIMessage({
             type = "setConfig",
             config = {
+                evidenceEnabled = Config.Evidence.enabled,
                 imageDirectory = Config.ImageDirectory,
                 identifier = player.identifier,
                 name = player.name,

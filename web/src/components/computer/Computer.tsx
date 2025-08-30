@@ -4,7 +4,6 @@ import { useNuiEvent } from "@/providers/nui/useNui";
 import { Maximize, Maximize2, Minus, MinusIcon, PictureInPicture, PictureInPicture2, X } from "lucide-react";
 import { useContext, useEffect, useState, useRef } from "react";
 import RosterPage, { DepartmentMember } from "./RosterPage";
-import EvidencePage from "./EvidencePage";
 import FinancePage from "./FinancePage";
 import { createContext } from "react";
 import { useConfig } from "@/providers/config";
@@ -270,7 +269,8 @@ function Computer({info}: {info: ComputerInfo}) {
         {
             id: "files",
             name: "page_files",
-            image: "/nui/images/LSPD.webp"
+            image: "/nui/images/LSPD.webp",
+            hideShortcut: !config.evidenceEnabled,
         },
         {
             id: "file",

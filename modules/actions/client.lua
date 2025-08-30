@@ -1,5 +1,5 @@
 local Handcuffs = nil
-local IsHandcuffed = false
+local IsCurrentlyHandcuffed = false
 local IsDragging = nil
 local IsMenuOpen = false
 local EquippedStabSticks = nil
@@ -83,18 +83,26 @@ function UnequipHandcuffs()
     Handcuffs = nil
 end
 
+function IsHandcuffed()
+    return IsCurrentlyHandcuffed
+end
+
+exports("IsHandcuffed", IsHandcuffed)
+
 function UnequipCurrentActions()
     UnequipHandcuffs()
     UnequipStabSticks()
     UnequipBreathalyzer()
     UnequipFingerprintScanner()
-    StopCameraLoop()
+    if Config.Evidence.enabled then
+        StopCameraLoop()
+    end
 end
 
 function RemoveHandcuffs()
-    if not IsHandcuffed then return end
-    DeleteEntity(IsHandcuffed.prop)
-    IsHandcuffed = nil
+    if not IsCurrentlyHandcuffed then return end
+    DeleteEntity(IsCurrentlyHandcuffed.prop)
+    IsCurrentlyHandcuffed = nil
 end
 
 -- Stab Sticks
@@ -943,7 +951,7 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(data)
         if data.cuffed then
             if data.target == source then
                 UnequipCurrentActions()
-                IsHandcuffed = {}
+                IsCurrentlyHandcuffed = {}
                 local ped = PlayerPedId()
                 local targetPed = GetPlayerPed(GetPlayerFromServerId(data.source))
                 local targetOffset = GetOffsetFromEntityInWorldCoords(targetPed, 0.0, 1.0, -1.0)
@@ -953,13 +961,13 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(data)
                 SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true) -- unarm player
                 PlayAnim(ped, "mp_arrest_paired", "crook_p2_back_left", 8.0, -8.0, 5500, 33, 1.0, false, false, false)
                 SetTimeout(5000, function()
-                    if not IsHandcuffed then return end
-                    IsHandcuffed.prop = CreateProp(`ba_prop_battle_cuffs`, targetOffset.x, targetOffset.y, targetOffset.z + 0.5, true, true, false)
+                    if not IsCurrentlyHandcuffed then return end
+                    IsCurrentlyHandcuffed.prop = CreateProp(`ba_prop_battle_cuffs`, targetOffset.x, targetOffset.y, targetOffset.z + 0.5, true, true, false)
                     local boneIndex = GetPedBoneIndex(ped, 60309)
                     local coords, rot = vector3(-0.035, 0.06, 0.04), vector3(265.25, 153.30, 81.12)
-                    AttachEntityToEntity(IsHandcuffed.prop, ped, boneIndex, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, true, false, false, false, 0, true)
+                    AttachEntityToEntity(IsCurrentlyHandcuffed.prop, ped, boneIndex, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, true, false, false, false, 0, true)
                     CreateThread(function()
-                        while IsHandcuffed do
+                        while IsCurrentlyHandcuffed do
                             local ped = PlayerPedId()
                             if not IsEntityPlayingAnim(ped, "mp_arresting", "idle", 3) then
                                 ClearPedTasks(ped)
