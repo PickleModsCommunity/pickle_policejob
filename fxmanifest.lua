@@ -2,7 +2,7 @@ fx_version "cerulean"
 game "gta5"
 author "Pickle Mods"
 description "The best police job in FiveM."
-version "v0.1.7"
+version "v0.1.8"
 
 ui_page "nui/index.html"
 
