@@ -275,6 +275,7 @@ function SetPlayerDuty(source, onDuty, report)
         SetPlayerJob(source, department.job, rank.jobLevel)
         ShowNotification(source, _L("duty_on"))
         ExecuteIntegration(source, "duty", departmentId, true)
+        TriggerClientEvent("pickle_policejob:updateOnDuty", source, true)
     elseif not onDuty and memberData.onDuty then
         local duration = os.time() - memberData.onDuty
         memberData.onDutyTime = (memberData.onDutyTime or 0) + duration
@@ -294,6 +295,7 @@ function SetPlayerDuty(source, onDuty, report)
         ShowNotification(source, _L("duty_off"))
         UpdateDepartmentSQL(departmentId, "members")
         ExecuteIntegration(source, "duty", departmentId, false, report)
+        TriggerClientEvent("pickle_policejob:updateOnDuty", source, false)
     end
 end
 
