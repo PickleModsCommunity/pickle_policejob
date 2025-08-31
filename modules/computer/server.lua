@@ -26,8 +26,7 @@ lib.callback.register("pickle_policejob:openComputer", function(source)
     IN_COMPUTER[source] = true
     return {
         department = department,
-        backgroundImage = "https://www.dojrp.com/uploads/monthly_2022_05/large.DOJRP-LSPD-PA-6.png.bc543f0c421f54fc03cbae19e505d8c8.png",
-        homeImage = "/nui/images/LSPD.webp"
+        backgroundImage = "/nui/images/computer_background.png",
     }
 end)
 

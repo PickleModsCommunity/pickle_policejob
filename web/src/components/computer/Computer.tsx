@@ -64,7 +64,6 @@ export type DepartmentLocation = {
 type ComputerInfo = {
     department: Department;
     backgroundImage: string;
-    homeImage: string;
 }
 
 type ComputerWindow = {
@@ -392,7 +391,7 @@ function Computer({info}: {info: ComputerInfo}) {
                 </div>
                 <div className="relative w-full h-[40px] bg-black/50 flex items-center justify-between px-2">
                     <div className="flex items-center gap-2 whitespace-nowrap">
-                        <img src={computerInfo.homeImage} alt="home" className="w-[25px] h-[25px]" />
+                        <img src={department.image} alt="home" className="w-[25px] h-[25px]" />
                         <div className="text-sm font-semibold text-white">{config.name}</div>
                         <div className="flex overflow-x-auto gap-0">
                             {windows.map((window, index) => (
@@ -697,7 +696,6 @@ export default function ComputerContainer() {
             locations: [],
         },
         backgroundImage: "nui/images/computer_background.png",
-        homeImage: "nui/images/app_icon.png"
     });
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
