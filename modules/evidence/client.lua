@@ -453,7 +453,7 @@ end
 RegisterNUICallback("getEvidenceItems", function(data, cb)
     lib.callback("pickle_policejob:evidence:getEvidenceItems", false, function(data)
         cb(data)
-    end)
+    end, data.isCreatingFile)
 end)
 
 RegisterNUICallback("createFile", function(data, cb)
@@ -561,6 +561,13 @@ end)
 RegisterNUICallback("deleteEvidence", function(data, cb)
     TriggerServerEvent("pickle_policejob:evidence:deleteEvidence", data.id, data.index)
     cb(true)
+end)
+
+RegisterNetEvent("pickle_policejob:evidence:updateFile", function(data)
+    SendNUIMessage({
+        type = "updateFile",
+        file = data.file,
+    })
 end)
 
 RegisterNetEvent("pickle_policejob:evidence:addEvidence", function(id, data)

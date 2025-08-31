@@ -6,10 +6,15 @@ Config.InteractDistance = 2.0
 Config.UseTarget = true -- This enables the use of the target system when available.
 Config.ImageDirectory = "nui://ox_inventory/web/images/"
 Config.WeaponsAreItems = true -- This enables the use of weapons as items. If set to false, weapons will be treated as items and not as weapons.
+Config.TeleportEscortIntoSeat = false -- This enables the teleportation of the escort to the seat of the vehicle. Default animates entry / exit.
+
 Config.Finance = {
+    deductCostsFromDepartment = true, -- When true, the costs will be deducted from the department's funds - otherwise it will be deducted from the player's funds.
     deductSalaryFromDepartment = true, -- When true, the salary will be deducted from the department's funds - if it is too much it will not pay. False pays out without deducting.
     maxRankSalary = 100000, -- The maximum salary a rank can have.
     salarySchedule = "*/15 * * * *", -- The CRON schedule at which the salary will be paid. Default is every 15 minutes.
+    funding = 100000, -- The amount of money to fund the department with per schedule.
+    fundingSchedule = "*/1 * * * *", -- The CRON schedule at which the funding will be paid. Default is every 15 minutes.
     maxTransactions = 100, -- The maximum number of transactions to store per department.
 }
 
@@ -17,10 +22,38 @@ Config.Peds = {
     {
         label = "Male Officer #1",
         model = "s_m_m_cop_01",
+        pedComponents = {
+            {id = 0, drawable = 3, texture = 0}, -- Head
+            {id = 1, drawable = 1, texture = 0}, -- Beard
+            {id = 2, drawable = 3, texture = 0}, -- Hair   
+            {id = 3, drawable = 1, texture = 0}, -- Upper
+            {id = 4, drawable = 0, texture = 0}, -- Lower
+            {id = 5, drawable = 0, texture = 0}, -- Hand
+            {id = 6, drawable = 1, texture = 0}, -- Feet
+            {id = 7, drawable = 2, texture = 0}, -- Teeth
+            {id = 8, drawable = 3, texture = 0}, -- Accessories
+            {id = 9, drawable = 0, texture = 0}, -- Task
+            {id = 10, drawable = 1, texture = 0}, -- Decals
+            {id = 11, drawable = 1, texture = 0}, -- Torso
+        }
     },
     {
         label = "Female Officer #1",
         model = "s_f_y_cop_01",
+        pedComponents = {
+            {id = 0, drawable = 2, texture = 0}, -- Head
+            {id = 1, drawable = 0, texture = 0}, -- Beard
+            {id = 2, drawable = 2, texture = 0}, -- Hair   
+            {id = 3, drawable = 3, texture = 0}, -- Upper
+            {id = 4, drawable = 1, texture = 0}, -- Lower
+            -- {id = 5, drawable = 0, texture = 0}, -- Hand
+            {id = 6, drawable = 1, texture = 0}, -- Feet
+            {id = 7, drawable = 2, texture = 0}, -- Teeth
+            {id = 8, drawable = 3, texture = 0}, -- Accessories
+            -- {id = 9, drawable = 0, texture = 0}, -- Task
+            {id = 10, drawable = 0, texture = 0}, -- Decals
+            {id = 11, drawable = 0, texture = 0}, -- Torso
+        },
     },
 }
 Config.AdminGroups = {
@@ -103,15 +136,43 @@ Config.PoliceJobs = { -- You can use multiple departments with the same job, no 
 }
 
 Config.Jail = {
+    enabled = true,
     maxJailTime = 120, -- The maximum amount of time a player can be jailed for.
 }
 
 Config.Fines = {
+    enabled = true,
     maxFineAmount = 100000,
     viewFinesCommand = "fines",
 }
 
+Config.Handcuffs = {
+    item = {
+        name = "handcuffs", -- The name of the item to use for the cuffs.
+        required = true, -- Only set this to true if the item is required to use the cuffs.
+    },
+    allowResist = true,
+    resistSkillCheck = {
+        length = 5,
+        availableSteps = {'easy', 'medium'},
+        availableControls = {'w', 'a', 's', 'd'},
+    },
+    lockpickItem = "metal", -- set to nil (not "nil") to disable lockpicking of cuffs.
+    lockpickRemoveChance = 100, -- The chance to remove the lockpick when lockpicking, if set to 100 then it will always remove the lockpick.
+    skillCheck = {
+        length = 5,
+        availableSteps = {'easy', 'medium'},
+        availableControls = {'w', 'a', 's', 'd'},
+    },
+}
+
 Config.StabSticks = {
+    enabled = true,
+    item = {
+        name = "stab_sticks", -- The name of the item to use for the stab sticks.
+        required = true, -- Only set this to true if the item is required to use the stab sticks.
+        remove = true, -- Only set this to true if the item is removed when the stab sticks are deployed.
+    },
     renderDistance = 200.0, -- The distance at which the stab sticks will be rendered. Leave this alone please.
     burstDamage = 800.0, -- The damage to apply to the vehicle when a stab stick is deployed. Don't set this above 1000.0
     maxLength = 10, -- The maximum length of the stab sticks that can be deployed.
@@ -200,6 +261,7 @@ Config.Bodycam = {
 }
 
 Config.Shields = {
+    enabled = true,
     Models = {
         [`prop_riot_shield`] = {
             Label = "Riot Shield",
@@ -221,6 +283,7 @@ Config.Shields = {
 }
 
 Config.Snakecam = {
+    enabled = true,
     MaxLength = 10.0,
     Controls = {
         up = 32,
@@ -426,6 +489,9 @@ Config.Integrations = {
             if GetResourceState("pickle_prisons") == "started" then
                 ExecuteCommand("jailmenu")
                 return true -- Return true to prevent the default jail menu from being opened.
+            elseif GetResourceState("DHS-PrisonSim") == "started" then
+                exports['DHS-PrisonSim']:OpenConvoyMenu()
+                return true
             end
             return false
         end,

@@ -48,6 +48,7 @@ export type Evidence = {
     };
     bac?: number;
     name?: string;
+    serial?: string;
 }
 
 export type EvidenceItems = {
@@ -198,6 +199,12 @@ export function SelectedEvidenceModal({ evidence, onClose, isModalVisible }: { e
                                     <div className="text-xs text-white">{evidence.name}</div>
                                 </div>
                             )}
+                            {evidence.serial && (
+                                <div className="flex flex-row items-center gap-2">
+                                    <div className="font-semibold text-sm text-white"><Translate id="serial" />:</div>
+                                    <div className="text-xs text-white">{evidence.serial}</div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -206,7 +213,7 @@ export function SelectedEvidenceModal({ evidence, onClose, isModalVisible }: { e
     )
 }
 
-function AddEvidenceModal({ onClose, importEvidence, isModalVisible }: { onClose: () => void, importEvidence: (evidence: Evidence[]) => void, isModalVisible: boolean }) {
+function AddEvidenceModal({ isCreatingFile, onClose, importEvidence, isModalVisible }: { isCreatingFile?: boolean, onClose: () => void, importEvidence: (evidence: Evidence[]) => void, isModalVisible: boolean }) {
     const [evidenceItems, setEvidenceItems] = useState<EvidenceItems[] | null>(null);
     const [selectedEvidenceItem, setSelectedEvidenceItem] = useState<EvidenceItems | null>(null);
     const [selectedEvidence, setSelectedEvidence] = useState<Evidence | null>(null);
@@ -214,7 +221,7 @@ function AddEvidenceModal({ onClose, importEvidence, isModalVisible }: { onClose
     const [isDeletingEvidenceItem, setIsDeletingEvidenceItem] = useState(false);
     useEffect(() => {
         const thread = async () => {
-            fetchNui("getEvidenceItems", {}).then((data: any) => {
+            fetchNui("getEvidenceItems", {isCreatingFile: isCreatingFile}).then((data: any) => {
                 setEvidenceItems(data);
             });
             // setEvidenceItems([
@@ -506,7 +513,7 @@ function SelectedFileModal({ file, onClose, isModalVisible }: { file: File | nul
                     }} isModalVisible={isSubModalVisible} />
                 )}
                 {isAddingEvidence && (
-                    <AddEvidenceModal importEvidence={(evidence: Evidence[]) => {
+                    <AddEvidenceModal isCreatingFile={file ? false : true} importEvidence={(evidence: Evidence[]) => {
                         setFileEvidence(prev => [...prev, ...evidence]);
                         if (file) {
                             fetchNui("importEvidence", {
@@ -733,6 +740,9 @@ export default function FilesPage({ data }: { data?: any }) {
         setTimeout(() => {
             setIsModalVisible(true);
         }, 10);
+    });
+    useNuiEvent("updateFile", (data: any) => {
+        setFiles(prev => prev?.map(file => file.id === data.file.id ? data.file : file) || []);
     });
     const handleFileSelect = (file: File) => {
         setSelectedFile(file);

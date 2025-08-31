@@ -39,7 +39,12 @@ Inventory.SetMetadata = function(source, slot, metadata)
 end
 
 Inventory.GetItemCount = function(source, name)
-    return exports.ox_inventory:GetItemCount(source, name) or 0
+    local results = exports.ox_inventory:Search(source, "slots", name)
+    local count = 0
+    for i=1, #results do
+        count = count + results[i].count
+    end
+    return count
 end
 
 RegisterServerEvent("pickle_policejob:searchPlayer", function(targetId)

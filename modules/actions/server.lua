@@ -163,6 +163,58 @@ RegisterNetEvent("pickle_policejob:actions:grantFingerprintConsent", function(re
     TriggerClientEvent("pickle_policejob:actions:requestFingerprint", requestId, requestId, GetPlayerDNA(source), source)
 end)
 
+RegisterNetEvent("pickle_policejob:actions:uncuffSelf", function()
+    local source = source
+    HandcuffedPlayers[source] = nil
+    TriggerClientEvent("pickle_policejob:actions:detainment", source, {
+        eventType = "toggleHandcuffs",
+        cuffStyle = "back",
+        dragged = false,
+        source = 0,
+        target = source,
+        instant = true,
+    })
+end)
+
+RegisterNetEvent("pickle_policejob:actions:uncuffOther", function(targetId)
+    local source = source
+    print("A")
+    if not HandcuffedPlayers[targetId] then return ShowNotification(source, _L("player_not_handcuffed")) end
+    HandcuffedPlayers[targetId] = nil
+    print("B")
+    TriggerClientEvent("pickle_policejob:actions:detainment", targetId, {
+        eventType = "toggleHandcuffs",
+        cuffStyle = "back",
+        dragged = false,
+        source = 0,
+        target = targetId,
+        instant = true,
+    })
+end)
+
+if Config.Handcuffs.lockpickItem then
+    RegisterUsableItem(Config.Handcuffs.lockpickItem, function(source)
+        local source = source
+        local targetId
+        local closestDistance = 100
+        for _, player in ipairs(GetPlayers()) do
+            if tonumber(player) ~= source then 
+                local ped = GetPlayerPed(player)
+                local distance = #(GetEntityCoords(ped) - GetEntityCoords(GetPlayerPed(source)))
+                if distance < closestDistance then
+                    closestDistance = distance
+                    targetId = tonumber(player)
+                end
+            end
+        end
+        if closestDistance > 3.0 or not targetId or not HandcuffedPlayers[targetId] then return ShowNotification(source, _L("no_player_nearby")) end
+        if Config.Handcuffs.lockpickRemoveChance > 0 and math.random(1, 100) <= Config.Handcuffs.lockpickRemoveChance then
+            Inventory.RemoveItem(source, Config.Handcuffs.lockpickItem, 1)
+        end
+        TriggerClientEvent("pickle_policejob:actions:uncuffOther", source, targetId)
+    end)
+end
+
 CreateThread(function()
     Wait(2000)
     CreateStabSticks({

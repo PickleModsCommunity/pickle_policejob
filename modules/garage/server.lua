@@ -34,30 +34,6 @@ function CanPlayerBuyVehicle(source, model)
     return false
 end
 
-RegisterNetEvent("pickle_policejob:buyVehicle", function(data)
-    local source = source
-    local departmentId, member = GetPlayerDepartment(source)
-    if not departmentId or not member then return end
-    local department = GetDepartment(departmentId)
-    if not department then return end
-    if not CanPlayerBuyVehicle(source, data.model) then return ShowNotification(source, _L("no_permission")) end
-    local item
-    for i=1, #Config.PoliceGarage do
-        if Config.PoliceGarage[i].model == data.model then
-            item = Config.PoliceGarage[i]
-            break
-        end
-    end
-    if not item then return ShowNotification(source, _L("ERR_NOT_FOUND")) end
-    local price = item.price
-    if price > 0 then
-        local money = GetMoney(source)
-        if money < price then return ShowNotification(source, _L("not_enough_money", NumberWithCommas(price - money))) end
-        RemoveMoney(source, price)
-    end
-    ShowNotification(source, _L("garage_purchased", GetItemLabel(item.name), data.quantity))
-end)
-
 lib.callback.register('pickle_policejob:openGarage', function(source, garageType)
     return GetDepartmentMemberGarage(source, garageType)
 end)
@@ -76,9 +52,16 @@ lib.callback.register('pickle_policejob:takeVehicle', function(source, model, ga
     end
     if not garageVehicle then return false, err end
     if garageVehicle.price and garageVehicle.price > 0 then
-        local money = GetMoney(source)
-        if money < garageVehicle.price then return false, _L("not_enough_money", NumberWithCommas(garageVehicle.price - money)) end
-        RemoveMoney(source, garageVehicle.price)
+        if not Config.Finance.deductCostsFromDepartment then
+            local money = GetMoney(source)
+            if money < garageVehicle.price then return false, _L("not_enough_money", NumberWithCommas(garageVehicle.price - money)) end
+            RemoveMoney(source, garageVehicle.price)
+        else
+            local money = GetDepartmentMoney(departmentId)
+            if money < garageVehicle.price then return false, _L("department_not_enough_money", NumberWithCommas(garageVehicle.price - money)) end
+            RemoveDepartmentMoney(departmentId, garageVehicle.price)
+            AddDepartmentTransaction(departmentId, source, "withdraw", garageVehicle.price, _L("transaction_garage_purchase", garageVehicle.label))
+        end
     end
     return true
 end)

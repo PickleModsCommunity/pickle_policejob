@@ -1,3 +1,5 @@
+if not Config.Fines.enabled then return end
+
 lib.callback.register("pickle_policejob:fines:view", function(source, targetId)
     local fines = MySQL.query.await("SELECT * FROM pickle_police_fines WHERE identifier = ? ORDER BY time DESC", {GetIdentifier(targetId)})
     for i=1, #fines do

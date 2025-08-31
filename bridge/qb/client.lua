@@ -108,6 +108,7 @@ function OpenNearbyInventory()
     local closestPlayer = GetClosestPlayer()
     if not closestPlayer then return ShowNotification(_L("no_player_nearby")) end
     TriggerServerEvent("pickle_policejob:searchPlayer", GetPlayerServerId(closestPlayer))
+    Config.Integrations.inventory.OpenNearbyInventory()
 end
 
 -- Inventory Fallback

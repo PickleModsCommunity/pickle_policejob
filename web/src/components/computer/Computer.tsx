@@ -364,7 +364,7 @@ function Computer({info}: {info: ComputerInfo}) {
                                     dark={true} 
                                     width={600 * 0.8} 
                                     height={774 * 0.8} 
-                                    canEdit={true} 
+                                    canEdit={window.data.canEdit === undefined ? true : window.data.canEdit} 
                                 />}
                             </div>
                         </div>

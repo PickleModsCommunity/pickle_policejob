@@ -141,6 +141,9 @@ function UnrenderDepartmentLocation(id, locationId)
             if LocalDepartments[id].locations[i].interact then
                 DeleteInteraction(LocalDepartments[id].locations[i].interact)
             end
+            if LocalDepartments[id].locations[i].npc then
+                DeleteEntity(LocalDepartments[id].locations[i].npc)
+            end
             if LocalDepartments[id].locations[i].additionalInteracts then
                 for j=1, #LocalDepartments[id].locations[i].additionalInteracts do
                     DeleteInteraction(LocalDepartments[id].locations[i].additionalInteracts[j])
@@ -167,14 +170,31 @@ function RenderDepartmentLocation(id, locationId)
         if location.settings.ped and location.settings.ped ~= "" then
             coords = coords + vector3(0.0, 0.0, 1.0)
         end
+        local npc
+        if location.settings.ped and location.settings.ped ~= "" then
+            local pedCfg
+            for i=1, #Config.Peds do
+                if Config.Peds[i].model == location.settings.ped then
+                    pedCfg = Config.Peds[i]
+                    break
+                end
+            end
+            if pedCfg then
+                npc = CreateNPC(location.settings.ped, coords.x, coords.y, coords.z - 1.0, heading)
+                for i=1, #pedCfg.pedComponents do
+                    SetPedComponentVariation(npc, pedCfg.pedComponents[i].id, pedCfg.pedComponents[i].drawable, pedCfg.pedComponents[i].texture, 0)
+                end
+            end
+        end
         LocalDepartments[id].locations[#LocalDepartments[id].locations+1] = {
             id = locationId,
+            npc = npc,
             interact = CreateInteraction({
                 label = _L("interact_frontdesk"),
                 icon = Config.TargetIcons["frontdesk"],
                 coords = coords,
                 heading = heading,
-                model = (location.settings.ped and location.settings.ped ~= "") and { modelType = "ped", hash = GetHashKey(location.settings.ped) } or nil,
+                model = nil,
             }, function()
                 OpenFrontdesk(id, locationId)
             end)
@@ -380,5 +400,16 @@ AddEventHandler("onResourceStart", function(resource)
     if resource == GetCurrentResourceName() then
         Wait(1000)
         TriggerServerEvent("pickle_policejob:initializePlayer")
+    end
+end)
+
+AddEventHandler("onResourceStop", function(resource)
+    if resource == GetCurrentResourceName() then
+        for k, v in pairs(Departments) do   
+            for i=1, #v.locations do    
+                UnrenderDepartmentLocation(k, v.locations[i].id)
+            end
+            LocalDepartments[k] = nil
+        end
     end
 end)

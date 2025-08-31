@@ -37,7 +37,16 @@ function AddEvidence(coords, evidenceType, data)
     TriggerClientEvent("pickle_policejob:evidence:addEvidence", -1, id, data)
 end
 
-function GetPlayerEvidence(source)
+function GetAnyValue(table, keys)
+    if not table or type(table) ~= "table" then return end
+    for _, key in pairs(keys) do
+        if table[key] then
+            return table[key]
+        end
+    end
+end
+
+function GetPlayerEvidence(source, isCreatingFile)
     local inventory = Inventory.GetInventory(source)
     local items = {}
     local coords = GetEntityCoords(GetPlayerPed(source))
@@ -66,7 +75,7 @@ function GetPlayerEvidence(source)
                 evidence = evidence,
                 slot = item.slot,
             })
-        else
+        elseif not isCreatingFile then
             item.evidence = {
                 {
                     type = "item",
@@ -75,6 +84,7 @@ function GetPlayerEvidence(source)
                     time = os.time(),
                     coords = coords,
                     heading = heading,
+                    serial = GetAnyValue(item.metadata, {"serial", "serialnumber", "serial_number"}),
                     item = {
                         slot = item.slot,
                     },
@@ -142,8 +152,8 @@ lib.callback.register("pickle_policejob:evidence:getFiles", function(source, sea
     return result
 end)
 
-lib.callback.register("pickle_policejob:evidence:getEvidenceItems", function(source)
-    return GetPlayerEvidence(source)
+lib.callback.register("pickle_policejob:evidence:getEvidenceItems", function(source, isCreatingFile)
+    return GetPlayerEvidence(source, isCreatingFile)
 end)
 
 lib.callback.register("pickle_policejob:evidence:createFile", function(source, data)
@@ -258,11 +268,16 @@ RegisterNetEvent("pickle_policejob:evidence:updateFileDocument", function(id, co
         id,
     })
     if not result[1] then return print("^1ERROR: FILE NOT FOUND:^0", id) end
-    local document = json.decode(result[1].document)
-    document.content = content
+    local file = result[1]
+    file.document = json.decode(file.document)
+    file.document.content = content
     MySQL.query("UPDATE pickle_police_files SET document = ? WHERE id = ?", {
-        json.encode(document),
+        json.encode(file.document),
         id,
+    })
+    SendComputerEvent("pickle_policejob:evidence:updateFile", {
+        id = id,
+        file = file,
     })
     ShowNotification(source, _L("file_document_updated"))
 end)
@@ -276,29 +291,38 @@ RegisterNetEvent("pickle_policejob:evidence:importEvidence", function(id, import
         departmentId,
     })
     if not result[1] then return print("^1ERROR: FILE NOT FOUND:^0", id) end
-    local evidence = json.decode(result[1].evidence)
+    local file = result[1]
+    local evidence = json.decode(file.evidence)
     for i=1, #importedEvidence do
-        table.insert(evidence, importedEvidence[i])
-    end
-    for i=1, #evidence do
-        if evidence[i].type == "item" and evidence[i].item.slot then
-            local slot = evidence[i].item.slot
+        local canAdd = true
+        if importedEvidence[i].type == "item" and importedEvidence[i].item.slot then
+            local slot = importedEvidence[i].item.slot
             local inventory = Inventory.GetInventory(source) or {}
             local found = false
             for _, item in pairs(inventory) do
                 if item.slot == slot then
-                    evidence[i].item = item
+                    importedEvidence[i].item = item
                     found = true
                     break
                 end
             end
             if found then
-                Inventory.RemoveItem(source, evidence[i].item.name, evidence[i].item.count, slot)
+                Inventory.RemoveItem(source, importedEvidence[i].item.name, importedEvidence[i].item.count, slot)
+            else
+                canAdd = false
             end
         end
+        if canAdd then
+            table.insert(evidence, importedEvidence[i])
+        end
     end
+    file.evidence = evidence
+    SendComputerEvent("pickle_policejob:evidence:updateFile", {
+        id = id,
+        file = file,
+    })
     MySQL.query("UPDATE pickle_police_files SET evidence = ? WHERE id = ?", {
-        json.encode(evidence),
+        json.encode(file.evidence),
         id,
     })
     ShowNotification(source, _L("evidence_imported"))
@@ -313,16 +337,23 @@ RegisterNetEvent("pickle_policejob:evidence:deleteEvidence", function(id, index)
         departmentId,
     })
     if not result[1] then return ShowNotification(source, _L("file_not_found")) end
+    local file = result[1]
+    file.evidence = json.decode(file.evidence)
     local rank, rankIndex = GetDepartmentRank(departmentId, member)
     if result[1].authorIdentifier ~= GetIdentifier(source) and rankIndex > 1 then return ShowNotification(source, _L("no_department_permission")) end
-    local evidence = json.decode(result[1].evidence)
+    local evidence = file.evidence
     if evidence[index].type == "item" then
         Inventory.AddItem(source, evidence[index].item.name, evidence[index].item.count, evidence[index].item.metadata)
     end
     table.remove(evidence, index)
+    file.evidence = evidence
     MySQL.query("UPDATE pickle_police_files SET evidence = ? WHERE id = ?", {
-        json.encode(evidence),
+        json.encode(file.evidence),
         id,
+    })
+    SendComputerEvent("pickle_policejob:evidence:updateFile", {
+        id = id,
+        file = file,
     })
     ShowNotification(source, _L("evidence_deleted"))
 end)

@@ -105,6 +105,10 @@ function RemoveHandcuffs()
     IsCurrentlyHandcuffed = nil
 end
 
+exports("UncuffPlayer", function()
+    TriggerServerEvent("pickle_policejob:actions:uncuffSelf")
+end)
+
 -- Stab Sticks
 
 function UnrenderStackedStabSticks()
@@ -780,57 +784,6 @@ function OpenPoliceActionsMenu()
             end,
         },
         {
-            title = _L("actions_fines"),
-            description = _L("actions_fines_description"),
-            icon = Config.TargetIcons.fines,
-            onSelect = function()
-                IsMenuOpen = false
-                local targetPlayer = GetClosestPlayer()
-                if not targetPlayer then return ShowNotification(_L("no_player_nearby")) end
-                ViewFines(GetPlayerServerId(targetPlayer))
-            end,
-        },
-        {
-            title = _L("actions_jail"),
-            description = _L("actions_jail_description"),
-            icon = Config.TargetIcons.jail,
-            onSelect = function()
-                IsMenuOpen = false
-                if Config.Integrations.jail.openJailMenu() then return end
-                OpenPoliceJailMenu()
-            end,
-        },
-        {
-            title = _L("actions_shields"),
-            description = _L("actions_shields_description"),
-            icon = Config.TargetIcons.shields,
-            onSelect = function()
-                IsMenuOpen = false
-                UnequipCurrentActions()
-                OpenShields()
-            end,
-        },
-        {
-            title = _L("actions_snakecam"),
-            description = _L("actions_snakecam_description"),
-            icon = Config.TargetIcons.snakecam,
-            onSelect = function()
-                IsMenuOpen = false
-                UnequipCurrentActions()
-                StartSnakeCam()
-            end,
-        },
-        {
-            title = _L("actions_stab_sticks"),
-            description = _L("actions_stab_sticks_description"),
-            icon = Config.TargetIcons.stab_sticks,
-            onSelect = function()
-                IsMenuOpen = false
-                EquipStabSticks()
-            end,
-        },
-
-        {
             title = _L("actions_objects"),
             description = _L("actions_objects_description"),
             icon = Config.TargetIcons.objects,
@@ -842,6 +795,30 @@ function OpenPoliceActionsMenu()
             end,
         }
     }
+    if Config.Shields.enabled then
+        table.insert(options, {
+            title = _L("actions_shields"),
+            description = _L("actions_shields_description"),
+            icon = Config.TargetIcons.shields,
+            onSelect = function()
+                IsMenuOpen = false
+                UnequipCurrentActions()
+                OpenShields()
+            end,
+        })
+    end
+    if Config.Snakecam.enabled then
+        table.insert(options, {
+            title = _L("actions_snakecam"),
+            description = _L("actions_snakecam_description"),
+            icon = Config.TargetIcons.snakecam,
+            onSelect = function()
+                IsMenuOpen = false
+                UnequipCurrentActions()
+                StartSnakeCam()
+            end,
+        })
+    end
     if Config.Grappler.enabled then
         table.insert(options, {
             title = _L("actions_grappler"),
@@ -850,6 +827,17 @@ function OpenPoliceActionsMenu()
             onSelect = function()
                 IsMenuOpen = false
                 StartGrapplerPlacement()
+            end,
+        })
+    end
+    if Config.StabSticks.enabled then
+        table.insert(options, {
+            title = _L("actions_stab_sticks"),
+            description = _L("actions_stab_sticks_description"),
+            icon = Config.TargetIcons.stab_sticks,
+            onSelect = function()
+                IsMenuOpen = false
+                EquipStabSticks()
             end,
         })
     end
@@ -882,6 +870,31 @@ function OpenPoliceActionsMenu()
             end,
         })
     end
+    if Config.Fines.enabled then
+        table.insert(options, {
+            title = _L("actions_fines"),
+            description = _L("actions_fines_description"),
+            icon = Config.TargetIcons.fines,
+            onSelect = function()
+                IsMenuOpen = false
+                local targetPlayer = GetClosestPlayer()
+                if not targetPlayer then return ShowNotification(_L("no_player_nearby")) end
+                ViewFines(GetPlayerServerId(targetPlayer))
+            end,
+        })
+    end
+    if Config.Jail.enabled then
+        table.insert(options, {
+            title = _L("actions_jail"),
+            description = _L("actions_jail_description"),
+            icon = Config.TargetIcons.jail,
+            onSelect = function()
+                IsMenuOpen = false
+                if Config.Integrations.jail.openJailMenu() then return end
+                OpenPoliceJailMenu()
+            end,
+        })
+    end
     lib.registerContext({
         id = menuId,
         title = _L("police_actions_menu"),
@@ -891,6 +904,20 @@ function OpenPoliceActionsMenu()
         end
     })
     lib.showContext(menuId)
+end
+
+function StartSkillCheck(length, availableSteps, availableControls)
+    local availableSteps = availableSteps or {'easy', 'medium', 'hard'}
+    local availableControls = availableControls or {'w', 'a', 's', 'd'}
+    local steps = {}
+    local controls = {}
+    for i=1, length do
+        local val = math.random(1, #availableSteps)
+        table.insert(steps, availableSteps[val])
+        local val2 = math.random(1, #availableControls)
+        table.insert(controls, availableControls[val2])
+    end
+    return lib.skillCheck(steps, controls)
 end
 
 CreateThread(function()
@@ -945,6 +972,16 @@ end)
 
 RegisterKeyMapping("policeactions", "Police Actions", "keyboard", "F6")
 
+RegisterNetEvent("pickle_policejob:actions:uncuffOther", function(targetId)
+    UnequipCurrentActions()
+    local ped = PlayerPedId()
+    PlayAnim(ped, 'mp_arresting', 'a_uncuff', 8.0, -8,-1, 2, 0, 0, 0, 0)
+    local success = StartSkillCheck(Config.Handcuffs.resistSkillCheck.length, Config.Handcuffs.resistSkillCheck.availableSteps, Config.Handcuffs.resistSkillCheck.availableControls)
+    ClearPedTasks(ped)
+    if not success then return end
+    TriggerServerEvent("pickle_policejob:actions:uncuffOther", targetId)
+end)
+
 RegisterNetEvent("pickle_policejob:actions:detainment", function(data)
     local source = GetPlayerServerId(PlayerId())
     if data.eventType == "toggleHandcuffs" then
@@ -960,6 +997,13 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(data)
                 SetEnableHandcuffs(ped, true)
                 SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true) -- unarm player
                 PlayAnim(ped, "mp_arrest_paired", "crook_p2_back_left", 8.0, -8.0, 5500, 33, 1.0, false, false, false)
+                CreateThread(function()
+                    if not Config.Handcuffs.allowResist then return end
+                    local success = StartSkillCheck(Config.Handcuffs.resistSkillCheck.length, Config.Handcuffs.resistSkillCheck.availableSteps, Config.Handcuffs.resistSkillCheck.availableControls)
+                    if success then
+                        TriggerServerEvent("pickle_policejob:actions:uncuffSelf")
+                    end
+                end)
                 SetTimeout(5000, function()
                     if not IsCurrentlyHandcuffed then return end
                     IsCurrentlyHandcuffed.prop = CreateProp(`ba_prop_battle_cuffs`, targetOffset.x, targetOffset.y, targetOffset.z + 0.5, true, true, false)
@@ -1016,7 +1060,7 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(data)
             if data.target == source then
                 UnequipCurrentActions()
                 local ped = PlayerPedId()
-                Wait(4500)
+                if (not data.instant) then Wait(4500) end
                 RemoveHandcuffs()
             elseif data.source == source then
                 UnequipCurrentActions()
@@ -1116,7 +1160,7 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(data)
         if not vehicle then return end
         if data.seatId then
             SetEnableHandcuffs(PlayerPedId(), false)
-            TaskEnterVehicle(PlayerPedId(), vehicle, -1, 2, 2.0, 1, 0)
+            TaskEnterVehicle(PlayerPedId(), vehicle, -1, 2, 2.0, Config.TeleportEscortIntoSeat and 3 or 1, 0)
             SetTimeout(5000, function()
                 SetEnableHandcuffs(PlayerPedId(), true)
             end)

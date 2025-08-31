@@ -60,9 +60,16 @@ RegisterNetEvent("pickle_policejob:buyArmoryItem", function(data)
     if newCount > item.maxCount then return ShowNotification(source, _L("cant_get_this_amount")) end
     local price = item.price * data.quantity
     if price > 0 then
-        local money = GetMoney(source)
-        if money < price then return ShowNotification(source, _L("not_enough_money", NumberWithCommas(price - money))) end
-        RemoveMoney(source, price)
+        if not Config.Finance.deductCostsFromDepartment then
+            local money = GetMoney(source)
+            if money < price then return ShowNotification(source, _L("not_enough_money", NumberWithCommas(price - money))) end
+            RemoveMoney(source, price)
+        else
+            local money = GetDepartmentMoney(departmentId)
+            if money < price then return ShowNotification(source, _L("department_not_enough_money", NumberWithCommas(price - money))) end
+            RemoveDepartmentMoney(departmentId, price)
+            AddDepartmentTransaction(departmentId, source, "withdraw", price, _L("transaction_armory_purchase", GetItemLabel(item.name), data.quantity))
+        end
     end
     Inventory.AddItem(source, item.name, data.quantity)
     ShowNotification(source, _L("armory_purchased", GetItemLabel(item.name), data.quantity))

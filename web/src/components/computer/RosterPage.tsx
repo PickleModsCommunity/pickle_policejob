@@ -112,6 +112,9 @@ function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {membe
     const [selectedPermission, setSelectedPermission] = useState("");
     const [isFiringMember, setIsFiringMember] = useState(false);
     const member = department.members.find((m) => m.identifier === memberIdentifier);
+    if (!member) return null;
+    let memberRank = department.ranks.find((r) => r.rankId === member.rankId);
+    if (!memberRank) return null;
     let memberPermissions = [];
     for (let i = 0; i < Object.keys(department.permissions).length; i++) {
         if (member?.permissions.includes(Object.keys(department.permissions)[i])) {
@@ -319,7 +322,18 @@ function SelectedMemberModal({memberIdentifier, onClose, isModalVisible}: {membe
                                 finishTimestamp: new Date(log.finishTimestamp).toLocaleString(),
                                 action: (<div className="flex items-center gap-2">
                                     <Button variant="outline" size="icon" onClick={() => {
-                                        openWindow("file", {id: log.report})
+                                        openWindow("file", {
+                                            header: {
+                                                title: department.label.toUpperCase(),
+                                                image: department.image,
+                                                leftInfo: [`<b>${player.name}</b>`, `Los Santos, San Andreas`],
+                                                rightInfo: [`<b>${memberRank.label}</b>`, `${new Date(Date.now()).toLocaleString()}`],
+                                            },
+                                            subContent: [],
+                                            enableContent: true,
+                                            content: log.report || "No report provided.",
+                                            canEdit: false
+                                        });
                                     }}>
                                         <EyeIcon className="w-4 h-4"/>
                                     </Button>

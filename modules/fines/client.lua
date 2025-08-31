@@ -1,3 +1,5 @@
+if not Config.Fines.enabled then return end
+
 local viewingFines = false
 
 function ViewFine(serverId, fine)

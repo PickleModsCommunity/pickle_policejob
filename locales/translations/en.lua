@@ -344,4 +344,8 @@ Language["en"] = {
     vehicle_impound = "Impound Vehicle",
     vehicle_impound_description = "Impound the nearest vehicle.",
     vehicle_impound_progress = "Impounding vehicle...",
+    serial = "Serial Number",
+    transaction_armory_purchase = "Purchased %s (x%s).",
+    transaction_garage_purchase = "Purchased %s.",
+    lockpicked_cuffs = "You have lockpicked the cuffs.",
 }
