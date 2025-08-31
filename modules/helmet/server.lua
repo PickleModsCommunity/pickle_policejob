@@ -3,7 +3,7 @@ local ActiveFlashlights = {
 }
 GlobalState.ActiveFlashlights = ActiveFlashlights
 
-RegisterNetEvent("pickle_policetools:goggles:setFlashlight", function(bool)
+RegisterNetEvent("pickle_policejob:tools:goggles:setFlashlight", function(bool)
     local _source = source
     ActiveFlashlights[_source] = (bool and true or nil)
     GlobalState.ActiveFlashlights = ActiveFlashlights

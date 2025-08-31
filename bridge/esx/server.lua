@@ -11,7 +11,7 @@ function ShowNotification(target, text)
 end
 
 function GetIdentifier(source)
-    local xPlayer = ESX.GetPlayerFromId(source)
+    local xPlayer = ESX.GetPlayerFromId(tonumber(source))
     if not xPlayer or not xPlayer.identifier then return end
     return xPlayer.identifier
 end

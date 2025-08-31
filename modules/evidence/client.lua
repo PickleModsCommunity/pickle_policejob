@@ -48,8 +48,10 @@ function CameraControls(cam, zoom)
     end
 end
 
-function EquipEvidenceCamera(trackData)
+function EquipEvidenceCamera()
     if IN_EVIDENCE_CAMERA then return end
+    local result = lib.callback.await("pickle_policejob:actions:allowedToEquip", false, "evidence_camera")
+    if not result then return end
     IN_EVIDENCE_CAMERA = true
     local playerPed = PlayerPedId()
     CreateThread(function()
@@ -227,6 +229,7 @@ function EquipEvidenceCamera(trackData)
 end
 
 function StopCameraLoop()
+    if not IN_EVIDENCE_CAMERA then return end
     if CAMERA_VALUES.obj then
         DeleteEntity(CAMERA_VALUES.obj)
         CAMERA_VALUES.obj = nil
@@ -242,10 +245,6 @@ function StopCameraLoop()
     DestroyCam(cam, false)
     CAMERA_VALUES.calculatedFov = CAMERA_VALUES.fov[2]
 end
-
-RegisterCommand("ecam", function()
-    EquipEvidenceCamera()
-end, false)
 
 -- Evidence Core
 

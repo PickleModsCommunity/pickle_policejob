@@ -135,6 +135,10 @@ function OpenFrontdesk(id, entityId)
     end, id, entityId)
 end
 
+function OpenLocker(id, locationId)
+    Inventory.OpenStash("police_locker", true)
+end
+
 function UnrenderDepartmentLocation(id, locationId)
     for i=1, #LocalDepartments[id].locations do
         if LocalDepartments[id].locations[i].id == locationId then
@@ -197,6 +201,22 @@ function RenderDepartmentLocation(id, locationId)
                 model = nil,
             }, function()
                 OpenFrontdesk(id, locationId)
+            end)
+        }
+    elseif location.type == "locker" then
+        local coords = location.positions.point.coords
+        local heading = location.positions.point.rotation.z
+        
+        LocalDepartments[id].locations[#LocalDepartments[id].locations+1] = {
+            id = locationId,
+            interact = CreateInteraction({
+                label = _L("interact_locker"),
+                icon = Config.TargetIcons["locker"],
+                coords = coords,
+                heading = heading,
+                model = nil,
+            }, function()
+                OpenLocker(id, locationId)
             end)
         }
     elseif location.type == "computer" then
@@ -278,6 +298,7 @@ end
 function EnsureDepartment(id)
     if LocalDepartments[id] then return end
     LocalDepartments[id] = {
+        blip = CreateDepartmentBlip(id),
         locations = {},
     }
     for i=1, #Departments[id].locations do
@@ -297,6 +318,26 @@ function GetDepartmentLocation(departmentId, locationId)
             return Departments[departmentId].locations[i]
         end
     end
+end
+
+function CreateDepartmentBlip(departmentId) 
+    local department = Departments[departmentId]
+    if not department then return end
+    local coords = department.location and department.location.coords or vector3(0.0, 0.0, 0.0)
+    local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
+    local blipCfg = Config.DepartmentBlip or {}
+    SetBlipSprite(blip, blipCfg.sprite or 1)
+    SetBlipDisplay(blip, blipCfg.display or 4)
+    SetBlipScale(blip, blipCfg.scale or 1.0)
+    SetBlipColour(blip, blipCfg.color or 0)
+    SetBlipAsShortRange(blip, true)
+    local category = blipCfg.category or 40
+    SetBlipCategory(blip, category)
+    AddTextEntry("BLIP_CAT_" .. category, _L("blip_department"))
+    BeginTextCommandSetBlipName("STRING")
+    AddTextComponentSubstringPlayerName(department.label)
+    EndTextCommandSetBlipName(blip)
+    return blip
 end
 
 RegisterNUICallback("getPlayers", function(data, cb)
@@ -333,6 +374,10 @@ RegisterNetEvent("pickle_policejob:deleteDepartment", function(id)
     Departments[id] = nil
     for k, v in pairs(LocalDepartments) do
         if k == id then
+            RemoveBlip(v.blip)
+            for i=1, #v.locations do
+                UnrenderDepartmentLocation(k, v.locations[i].id)
+            end
             LocalDepartments[k] = nil
         end
     end
@@ -342,6 +387,10 @@ RegisterNetEvent("pickle_policejob:updateDepartment", function(data)
     if data.type == "createLocation" then
         Departments[data.departmentId].locations[#Departments[data.departmentId].locations+1] = data.location
         EnsureDepartmentLocation(data.departmentId, data.location.id)
+    elseif data.type == "updateDepartmentLocation" then
+        Departments[data.departmentId].location = data.location
+        RemoveBlip(LocalDepartments[data.departmentId].blip)
+        LocalDepartments[data.departmentId].blip = CreateDepartmentBlip(data.departmentId)
     elseif data.type == "updateLocation" then
         local updatedLocation = false
         for i=1, #Departments[data.departmentId].locations do
@@ -373,6 +422,8 @@ RegisterNetEvent("pickle_policejob:initializePlayer", function()
         SendNUIMessage({
             type = "setConfig",
             config = {
+                bailAndBounty = GetResourceState("pickle_bailbounty") == "started",
+                disableWithdraw = Config.Finance.disableWithdraw,
                 evidenceEnabled = Config.Evidence.enabled,
                 imageDirectory = Config.ImageDirectory,
                 identifier = player.identifier,
@@ -406,6 +457,7 @@ end)
 AddEventHandler("onResourceStop", function(resource)
     if resource == GetCurrentResourceName() then
         for k, v in pairs(Departments) do   
+            RemoveBlip(v.blip)
             for i=1, #v.locations do    
                 UnrenderDepartmentLocation(k, v.locations[i].id)
             end

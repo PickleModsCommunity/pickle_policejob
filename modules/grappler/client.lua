@@ -19,15 +19,19 @@ local TARGET_OPTIONS = {
                 end
             end
             if closestDistance < 2.0 then
-                if true or not IsPlayerOnDuty() then 
-                    local ped = PlayerPedId()
-                    PlayAnim(ped, "mini@repair", "fixing_a_ped", 1.0, -1.0, -1, 0, 0, false, false, false)
-                    local success = lib.skillCheck({'easy', 'medium', 'medium', 'medium'}, {'w', 'a', 's', 'd'})
-                    ClearPedTasks(ped)
-                    if not success then
-                        ShowNotification(_L("failed_grappler_removal"))
-                        return
-                    end
+                local ped = PlayerPedId()
+                PlayAnim(ped, "mini@repair", "fixing_a_ped", 1.0, -1.0, -1, 0, 0, false, false, false)
+                local success = false
+                if IsPlayerOnDuty() then 
+                    Wait(2000)
+                    success = true
+                else
+                    success = lib.skillCheck({'easy', 'medium', 'medium', 'medium'}, {'w', 'a', 's', 'd'})
+                end
+                ClearPedTasks(ped)
+                if not success then
+                    ShowNotification(_L("failed_grappler_removal"))
+                    return
                 end
                 ShowNotification(_L("grappler_removed"))
                 TriggerServerEvent("pickle_policejob:grappler:remove", closestGrappler)
@@ -39,6 +43,8 @@ local WHEEL_BONES = {"wheel_lf", "wheel_rf", "wheel_lr", "wheel_rr", "wheel_lm",
 local GrapplerPlacement = nil
 
 function StartGrapplerPlacement()
+    local result = lib.callback.await("pickle_policejob:actions:allowedToEquip", false, "grappler")
+    if not result then return end
     local vehicle = GetNearestVehicle(10.0)
     if not vehicle then return end
     GrapplerPlacement = {
@@ -211,7 +217,6 @@ CreateThread(function()
 end)
 
 CreateThread(function()
-    -- if Config.UseTarget then return end
     while true do
         local wait = 1500
         if not DoesEntityExist(GetVehiclePedIsIn(PlayerPedId(), false)) then
@@ -243,7 +248,23 @@ CreateThread(function()
                 wait = 0
                 ShowInteractText(_L("interact_grappler"))
                 if IsControlJustPressed(1, 51) then
+                    local ped = PlayerPedId()
+                    PlayAnim(ped, "mini@repair", "fixing_a_ped", 1.0, -1.0, -1, 0, 0, false, false, false)
+                    local success = false
+                    if IsPlayerOnDuty() then 
+                        Wait(2000)
+                        success = true
+                    else
+                        success = lib.skillCheck({'easy', 'medium', 'medium', 'medium'}, {'w', 'a', 's', 'd'})
+                    end
+                    ClearPedTasks(ped)
+                    if not success then
+                        ShowNotification(_L("failed_grappler_removal"))
+                        return
+                    end
+                    ShowNotification(_L("grappler_removed"))
                     TriggerServerEvent("pickle_policejob:grappler:remove", VehToNet(closestVehicle))
+                    TriggerServerEvent("pickle_policejob:actions:requestRefund", "grappler")
                 end
             end
         end

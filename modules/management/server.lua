@@ -82,6 +82,21 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
                 label = data.label,
             })
         end
+    elseif action == "updateDepartmentLocation" then
+        department.location = data.location
+        UpdateDepartmentSQL(data.departmentId, "location")
+        for k, v in pairs(InManagement) do
+            TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
+                type = "updateDepartmentLocation",
+                departmentId = data.departmentId,
+                location = data.location,
+            })
+        end
+        TriggerClientEvent("pickle_policejob:updateDepartment", -1, {
+            type = "updateDepartmentLocation",
+            departmentId = data.departmentId,
+            location = data.location,
+        })
     elseif action == "updateImage" then
         department.image = data.image
         UpdateDepartmentSQL(data.departmentId, "image")

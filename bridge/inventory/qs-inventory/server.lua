@@ -42,7 +42,7 @@ Inventory.GetItemCount = function(source, name)
     return exports['qs-inventory']:GetItemTotalAmount(source, name) or 0
 end
 
-RegisterServerEvent("pickle_policejob:searchPlayer", function(targetId)
+RegisterNetEvent("pickle_policejob:searchPlayer", function(targetId)
     local source = source
     if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
     ShowNotification(targetId, _L("search_started"))
@@ -50,6 +50,7 @@ RegisterServerEvent("pickle_policejob:searchPlayer", function(targetId)
 end)
 
 function InitializeInventory()
+    Config.ImageDirectory = "nui://qs-inventory/html/images/"
     lib.callback.register("pickle_policejob:getInventory", function(source)
         return Inventory.GetInventory(source)
     end)

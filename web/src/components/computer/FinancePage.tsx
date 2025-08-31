@@ -46,6 +46,7 @@ export default function FinancePage() {
     const {computerInfo, department} = useComputer();
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [exchangeOpen, setExchangeOpen] = useState<"withdraw" | "deposit" | null>(null);
+    const {config} = useConfig();
     useEffect(() => {
     }, [computerInfo]);
     return (
@@ -65,14 +66,14 @@ export default function FinancePage() {
                         <div className="font-bold text-lg text-green-500">
                             <DisplayCurrency value={department.money} />
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => {
+                        {!config.disableWithdraw && <Button variant="outline" size="sm" onClick={() => {
                             setExchangeOpen("withdraw");
                             setTimeout(() => {
                                 setIsModalVisible(true);
                             }, 10);
                         }}>
                             <ArrowDownToLine className="w-4 h-4" />
-                        </Button>
+                        </Button>}
                         <Button variant="outline" size="sm" onClick={() => {
                             setExchangeOpen("deposit");
                             setTimeout(() => {

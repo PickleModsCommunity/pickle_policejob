@@ -14,10 +14,10 @@ RegisterCommand("snakecam", function(source)
         Inventory.RemoveItem(source, Config.Snakecam.RequiredItem, 1)
     end
 
-    TriggerClientEvent("pickle_policetools:snakecam:attemptSnakecam", source)
+    TriggerClientEvent("pickle_policejob:tools:snakecam:attemptSnakecam", source)
 end)
 
-RegisterNetEvent("pickle_policetools:snakecam:requestRefund", function()
+RegisterNetEvent("pickle_policejob:tools:snakecam:requestRefund", function()
     local source = source
     if HeldItems[source] then 
         HeldItems[source] = nil
@@ -32,6 +32,6 @@ if Config.Snakecam.RequiredItem then
     RegisterUsableItem(Config.Snakecam.RequiredItem, function(source) 
         HeldItems[source] = true
         Inventory.RemoveItem(source, Config.Snakecam.RequiredItem, 1)
-        TriggerClientEvent("pickle_policetools:snakecam:attemptSnakecam", source)
+        TriggerClientEvent("pickle_policejob:tools:snakecam:attemptSnakecam", source)
     end)
 end

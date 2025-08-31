@@ -14,10 +14,10 @@ RegisterCommand("shield", function(source)
         Inventory.RemoveItem(source, Config.Shields.RequiredItem, 1)
     end
 
-    TriggerClientEvent("pickle_policetools:shields:openShield", source)
+    TriggerClientEvent("pickle_policejob:tools:shields:openShield", source)
 end)
 
-RegisterNetEvent("pickle_policetools:shields:requestRefund", function()
+RegisterNetEvent("pickle_policejob:tools:shields:requestRefund", function()
     local source = source
     if HeldShields[source] then 
         HeldShields[source] = nil
@@ -31,6 +31,6 @@ if Config.Shields.RequiredItem then
     RegisterUsableItem(Config.Shields.RequiredItem, function(source) 
         Inventory.RemoveItem(source, Config.Shields.RequiredItem, 1)
         HeldShields[source] = true
-        TriggerClientEvent("pickle_policetools:shields:openShield", source)
+        TriggerClientEvent("pickle_policejob:tools:shields:openShield", source)
     end)
 end

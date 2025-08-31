@@ -27,6 +27,8 @@ end
 
 function EquipHandcuffs()
     if IsAnythingEquipped() then return ShowNotification(_L("already_equipped")) end
+    local result = lib.callback.await("pickle_policejob:actions:allowedToEquip", false, "handcuffs")
+    if not result then return end
     ShowNotification(_L("equipped_handcuffs"))
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
@@ -138,6 +140,10 @@ end
 function EquipStabSticks(amount)
     if not IsPlayerOnDuty() then return ShowNotification(_L("not_on_duty")) end
     if IsAnythingEquipped() then return ShowNotification(_L("already_equipped")) end
+    if not amount then
+        local result = lib.callback.await("pickle_policejob:actions:allowedToEquip", false, "stab_sticks")
+        if not result then return end
+    end
     ShowNotification(_L("equipped_stab_sticks"))
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
@@ -166,6 +172,7 @@ function EquipStabSticks(amount)
                 RenderStackedStabSticks()
             elseif IsControlJustPressed(0, 202) then -- ESC
                 UnequipStabSticks()
+                TriggerServerEvent("pickle_policejob:actions:requestRefund", "stab_sticks")
             elseif IsControlJustPressed(1, 51) then -- E
                 DetachEntity(EquippedStabSticks.prop, true, true)
                 local coords = GetEntityCoords(EquippedStabSticks.prop)
@@ -336,6 +343,8 @@ end
 function EquipBreathalyzer()
     if not IsPlayerOnDuty() then return ShowNotification(_L("not_on_duty")) end
     if IsAnythingEquipped() then return ShowNotification(_L("already_equipped")) end
+    local result = lib.callback.await("pickle_policejob:actions:allowedToEquip", false, "breathalyzer")
+    if not result then return end
     ShowNotification(_L("equipped_breathalyzer"))
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
@@ -425,6 +434,8 @@ end
 function EquipFingerprintScanner()
     if not IsPlayerOnDuty() then return ShowNotification(_L("not_on_duty")) end
     if IsAnythingEquipped() then return ShowNotification(_L("already_equipped")) end
+    local result = lib.callback.await("pickle_policejob:actions:allowedToEquip", false, "fingerprint_scanner")
+    if not result then return end
     ShowNotification(_L("equipped_fingerprint_scanner"))
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
@@ -992,8 +1003,8 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(data)
                 local ped = PlayerPedId()
                 local targetPed = GetPlayerPed(GetPlayerFromServerId(data.source))
                 local targetOffset = GetOffsetFromEntityInWorldCoords(targetPed, 0.0, 1.0, -1.0)
-                SetEntityCoordsNoOffset(ped, targetOffset.x, targetOffset.y, targetOffset.z + 0.5, 0)
-                SetEntityHeading(ped, data.heading)
+                SetEntityCoords(ped, targetOffset.x, targetOffset.y, targetOffset.z + 0.5, 0)
+                SetEntityHeading(ped, GetEntityHeading(targetPed))
                 SetEnableHandcuffs(ped, true)
                 SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true) -- unarm player
                 PlayAnim(ped, "mp_arrest_paired", "crook_p2_back_left", 8.0, -8.0, 5500, 33, 1.0, false, false, false)
@@ -1200,12 +1211,35 @@ RegisterNetEvent("pickle_policejob:actions:lockpickVehicle", function(netId)
     SetVehicleDoorsLocked(vehicle, 0)
 end)
 
+RegisterNetEvent("pickle_policejob:actions:equipAction", function(action)
+    if not IsPlayerOnDuty() then return end
+    UnequipCurrentActions()
+    if action == "shields" then
+        OpenShields()
+    elseif action == "snakecam" then
+        StartSnakeCam()
+    elseif action == "handcuffs" then
+        EquipHandcuffs()
+    elseif action == "stab_sticks" then
+        EquipStabSticks()
+    elseif action == "breathalyzer" then
+        EquipBreathalyzer()
+    elseif action == "fingerprint_scanner" then
+        EquipFingerprintScanner()
+    elseif action == "grappler" then
+        StartGrapplerPlacement()
+    elseif action == "evidence_camera" then
+        EquipEvidenceCamera()
+    end
+end)
+
 AddEventHandler("onResourceStop", function(resource)
     if resource == GetCurrentResourceName() then
         for id, _ in pairs(StabSticks) do
             UnrenderStabSticks(id)
         end
-        UnequipCurrentActions()
         RemoveHandcuffs()
+        SetEnableHandcuffs(PlayerPedId(), false)
+        UnequipCurrentActions()
     end
 end)

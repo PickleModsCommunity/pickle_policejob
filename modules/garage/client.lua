@@ -137,7 +137,6 @@ function OpenVehicleSpawn(departmentId, locationId)
     local location = GetDepartmentLocation(departmentId, locationId)
     if not location then return ShowNotification(_L("no_location")) end
     lib.callback("pickle_policejob:openGarage", false, function(result, err)
-        print(result, err)
         if not result then
             inGarage = false
             return ShowNotification(err)

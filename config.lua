@@ -7,15 +7,35 @@ Config.UseTarget = true -- This enables the use of the target system when availa
 Config.ImageDirectory = "nui://ox_inventory/web/images/"
 Config.WeaponsAreItems = true -- This enables the use of weapons as items. If set to false, weapons will be treated as items and not as weapons.
 Config.TeleportEscortIntoSeat = false -- This enables the teleportation of the escort to the seat of the vehicle. Default animates entry / exit.
+Config.DefaultJob = { name = "unemployed", level = 0 } -- The job to set players to when they clock off-duty.
+Config.Photos = {
+    url = "https://fmapi.net/api/v2/image?apiKey=vX7G4UCDJLUSm19U1DGSdvUUpEiOSERv", -- By default, uses discord to host images.
+    uploadProtocol = 'file',
+    ResponseHandler = function(resp) -- Return URL from response.
+       return resp.data.url
+    end,
+}
 
 Config.Finance = {
+    disableWithdraw = false, -- When true, the department will not be able to withdraw money from the department's funds.
     deductCostsFromDepartment = true, -- When true, the costs will be deducted from the department's funds - otherwise it will be deducted from the player's funds.
     deductSalaryFromDepartment = true, -- When true, the salary will be deducted from the department's funds - if it is too much it will not pay. False pays out without deducting.
-    maxRankSalary = 100000, -- The maximum salary a rank can have.
+    maxRankSalary = 10000, -- The maximum salary a rank can have.
     salarySchedule = "*/15 * * * *", -- The CRON schedule at which the salary will be paid. Default is every 15 minutes.
     funding = 100000, -- The amount of money to fund the department with per schedule.
-    fundingSchedule = "*/1 * * * *", -- The CRON schedule at which the funding will be paid. Default is every 15 minutes.
+    fundingSchedule = "*/15 * * * *", -- The CRON schedule at which the funding will be paid. Default is every 15 minutes.
     maxTransactions = 100, -- The maximum number of transactions to store per department.
+}
+
+Config.Currency = { currency = "USD", countryCode = "en-US" } -- Look up JS currency and countryCode variables for more options. 
+
+-- The above should always be configured before using the resource.
+
+Config.DepartmentBlip = {
+    sprite = 137,
+    color = 0,
+    scale = 0.75,
+    category = 41
 }
 
 Config.Peds = {
@@ -56,6 +76,7 @@ Config.Peds = {
         },
     },
 }
+
 Config.AdminGroups = {
     "qbcore.admin",
     "qbcore.god",
@@ -83,6 +104,7 @@ Config.TargetIcons = {
     evidence_pickup = "fas fa-broom",
     id_card = "fas fa-id-card",
     vehicle_interact = "fas fa-car",
+    locker = "fas fa-box",
 }
 
 Config.FrameworkSettings = {
@@ -96,16 +118,6 @@ Config.FrameworkSettings = {
     end
 }
 
-Config.Photos = {
-    url = "https://fmapi.net/api/v2/image?apiKey=vX7G4UCDJLUSm19U1DGSdvUUpEiOSERv", -- By default, uses discord to host images.
-    uploadProtocol = 'file',
-    ResponseHandler = function(resp) -- Return URL from response.
-       return resp.data.url
-    end,
-}
-
-Config.VoiceTarget = 30 -- The channel to use for voice syncing while viewing a bodycam. Set to -1 to disable.
-
 Config.IsPlayerDead = function()
     if GetResourceState("wasabi_ambulance") == "started" then
         return exports.wasabi_ambulance:isPlayerDead()
@@ -116,13 +128,6 @@ end
 Config.GiveKeys = function(vehicle, plate)
     -- Replace this line with your export / event to give keys for your vehicle.
 end
-
-Config.Currency = {
-    currency = "USD",
-    countryCode = "en-US",
-}
-
-Config.DefaultJob = { name = "unemployed", level = 0 } -- The job to set players to when they clock off-duty.
 
 Config.PoliceJobs = { -- You can use multiple departments with the same job, no need to add anything here if you don't want to.
     ["police"] = { -- The framework's job name, used in /setjob.
@@ -146,6 +151,8 @@ Config.Fines = {
     viewFinesCommand = "fines",
 }
 
+-- Actions / Evidence
+
 Config.Handcuffs = {
     item = {
         name = "handcuffs", -- The name of the item to use for the cuffs.
@@ -157,7 +164,7 @@ Config.Handcuffs = {
         availableSteps = {'easy', 'medium'},
         availableControls = {'w', 'a', 's', 'd'},
     },
-    lockpickItem = "metal", -- set to nil (not "nil") to disable lockpicking of cuffs.
+    lockpickItem = "bobby_pins", -- set to nil (not "nil") to disable lockpicking of cuffs.
     lockpickRemoveChance = 100, -- The chance to remove the lockpick when lockpicking, if set to 100 then it will always remove the lockpick.
     skillCheck = {
         length = 5,
@@ -180,27 +187,28 @@ Config.StabSticks = {
 
 Config.Grappler = {
     enabled = true,
+    item = {
+        name = "grappler", -- The name of the item to use for the grappler.
+        required = true, -- Only set this to true if the item is required to use the grappler.
+        remove = true, -- Only set this to true if the item is removed when the grappler is deployed.
+    },
     renderDistance = 100.0, -- The distance at which the grappler will be rendered. Leave this alone please.
-}
-
-Config.ObjectPlacement = {
-    renderDistance = 100.0, -- The distance at which the object placement will be rendered. Leave this alone please.
-    props = {
-        {label = "Traffic Cone", model = `prop_roadcone02a`, image = "nui://pickle_policejob/nui/images/prop_roadcone02a.png"},
-        {label = "Police Barrier", model = `prop_barrier_work05`, image = "nui://pickle_policejob/nui/images/prop_barrier_work05.png"},
-        {label = "Construction Barrier #1", model = `prop_barrier_work06a`, image = "nui://pickle_policejob/nui/images/prop_barrier_work06a.png"},
-        {label = "Construction Barrier #2", model = `prop_barrier_work06b`, image = "nui://pickle_policejob/nui/images/prop_barrier_work06b.png"},
-        {label = "Police Tent", model = `prop_gazebo_02`, image = "nui://pickle_policejob/nui/images/prop_gazebo_02.png", targetZOffset = -1.0},
-        {label = "Portable Light", model = `prop_worklight_03b`, image = "nui://pickle_policejob/nui/images/prop_worklight_03b.png"},
-    }
-}
-
-Config.Computer = {
-    vehicleCommand = "pdterminal",
 }
 
 Config.Evidence = {
     enabled = true,
+    cameraItem = {
+        name = "evidence_camera", -- The name of the item to use for the camera.
+        required = true, -- Only set this to true if the item is required to use the camera.
+    },
+    breathalyzerItem = {
+        name = "breathalyzer", -- The name of the item to use for the breathalyzer.
+        required = true, -- Only set this to true if the item is required to use the breathalyzer.
+    },
+    fingerprintScannerItem = {
+        name = "fingerprint_scanner", -- The name of the item to use for the fingerprint scanner.
+        required = true, -- Only set this to true if the item is required to use the fingerprint scanner.
+    },
     renderDistance = 25.0, -- The distance at which evidence will be rendered.
     reconstructRenderDistance = 100.0, -- The distance at which evidence will be rendered for the reconstructed scene.
     maxDisplayAmount = 3, -- The maximum amount of a group of evidence that can be displayed.
@@ -257,11 +265,19 @@ Config.Helmets = {
 }
 
 Config.Bodycam = {
-    RequiredItem = "police_bodycam",
+    item = {
+        name = "police_bodycam", -- The name of the item to use for the camera.
+        required = true, -- Only set this to true if the item is required to view the officer's bodycam.
+    }
 }
 
 Config.Shields = {
     enabled = true,
+    item = {
+        name = "police_shield", -- The name of the item to use for the shield.
+        required = true, -- Only set this to true if the item is required to use the shield.
+        remove = true, -- Only set this to true if the item is removed when the shield is deployed.
+    },
     Models = {
         [`prop_riot_shield`] = {
             Label = "Riot Shield",
@@ -284,6 +300,10 @@ Config.Shields = {
 
 Config.Snakecam = {
     enabled = true,
+    item = {
+        name = "police_snakecam", -- The name of the item to use for the camera.
+        required = true, -- Only set this to true if the item is required to use the camera.
+    },
     MaxLength = 10.0,
     Controls = {
         up = 32,
@@ -296,6 +316,24 @@ Config.Snakecam = {
 
         stop_cam = 177
     }
+}
+
+Config.ObjectPlacement = {
+    renderDistance = 100.0, -- The distance at which the object placement will be rendered. Leave this alone please.
+    props = {
+        {label = "Traffic Cone", model = `prop_roadcone02a`, image = "nui://pickle_policejob/nui/images/prop_roadcone02a.png"},
+        {label = "Police Barrier", model = `prop_barrier_work05`, image = "nui://pickle_policejob/nui/images/prop_barrier_work05.png"},
+        {label = "Construction Barrier #1", model = `prop_barrier_work06a`, image = "nui://pickle_policejob/nui/images/prop_barrier_work06a.png"},
+        {label = "Construction Barrier #2", model = `prop_barrier_work06b`, image = "nui://pickle_policejob/nui/images/prop_barrier_work06b.png"},
+        {label = "Police Tent", model = `prop_gazebo_02`, image = "nui://pickle_policejob/nui/images/prop_gazebo_02.png", targetZOffset = -1.0},
+        {label = "Portable Light", model = `prop_worklight_03b`, image = "nui://pickle_policejob/nui/images/prop_worklight_03b.png"},
+    }
+}
+
+-- Department / Computer
+
+Config.Computer = {
+    vehicleCommand = "pdterminal",
 }
 
 Config.PoliceArmory = {
@@ -414,51 +452,6 @@ Config.PoliceGarage = {
     -- BOATS
 }
 
-Config.CurrencyItems = {
-    -- These are the items that will be used for images from your inventory.
-    ["money"] = "money",
-    ["dirty_money"] = "black_money",
-}
-
-Config.DefaultDepartment = {
-    permissions = { -- These are the default selectable permissions that will be used for the department.
-        ["Air Certified"] = {
-            managingRankIds = {2, 3},
-        },
-        ["Rifle Certified"] = {
-            managingRankIds = {2, 3},
-        },
-        ["Field Training Officer"] = {
-            managingRankIds = {2, 3},
-        },
-    },
-    ranks = { -- Each rankId must be unique, if you break this and make a ticket I'm crashing out - just let the chief manage the ranks in-game.
-        {
-            rankId = 1,
-            label = "Chief",
-        },
-        {
-            rankId = 2,
-            label = "Lieutenant",
-        },
-        {
-            rankId = 3,
-            managingRankIds = {2},
-            label = "Sergeant",
-        },
-        {
-            rankId = 4,
-            managingRankIds = {2, 3},
-            label = "Officer",
-        },
-        {
-            rankId = 5,
-            managingRankIds = {2, 3},
-            label = "Recruit",
-        },
-    }
-}
-
 Config.Frontdesk = {
     requestOfficer = {
         enabled = false,
@@ -470,6 +463,19 @@ Config.Frontdesk = {
         enabled = false,
     },
 }
+
+Config.Locker = {
+    maxWeight = 100000,
+    slots = 100,
+}
+
+Config.CurrencyItems = {
+    -- These are the items that will be used for images from your inventory.
+    ["money"] = "money",
+    ["dirty_money"] = "black_money",
+}
+
+-- Integrations
 
 Config.Integrations = {
     fines = {

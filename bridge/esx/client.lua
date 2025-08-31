@@ -88,6 +88,10 @@ CreateThread(function()
     
     Inventory.Ready = false
     
+    Inventory.OpenStash = function(stash, isPersonalStash)
+        ShowNotification("Your inventory does not support stashes, please make a ticket at https://discord.gg/picklemods")
+    end
+
     RegisterNetEvent("pickle_policejob:setupInventory", function(items)
         Inventory.Items = items
         Inventory.Ready = true

@@ -24,6 +24,8 @@ function StartSnakeCam()
     if Snakecam.Active then 
         return ShowNotification(_L("snake_active")) 
     end
+    local result = lib.callback.await("pickle_policejob:actions:allowedToEquip", false, "snakecam")
+    if not result then return end
     Snakecam.Active = true
     CreateThread(function()
         DoScreenFadeOut(1000)
@@ -116,10 +118,10 @@ function StartSnakeCam()
         FreezeEntityPosition(ped, false)
         DoScreenFadeIn(1000)
         Snakecam.Active = false
-        TriggerServerEvent("pickle_policetools:snakecam:requestRefund")
+        TriggerServerEvent("pickle_policejob:tools:snakecam:requestRefund")
     end)
 end
 
-RegisterNetEvent("pickle_policetools:snakecam:attemptSnakecam", function()
+RegisterNetEvent("pickle_policejob:tools:snakecam:attemptSnakecam", function()
     StartSnakeCam()
 end)

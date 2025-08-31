@@ -61,3 +61,13 @@ RegisterNUICallback("closeComputer", function(data, cb)
     inComputer = false
     TriggerServerEvent("pickle_policejob:closeComputer")
 end)
+
+RegisterNUICallback("openBailBounty", function(data, cb)
+    cb("ok")
+    SetNuiFocus(false, false)
+    SendNUIMessage({
+        type = "updateComputerInfo",
+    })
+    inComputer = false
+    ExecuteCommand("bounties")
+end)

@@ -2,6 +2,16 @@ local HandcuffedPlayers = {}
 local DraggedPlayers = {}
 local StabSticks = {}
 local ObjectPlacement = {}
+local RegisteredItems = {
+    ["handcuffs"] = Config.Handcuffs.item,
+    ["stab_sticks"] = Config.StabSticks.item,
+    ["breathalyzer"] = Config.Evidence.breathalyzerItem,
+    ["fingerprint_scanner"] = Config.Evidence.fingerprintScannerItem,
+    ["grappler"] = Config.Grappler.item,
+    ["shields"] = Config.Shields.item,
+    ["snakecam"] = Config.Snakecam.item,
+    ["evidence_camera"] = Config.Evidence.cameraItem,
+}
 
 function CreateStabSticks(sticks)
     local id
@@ -25,6 +35,15 @@ function DeleteStabSticks(id)
     TriggerClientEvent("pickle_policejob:actions:deleteStabSticks", -1, id)
 end
 
+function IsItemRequired(action)
+    if not RegisteredItems[action] then return nil end
+    local item = RegisteredItems[action]
+    if item.required then
+        return item, item
+    end
+    return nil, item
+end
+
 lib.callback.register("pickle_policejob:actions:getIDCard", function(source, targetId)
     local target = GetPlayerCharacterName(targetId)
     local dob = GetPlayerDateOfBirth(targetId) or "Unknown"
@@ -41,6 +60,28 @@ lib.callback.register("pickle_policejob:actions:getVehicleInfo", function(source
     local owner = GetPlayerCharacterName(data.owner)
     if owner == "ERR_UNK_NAME" then owner = "UNKNOWN" end
     return {plate = plate, owner = owner, identifier = data.owner}
+end)
+
+lib.callback.register("pickle_policejob:actions:allowedToEquip", function(source, action)
+    local item = IsItemRequired(action)
+    if item then
+        if Inventory.GetItemCount(source, item.name) < 1 then 
+            return false, ShowNotification(source, _L("item_not_found", GetItemLabel(item.name))) 
+        end
+        if item.remove then
+            Inventory.RemoveItem(source, item.name, 1)
+        end
+    end
+    return true
+end)
+
+RegisterNetEvent("pickle_policejob:actions:requestRefund", function(action)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    local item = IsItemRequired(action)
+    if item and item.remove then
+        Inventory.AddItem(source, item.name, 1)
+    end
 end)
 
 RegisterNetEvent("pickle_policejob:actions:lockpickVehicle", function(netId)
@@ -178,10 +219,8 @@ end)
 
 RegisterNetEvent("pickle_policejob:actions:uncuffOther", function(targetId)
     local source = source
-    print("A")
     if not HandcuffedPlayers[targetId] then return ShowNotification(source, _L("player_not_handcuffed")) end
     HandcuffedPlayers[targetId] = nil
-    print("B")
     TriggerClientEvent("pickle_policejob:actions:detainment", targetId, {
         eventType = "toggleHandcuffs",
         cuffStyle = "back",
@@ -213,6 +252,15 @@ if Config.Handcuffs.lockpickItem then
         end
         TriggerClientEvent("pickle_policejob:actions:uncuffOther", source, targetId)
     end)
+end
+
+for action, usableItem in pairs(RegisteredItems) do
+    if usableItem.name then
+        RegisterUsableItem(usableItem.name, function(source)
+            if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+            TriggerClientEvent("pickle_policejob:actions:equipAction", source, action)
+        end)
+    end
 end
 
 CreateThread(function()

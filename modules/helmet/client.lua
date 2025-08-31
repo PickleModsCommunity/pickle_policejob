@@ -115,14 +115,14 @@ function ToggleFlashlight()
         PlayAnim(ped, Anims.up[1], Anims.up[2], -8.0, 8.0, -1, 49, 1.0)
         Wait(400)
         ClearPedTasks(ped)
-        TriggerServerEvent("pickle_policetools:goggles:setFlashlight", false)
+        TriggerServerEvent("pickle_policejob:tools:goggles:setFlashlight", false)
         Flashlight.Active = false
         Flashlight.Action = false
     else
         PlayAnim(ped, Anims.up[1], Anims.up[2], -8.0, 8.0, -1, 49, 1.0)
         Wait(400)
         ClearPedTasks(ped)
-        TriggerServerEvent("pickle_policetools:goggles:setFlashlight", true)
+        TriggerServerEvent("pickle_policejob:tools:goggles:setFlashlight", true)
         Flashlight.Active = true
         Flashlight.Action = false
         CreateThread(function() 
@@ -131,7 +131,7 @@ function ToggleFlashlight()
                 DrawHelmetFlashlight()
             end
             Flashlight.Active = false
-            TriggerServerEvent("pickle_policetools:goggles:setFlashlight", false)
+            TriggerServerEvent("pickle_policejob:tools:goggles:setFlashlight", false)
         end)        
     end
 end

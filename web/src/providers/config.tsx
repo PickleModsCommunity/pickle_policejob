@@ -5,7 +5,9 @@ import { useNuiEvent } from './nui/useNui';
 export type Config = {
     name: string;
     identifier: string;
+    disableWithdraw: boolean;
     evidenceEnabled: boolean;
+    bailAndBounty: boolean;
     permissions: {
         name: string;
     }[];
@@ -57,6 +59,8 @@ const ConfigContext = createContext<ConfigContextProps | undefined>(undefined);
 
 export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [config, setConfig] = useState<Config>({
+        disableWithdraw: false,
+        bailAndBounty: false,
         locale: {
             "page_homepage": "Homepage",
             "page_roster": "Roster",

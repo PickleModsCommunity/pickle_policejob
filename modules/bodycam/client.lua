@@ -102,6 +102,14 @@ RegisterNetEvent("pickle_policejob:bodycam:startView", function(target, data)
     MumbleSetVoiceChannel(oldChannel)
 end)
 
+RegisterNetEvent("pickle_policejob:bodycam:stopView", function()
+    if not CurrentBodycam then return end
+    CurrentBodycam = nil
+    RenderScriptCams(false, false, 0, true, true)
+    SetFocusEntity(PlayerPedId())
+    TriggerServerEvent("pickle_policejob:bodycam:stopView")
+end)
+
 AddEventHandler("onResourceStop", function(resource)
     if resource == GetCurrentResourceName() then
         RenderScriptCams(false, false, 0, true, true)

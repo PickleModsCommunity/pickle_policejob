@@ -179,9 +179,9 @@ end
 
 -- Evidence Status Support (For Breathalyzer)
 
-RegisterServerEvent("evidence:server:UpdateStatus", function(status)
-    local src = source
-    local xPlayer = QBCore.Functions.GetPlayer(src)
+RegisterNetEvent("evidence:server:UpdateStatus", function(status)
+    local source = source
+    local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
     if not xPlayer then return end
     local bac = 0.0
     if status.heavyalcohol then
@@ -189,7 +189,23 @@ RegisterServerEvent("evidence:server:UpdateStatus", function(status)
     elseif status.alcohol then
         bac = 0.20 * ((status.alcohol.time or 0) / 300)
     end
-    ExternalStatus.Alcohol[src] = math.floor(bac * 100) / 100 -- Format to 2 decimal places
+    ExternalStatus.Alcohol[source] = math.floor(bac * 100) / 100 -- Format to 2 decimal places
+end)
+
+RegisterNetEvent("police:server:SeizeDriverLicense", function(targetId)
+    local source = source
+    if #(GetEntityCoords(GetPlayerPed(source)) - GetEntityCoords(GetPlayerPed(targetId))) > 3.0 then return end
+    local xPlayer = QBCore.Functions.GetPlayer(tonumber(targetId))
+    if not xPlayer then return end
+    local licenses = xPlayer.PlayerData.metadata['licences'] or {}
+    local driverLicense = licenses['driver']
+    if driverLicense then
+        licenses['driver'] = false
+        xPlayer.Functions.SetMetaData('licences', licenses)
+        ShowNotification(targetId, _L("drivers_license_seized"))
+    else
+        ShowNotification(source, _L("target_no_driver_license"))
+    end
 end)
 
 -- Inventory Fallback
@@ -201,7 +217,7 @@ CreateThread(function()
     
     -- Search Player
 
-    RegisterServerEvent("pickle_policejob:searchPlayer", function()
+    RegisterNetEvent("pickle_policejob:searchPlayer", function()
         local src = source
         local player, distance = QBCore.Functions.GetClosestPlayer(src)
         if player ~= -1 and distance < 2.5 then
@@ -211,6 +227,13 @@ CreateThread(function()
             ShowNotification(src, _L("no_player_nearby"))
         end
     end)
+
+    RegisterNetEvent("pickle_policejob:openStash", function(stash, isPersonalStash)
+        local source = source
+        local citizenId = GetIdentifier(source)
+        exports['qb-inventory']:OpenInventory(source, stash .. (isPersonalStash and ("_" .. citizenId) or ""))
+    end)
+
     Inventory = {}
 
     Inventory.Items = {}

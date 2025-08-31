@@ -40,6 +40,7 @@ export type DepartmentTransactions = {
 
 export type Department = {
     id: number;
+    location: Location;
     money: number;
     job: string;
     label: string;
@@ -202,6 +203,10 @@ function Computer({info}: {info: ComputerInfo}) {
     }, [isDragging, currentWindow, dragOffset]);
 
     const handleShortcutSelect = (program: typeof programs[number], data?: any): number => {
+        if (program.id === "bail") {
+            fetchNui("openBailBounty");
+            return -1;
+        }
         function generateUniqueId() {
             let id = Math.floor(Math.random() * 1000000);
             let exists = false;
@@ -264,25 +269,31 @@ function Computer({info}: {info: ComputerInfo}) {
         {
             id: "roster",
             name: "page_roster",
-            image: "/nui/images/LSPD.webp"
+            image: department.image
         },
         {
             id: "files",
             name: "page_files",
-            image: "/nui/images/LSPD.webp",
+            image: "/nui/images/files_icon.png",
             hideShortcut: !config.evidenceEnabled,
         },
         {
             id: "file",
             name: "page_file",
-            image: "/nui/images/LSPD.webp",
+            image: "/nui/images/files_icon.png",
             hideShortcut: true,
         },
         {
             id: "finance",
             name: "page_finance",
-            image: "/nui/images/LSPD.webp",
+            image: "/nui/images/finance_icon.png",
             hideShortcut: rankIndex !== 0,
+        },
+        {
+            id: "bail",
+            name: "page_bail",
+            image: "/nui/images/bail_icon.png",
+            hideShortcut: !config.bailAndBounty,
         },
     ]
     const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
@@ -429,8 +440,20 @@ export default function ComputerContainer() {
     const [visible, setVisible] = useState(false);
     const [computerInfo, setComputerInfo] = useState<ComputerInfo | null>(true ? null : {
         department: {
+            location: {
+                coords: {
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                },
+                rotation: {
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                },
+            },
             id: 11,
-            image: "nui/images/LSPD.webp",
+            image: "nui/images/app_icon.png",
             money: 1000000,
             label: "Los Santos Police Department",
             job: "police",
@@ -673,8 +696,8 @@ export default function ComputerContainer() {
             },
             locations: [],
         },
-        backgroundImage: "https://www.dojrp.com/uploads/monthly_2022_05/large.DOJRP-LSPD-PA-6.png.bc543f0c421f54fc03cbae19e505d8c8.png",
-        homeImage: "nui/images/LSPD.webp"
+        backgroundImage: "nui/images/computer_background.png",
+        homeImage: "nui/images/app_icon.png"
     });
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {

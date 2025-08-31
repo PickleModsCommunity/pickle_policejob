@@ -19,6 +19,10 @@ LOCATION_TYPES = {
         locations = {},
         settings = {},
     },
+    ["locker"] = {
+        locations = {},
+        settings = {},
+    },
 }
 
 function SetManagementFocus(toggle)

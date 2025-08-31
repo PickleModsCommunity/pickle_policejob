@@ -264,6 +264,7 @@ function ManagementDepartment() {
     if (!currentDepartment && !creatingDepartment) return null;
     const { config } = useConfig();
     const [label, setLabel] = useState<string>(creatingDepartment ? translateText(config, "default_department_name", []) : currentDepartment?.label || "");
+    const [location, setLocation] = useState<Location>(!currentDepartment ? DEFAULT_LOCATION : currentDepartment.location);
     const [editingLabel, setEditingLabel] = useState(false);
     const [image, setImage] = useState<string>(creatingDepartment ? "" : (currentDepartment?.image || ""));
     const [player, setPlayer] = useState<Player | null>(currentDepartment ? GetDepartmentLeader(currentDepartment) : null);
@@ -276,6 +277,7 @@ function ManagementDepartment() {
         setPlayer(GetDepartmentLeader(currentDepartment))
         setLocations(currentDepartment.locations)
         setJob(currentDepartment.job)
+        setLocation(currentDepartment.location)
     }, [departments])
     useEffect(() => {
         fetchNui("setCurrentLocation", {
@@ -336,6 +338,31 @@ function ManagementDepartment() {
             </div>
             <hr/>
             <div className="flex flex-col gap-2 w-full px-2">
+                <div className="flex flex-row gap-2 items-center justify-between w-full">
+                    <div className="font-semibold text-md"><Translate id="department_location" />:</div>
+                    <Location className="text-muted-foreground text-sm" id="point" info={creatingDepartment ? {
+                        settings: {},
+                    } : {
+                        settings: {},
+                        departmentId: currentDepartmentId,
+                    }} defaultLocation={location || DEFAULT_LOCATION} onUpdate={(locationData) => {
+                        if (creatingDepartment) {
+                            setLocation(locationData)
+                        }
+                        else {
+                            fetchNui("managementAction", {
+                                action: "updateDepartmentLocation",
+                                data: {
+                                    departmentId: currentDepartmentId,
+                                    location: {
+                                        coords: locationData.coords,
+                                        rotation: locationData.rotation,
+                                    },
+                                },
+                            })
+                        }
+                    }} />
+                </div>
                 <div className="flex flex-row gap-2 items-center justify-between w-full">
                     <div className="font-semibold text-md"><Translate id="department_leader" />:</div>
                     <div className="p-1 px-2 bg-secondary rounded-md cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
@@ -801,6 +828,16 @@ function Management({ defaultDepartments }: { defaultDepartments: Department[] }
                     return {
                         ...department,
                         image: data.image,
+                    }
+                }
+                return department;
+            }))
+        } else if (data.type === "updateDepartmentLocation") {
+            setDepartments(departments.map((department) => {
+                if (department.id === data.departmentId) {
+                    return {
+                        ...department,
+                        location: data.location,
                     }
                 }
                 return department;

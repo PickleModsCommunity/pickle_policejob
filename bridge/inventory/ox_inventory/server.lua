@@ -47,7 +47,7 @@ Inventory.GetItemCount = function(source, name)
     return count
 end
 
-RegisterServerEvent("pickle_policejob:searchPlayer", function(targetId)
+RegisterNetEvent("pickle_policejob:searchPlayer", function(targetId)
     local source = source
     if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
     ShowNotification(targetId, _L("search_started"))
@@ -55,6 +55,7 @@ RegisterServerEvent("pickle_policejob:searchPlayer", function(targetId)
 end)
 
 function InitializeInventory()
+    Config.ImageDirectory = "nui://ox_inventory/web/images/"
     lib.callback.register("pickle_policejob:getInventory", function(source)
         return Inventory.GetInventory(source)
     end)
@@ -62,6 +63,9 @@ function InitializeInventory()
     for item, data in pairs(exports.ox_inventory:Items()) do
         Inventory.Items[item] = {label = data.label}
     end
+
+    exports.ox_inventory:RegisterStash("police_locker", "Police Locker", Config.Locker.slots, Config.Locker.maxWeight, true)
+
     
     Inventory.Ready = true
 end

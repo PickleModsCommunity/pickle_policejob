@@ -448,7 +448,8 @@ RegisterNetEvent("pickle_policejob:initializePlayer", function()
     end)
 end)
 
-AddEventHandler("onPlayerDropped", function(source)
+AddEventHandler("playerDropped", function()
+    local source = source
     local departmentId, memberData = GetPlayerDepartment(source)
     if not departmentId then return end
     if memberData.onDuty then
@@ -495,6 +496,13 @@ lib.cron.new(Config.Finance.salarySchedule, function()
                 end
             end
         end
+    end
+end)
+
+lib.cron.new(Config.Finance.fundingSchedule, function()
+    for _, department in pairs(Departments) do
+        AddDepartmentMoney(department.id, Config.Finance.funding)
+        AddDepartmentTransaction(department.id, -1, "deposit", Config.Finance.funding, _L("funding_paid_reason"))
     end
 end)
 

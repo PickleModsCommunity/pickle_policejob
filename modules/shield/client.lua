@@ -55,13 +55,15 @@ function GetAllowedShields()
 end
 
 function RequestShieldRefund()
-    TriggerServerEvent("pickle_policetools:shields:requestRefund")
+    TriggerServerEvent("pickle_policejob:actions:requestRefund", "shields")
 end
 
 function OpenShields()
     if Shield.Active then 
         Shield.Active = false
     else
+        local result = lib.callback.await("pickle_policejob:actions:allowedToEquip", false, "shields")
+        if not result then return end
         local _options = {}
 
         for k,v in pairs(GetAllowedShields()) do
@@ -74,7 +76,7 @@ function OpenShields()
         end
         
         lib.registerMenu({
-            id = 'pickle_policetools_shields',
+            id = 'pickle_policejob:tools_shields',
             title = 'Shield Selector',
             position = 'top-right',
             options = _options,
@@ -83,11 +85,11 @@ function OpenShields()
             Shield.Active = true
             ShieldThread(_options[selected].index)
         end)
-        lib.showMenu('pickle_policetools_shields')
+        lib.showMenu('pickle_policejob:tools_shields')
     end
 end
 
-RegisterNetEvent("pickle_policetools:shields:openShield", function()
+RegisterNetEvent("pickle_policejob:tools:shields:openShield", function()
     OpenShields()
 end)
 
