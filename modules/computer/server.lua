@@ -84,6 +84,11 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
         if not targetDepartmentId then return ShowNotification(source, _L("player_not_in_department")) end
         if targetDepartmentId ~= departmentId then return ShowNotification(source, _L("player_in_department")) end
         if not CanRankManageRank(departmentId, member.rankId, targetMember.rankId) then return ShowNotification(source, _L("no_permission")) end
+        local targetId = GetSourceFromIdentifier(data.identifier)
+        if targetId then
+            SetPlayerDuty(targetId, false)
+            ShowNotification(targetId, _L("you_have_been_removed_from_department"))
+        end
         for i=1, #department.members do
             if department.members[i].identifier == data.identifier then
                 table.remove(department.members, i)

@@ -1,3 +1,5 @@
+local RecentApplications = {}
+
 function InitializeDepartment(id, data, dontSync)
     local department = {
         id = id,
@@ -391,6 +393,16 @@ end
 
 exports("GetTotalCopsOnline", GetTotalCopsOnline)
 
+function GenerateApplicationContent(results)
+    local fields = Config.Frontdesk.applyForDepartment.fields
+    local content = ""
+    for i=1, #fields do
+        if not results[i] then results[i] = "No answer provided" end
+        content = content .. "<div><b>".. fields[i].label .. "</b>:</div><hr/><div>".. results[i] .. "</div>"
+    end
+    return content
+end
+
 lib.callback.register("pickle_policejob:openFrontdesk", function(source, id)
     local department = GetDepartment(id)
     local departmentId, memberData = GetPlayerDepartment(source)
@@ -446,6 +458,52 @@ RegisterNetEvent("pickle_policejob:initializePlayer", function()
         TriggerClientEvent("pickle_policejob:initializeDepartment", source, Departments)
         TriggerClientEvent("pickle_policejob:updateOnDuty", source, IsPlayerOnDuty(source))
     end)
+end)
+
+RegisterNetEvent("pickle_policejob:submitDepartmentApplication", function(id, results)
+    local source = source
+    local department = GetDepartment(id)
+    if not department then return end
+    if RecentApplications[source] then
+        for i=1, #RecentApplications[source] do
+            if RecentApplications[source][i] == id then
+                return ShowNotification(source, _L("already_applied_for_department"))
+            end
+        end
+    else
+        RecentApplications[source] = {}
+    end
+    table.insert(RecentApplications[source], id)
+    local file = {
+        name = _L("application_title", GetPlayerCharacterName(source)),
+        authorIdentifier = GetIdentifier(source),
+        datetime = os.time(),
+        document = {
+            header = {
+                title = toupper(department.label),
+                image = department.image,
+                leftInfo = {"<b>".. GetPlayerCharacterName(source) .. "</b>", "Los Santos, San Andreas"},
+                rightInfo = {"<b>".. _L("applicant") .. "</b>", GetFormattedDate(os.time())},
+            },
+            subContent = {},
+            enableContent = true,
+            content = GenerateApplicationContent(results)
+        },
+        evidence = {},
+    }
+    local result = MySQL.query.await("INSERT INTO pickle_police_files (departmentId, name, authorIdentifier, datetime, document, evidence) VALUES (?, ?, ?, ?, ?, ?)", {
+        id,
+        file.name,
+        file.authorIdentifier,
+        file.datetime,
+        json.encode(file.document),
+        json.encode(file.evidence),
+    })
+    file.id = result.insertId
+    Inventory.AddItem(source, "police_report", 1, {
+        fileId = file.id,
+    })
+    ShowNotification(source, _L("application_submitted", file.id))
 end)
 
 AddEventHandler("playerDropped", function()

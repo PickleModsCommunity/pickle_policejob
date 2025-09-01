@@ -64,3 +64,15 @@
     stack = true,
     description = "A pair of stab sticks for police officers to use for evidence."
 },
+['gsr'] = {
+    label = 'GSR Scanner',
+    weight = 1,
+    stack = true,
+    description = "A gunshot-residue scanner for police officers to use for evidence."
+},
+['blood_test'] = {
+    label = 'Blood Test',
+    weight = 1,
+    stack = true,
+    description = "A blood test for police officers to use for evidence."
+},

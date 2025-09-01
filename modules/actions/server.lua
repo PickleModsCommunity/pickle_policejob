@@ -11,6 +11,8 @@ local RegisteredItems = {
     ["shields"] = Config.Shields.item,
     ["snakecam"] = Config.Snakecam.item,
     ["evidence_camera"] = Config.Evidence.cameraItem,
+    ["gsr"] = Config.Evidence.gsrItem,
+    ["blood_test"] = Config.Evidence.bloodTestItem,
 }
 
 function CreateStabSticks(sticks)
@@ -202,6 +204,30 @@ end)
 RegisterNetEvent("pickle_policejob:actions:grantFingerprintConsent", function(requestId)
     local source = source
     TriggerClientEvent("pickle_policejob:actions:requestFingerprint", requestId, requestId, GetPlayerDNA(source), source)
+end)
+
+RegisterNetEvent("pickle_policejob:actions:requestGSR", function(targetId)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    ShowNotification(source, _L("sent_gsr_scan_request", GetPlayerCharacterName(targetId)))
+    TriggerClientEvent("pickle_policejob:actions:requestGSR", targetId, source)
+end)
+
+RegisterNetEvent("pickle_policejob:actions:grantGSRConsent", function(requestId)
+    local source = source
+    TriggerClientEvent("pickle_policejob:actions:requestGSR", requestId, requestId, GetPlayerGSR(source), source)
+end)
+
+RegisterNetEvent("pickle_policejob:actions:requestBloodTest", function(targetId)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    ShowNotification(source, _L("sent_blood_test_request", GetPlayerCharacterName(targetId)))
+    TriggerClientEvent("pickle_policejob:actions:requestBloodTest", targetId, source)
+end)
+
+RegisterNetEvent("pickle_policejob:actions:grantBloodTestConsent", function(requestId)
+    local source = source
+    TriggerClientEvent("pickle_policejob:actions:requestBloodTest", requestId, requestId, GetPlayerBloodTest(source), source)
 end)
 
 RegisterNetEvent("pickle_policejob:actions:uncuffSelf", function()

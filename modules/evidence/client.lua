@@ -361,9 +361,11 @@ function RenderEvidence(id)
         coords = evidence.coords,
         heading = evidence.heading,
     }, function()
+        local result = lib.callback.await("pickle_policejob:evidence:canPickupEvidence", false, id)
+        if not result then return end
         local ped = PlayerPedId()
         TaskStartScenarioInPlace(ped, "CODE_HUMAN_MEDIC_TEND_TO_DEAD", 0, true)
-        local success = lib.skillCheck({'easy', 'medium', 'medium', 'medium'}, {'w', 'a', 's', 'd'})
+        local success = StartSkillCheck(Config.Evidence.evidenceRemoveSkillcheck.length, Config.Evidence.evidenceRemoveSkillcheck.availableSteps, Config.Evidence.evidenceRemoveSkillcheck.availableControls)
         ClearPedTasks(ped)
         if not success then
             ShowNotification(_L("failed_evidence_collection"))
@@ -517,6 +519,19 @@ RegisterNUICallback("reconstructScene", function(data, cb)
         StopReconstructedScene()
         return
     end
+    local baseLocation
+    for i=1, #data.file.evidence do
+        local evidence = data.file.evidence[i]
+        if evidence.coords then
+            baseLocation = evidence.coords
+            break
+        end
+    end
+    if not baseLocation then
+        return ShowNotification(_L("no_evidence_to_reconstruct"))
+    end
+    ShowNotification(_L("reconstructing_scene"))
+    SetNewWaypoint(baseLocation.x, baseLocation.y)
     ReconstructScene = {
         id = data.file.id,
         evidence = data.file.evidence,
@@ -582,6 +597,13 @@ RegisterNetEvent("pickle_policejob:evidence:updateEvidence", function(id, data)
 end)
 
 RegisterNetEvent("pickle_policejob:evidence:removeEvidence", function(id)
+    if type(id) == "table" then
+        for i=1, #id do
+            Evidence[id[i]] = nil
+            RemoveLocalEvidence(id[i])
+        end
+        return
+    end
     Evidence[id] = nil
     RemoveLocalEvidence(id)
 end)
@@ -593,6 +615,10 @@ RegisterNetEvent("pickle_policejob:evidence:viewFile", function(file)
         reconstructSceneId = ReconstructScene and ReconstructScene.id or nil,
     })
     SetNuiFocus(true, true)
+end)
+
+RegisterNetEvent("pickle_policejob:evidence:setHasGSR", function(hasGSR)
+    HAS_GSR = hasGSR
 end)
 
 CreateThread(function()
@@ -657,6 +683,27 @@ CreateThread(function()
                         UnrenderEvidence(id)
                     end
                 end
+            end
+        end
+        Wait(wait)
+    end
+end)
+
+CreateThread(function()
+    local secondsElapsed = 0
+    while true do
+        local wait = 2500
+        if HAS_GSR then
+            local playerPed = PlayerPedId()
+            if IsPedSwimming(playerPed) then
+                if secondsElapsed == 0 then
+                    ShowNotification(_L("gsr_washing_off"))
+                elseif secondsElapsed >= Config.Evidence.waterDuration then
+                    TriggerServerEvent("pickle_policejob:evidence:washOffGSR")
+                end
+                secondsElapsed = secondsElapsed + 2.5
+            else
+                secondsElapsed = 0
             end
         end
         Wait(wait)

@@ -234,7 +234,7 @@ export default function FileViewer() {
     });
     return file &&(
         <div className="w-screen h-screen absolute top-0 left-0 flex items-center justify-center text-white">
-            <div className={`dark bg-background/95 w-[800px] relative shadow-lg transition-all duration-200 ${visible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+            <div className={`dark bg-background/95 w-[${file.evidence.length > 0 ? '800px' : '600px'}] relative shadow-lg transition-all duration-200 ${visible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
             {selectedEvidence && (
                     <SelectedEvidenceModal evidence={selectedEvidence} onClose={() => {
                         setIsModalVisible(false);
@@ -277,20 +277,22 @@ export default function FileViewer() {
                     )}
                     <div className="flex flex-row gap-2">
                         <div className="w-[600px] h-[774px]">
-                            <Document canEdit={false} dark={true} width={600} height={774} initialContent={file.document.content} headerInfo={file.document.header} />
+                            <Document canEdit={false} dark={true} width={file.evidence.length > 0 ? 600 : 584} height={774} initialContent={file.document.content} headerInfo={file.document.header} />
                         </div>
-                        <div className="w-[200px] h-[774px] flex flex-col gap-2 overflow-y-auto cursor-pointer">
-                            {file.evidence.map((evidence, index) => (
-                                <div onClick={() => {
-                                    setSelectedEvidence(evidence);
-                                    setTimeout(() => {
-                                        setIsModalVisible(true);
-                                    }, 10);
-                                }}>
-                                    <EvidenceDisplay evidence={evidence} index={index} />
-                                </div>
-                            ))}
-                        </div>
+                        {file.evidence.length > 0 && (
+                            <div className="w-[200px] h-[774px] flex flex-col gap-2 overflow-y-auto cursor-pointer">
+                                {file.evidence.map((evidence, index) => (
+                                    <div onClick={() => {
+                                        setSelectedEvidence(evidence);
+                                        setTimeout(() => {
+                                            setIsModalVisible(true);
+                                        }, 10);
+                                    }}>
+                                        <EvidenceDisplay evidence={evidence} index={index} />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

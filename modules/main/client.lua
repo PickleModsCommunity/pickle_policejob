@@ -109,7 +109,7 @@ function OpenFrontdesk(id, entityId)
                 description = _L("apply_for_department_description"),
                 icon = "clipboard-list",
                 onSelect = function()
-                    OpenFrontdeskApplyForDepartment(id, entityId, data)
+                    OpenFrontdeskApplyForDepartment(id)
                 end,
             }
         end
@@ -137,6 +137,14 @@ end
 
 function OpenLocker(id, locationId)
     Inventory.OpenStash("police_locker", true)
+end
+
+function OpenFrontdeskApplyForDepartment(id)
+    local department = Departments[id]
+    if not department then return end
+    local results = lib.inputDialog(_L("apply_for_department_title", department.label), Config.Frontdesk.applyForDepartment.fields)
+    if not results then return end
+    TriggerServerEvent("pickle_policejob:submitDepartmentApplication", id, results)
 end
 
 function UnrenderDepartmentLocation(id, locationId)

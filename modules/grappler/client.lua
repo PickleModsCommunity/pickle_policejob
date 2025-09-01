@@ -134,9 +134,6 @@ function RenderVehicleGrappler(vehicleNetId)
                 break
             end
         end
-        if wheelIndex ~= -1 then
-            SetVehicleTyreBurst(targetVehicle, wheelIndex, false, Config.StabSticks.burstDamage)
-        end
         localGrappler.grappler = CreateProp(`grapplernoropes`, grapplerCoords.x, grapplerCoords.y, grapplerCoords.z, false, false, false)
         AttachEntityToEntity(localGrappler.grappler, vehicle, GetEntityBoneIndexByName(vehicle, "chassis"), grapplerOffset.x, grapplerOffset.y, grapplerOffset.z, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
         RequestAnimDict("va_Grappler")
@@ -159,6 +156,7 @@ function RenderVehicleGrappler(vehicleNetId)
 end
 
 CreateThread(function()
+    local grappled = false
     while true do
         local wait = 2500
         local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
@@ -184,7 +182,7 @@ CreateThread(function()
                     end
                 end
                 if closestDistance < 20.0 then
-                    grapplerPosition = GetOffsetFromEntityInWorldCoords(vehicle, grapplerOffset.x, grapplerOffset.y + 0.4, grapplerOffset.z)
+                    grapplerPosition = GetOffsetFromEntityInWorldCoords(vehicle, grapplerOffset.x, grapplerOffset.y + 0.8, grapplerOffset.z)
                     local closestBone
                     local closestBoneDistance = 5.0
                     local WHEEL_BONES = {"wheel_lf", "wheel_rf", "wheel_lm", "wheel_rm", "wheel_lr", "wheel_rr", "rudder_l", "rudder_r", "rudder", "rudder2", "rudder_2"}
@@ -211,6 +209,23 @@ CreateThread(function()
             if IsControlJustPressed(1, 51) then
                 TriggerServerEvent("pickle_policejob:grappler:toggleDeploy", VehToNet(vehicle))
             end
+        elseif netId ~= -1 then
+            local grappling = false
+            for vehicleNetId, grapplerData in pairs(GrapplerVehicles) do
+                if grapplerData.targetNetId == netId then
+                    grappling = true
+                    break
+                end
+            end
+            if grappling and not grappled then
+                grappled = true
+                SetVehicleReduceGrip(vehicle, true)
+            elseif not grappling and grappled then
+                grappled = false
+                SetVehicleReduceGrip(vehicle, false)
+            end
+        elseif grappled then
+            grappled = false
         end
         Wait(wait)
     end

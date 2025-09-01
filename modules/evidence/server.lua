@@ -7,6 +7,7 @@ local CachedDNA = {}
 local ExternalStatus = {
     Alcohol = {},
 }
+local GSRTracking = {}
 
 function EnsureEvidence(coords, evidenceType, data)
     data.label = _L(evidenceType)
@@ -127,11 +128,30 @@ function GetPlayerDNA(source)
 end
 
 function GetPlayerBAC(source)
+    if GetResourceState("envi_addictions") == "started" then
+        return (exports['envi-addictions']:Breathalyze(targetServerId) / 3) / 10
+    end
     if ExternalStatus.Alcohol[source] then return ExternalStatus.Alcohol[source] end
     if GetPlayerStatus(source) then
         return GetPlayerStatus(source).Alcohol
     end
     return 0.0
+end
+
+function GetPlayerBloodTest(source)
+    if GetResourceState("envi_addictions") == "started" then
+        return nil
+    end
+    return {
+        weed = 3
+    }
+end
+
+function GetPlayerGSR(source)
+    if GSRTracking[source] and (GSRTracking[source] + Config.Evidence.gsrDuration) > os.time() then
+        return true
+    end
+    return false
 end
 
 lib.callback.register("pickle_policejob:evidence:getFiles", function(source, search)
@@ -212,10 +232,31 @@ RegisterNetEvent("pickle_policejob:evidence:addBAC", function(target, bac)
     ShowNotification(source, _L("bac_added"))
 end)
 
+RegisterNetEvent("pickle_policejob:evidence:addBloodTest", function(target, results)
+    local source = source
+    Inventory.AddItem(source, "evidence_report", 1, {
+        evidenceType = "blood_test",
+        evidence = {
+            {
+                type = "blood_test",
+                label = _L("blood_test_results"),
+                identifier = GetPlayerDNA(target),
+                image = "nui://pickle_policejob/nui/images/blood_test.png",
+                time = os.time(),
+                coords = GetEntityCoords(GetPlayerPed(target)),
+                heading = GetEntityHeading(GetPlayerPed(target)),
+                results = results,
+            }
+        },
+    })
+end)
+
 RegisterNetEvent("pickle_policejob:evidence:addShellCasing", function(data)
     local source = source
     if BulletTimeout[source] and BulletTimeout[source] > os.time() then return print("^1ERROR: BULLET TIMEOUT:^0", source) end
     BulletTimeout[source] = os.time() + Config.Evidence.queueInterval
+    GSRTracking[source] = os.time()
+    TriggerClientEvent("pickle_policejob:evidence:setHasGSR", source, true)
     AddEvidence(data.origin, "shell_casing", {
         identifier = GetPlayerDNA(source),
         coords = data.origin,
@@ -232,6 +273,7 @@ RegisterNetEvent("pickle_policejob:evidence:pickupEvidence", function(id)
     local source = source
     local evidence = Evidence[id]
     if not evidence then return print("^1ERROR: EVIDENCE NOT FOUND:^0", id) end
+    Evidence[id] = nil
     TriggerClientEvent("pickle_policejob:evidence:removeEvidence", -1, id)
 end)
 
@@ -239,6 +281,7 @@ RegisterNetEvent("pickle_policejob:evidence:addBlood", function()
     local source = source
     AddEvidence(GetEntityCoords(GetPlayerPed(source)) - vector3(0.0, 0.0, 1.0), "blood", {
         identifier = GetPlayerDNA(source),
+        time = os.time(),
         heading = 0.0,
     })
 end)
@@ -398,6 +441,35 @@ RegisterNetEvent("pickle_policejob:evidence:addFingerprint", function(targetId)
     ShowNotification(source, _L("fingerprint_added"))
 end)
 
+RegisterNetEvent("pickle_policejob:evidence:addGSR", function(targetId)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    Inventory.AddItem(source, "evidence_report", 1, {
+        evidenceType = "gsr",
+        evidence = {
+            {
+                type = "gsr",
+                label = _L("gsr"),
+                result = GetPlayerGSR(targetId) and _L("positive") or _L("negative"),
+                identifier = GetPlayerDNA(targetId),
+                image = "nui://pickle_policejob/nui/images/fingerprint.png",
+                time = os.time(),
+                coords = GetEntityCoords(GetPlayerPed(targetId)),
+                heading = GetEntityHeading(GetPlayerPed(targetId)),
+                name = GetPlayerCharacterName(targetId),
+            }
+        },
+    })
+    ShowNotification(source, _L("gsr_added"))
+end)
+
+RegisterNetEvent("pickle_policejob:evidence:washOffGSR", function()
+    local source = source
+    GSRTracking[source] = nil
+    ShowNotification(source, _L("gsr_washed_off"))
+    TriggerClientEvent("pickle_policejob:evidence:setHasGSR", source, false)
+end)
+
 RegisterUsableItem("police_report", function(source, item, data)
     local metadata = Config.FrameworkSettings.usableItemMetadata(item, data)
     if not metadata or not metadata.fileId then return end
@@ -432,6 +504,17 @@ lib.callback.register("pickle_policejob:evidence:getVehicleInfo", function(sourc
     }
 end)
 
+lib.callback.register("pickle_policejob:evidence:canPickupEvidence", function(source, id)
+    local source = source
+    local evidence = Evidence[id]
+    if not evidence then return ShowNotification(source, _L("evidence_not_found")) end
+    if evidence.time then
+        local timeLeft = (evidence.time + Config.Evidence.pickupCooldown) - os.time()
+        if timeLeft > 0 then return ShowNotification(source, _L("evidence_pickup_cooldown", timeLeft)) end
+    end
+    return true
+end)
+
 AddEventHandler('explosionEvent', function(sender, ev)
     local coords = vector3(ev.posX, ev.posY, ev.posZ)
     AddEvidence(coords, "fire", {
@@ -447,6 +530,19 @@ AddEventHandler("entityRemoved", function(entity)
         VehiclePrints[vehicleNetId] = nil
     end
 end)
+
+if Config.Evidence.evidenceRemove > 0 then
+    lib.cron.new("*/1 * * * *", function()
+        local removePack = {}
+        for id, evidence in pairs(Evidence) do
+            if evidence.time and (evidence.time + Config.Evidence.evidenceRemove) < os.time() then
+                Evidence[id] = nil
+                table.insert(removePack, id)
+            end
+        end
+        TriggerClientEvent("pickle_policejob:evidence:removeEvidence", -1, removePack)
+    end)
+end
 
 MySQL.ready(function()
     MySQL.query("CREATE TABLE IF NOT EXISTS pickle_police_files (id INT AUTO_INCREMENT PRIMARY KEY, departmentId INT, name VARCHAR(255), authorIdentifier VARCHAR(255), datetime INT, document LONGTEXT, evidence LONGTEXT)")

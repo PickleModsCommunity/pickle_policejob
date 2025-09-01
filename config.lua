@@ -97,6 +97,7 @@ Config.TargetIcons = {
     breathalyzer = "fas fa-vial",
     search = "fas fa-search",
     fingerprint_scanner = "fas fa-fingerprint",
+    gsr_scanner = "fas fa-fingerprint",
     fines = "fas fa-money-bill-wave",
     shields = "fas fa-shield-alt",
     snakecam = "fas fa-camera",
@@ -105,6 +106,7 @@ Config.TargetIcons = {
     id_card = "fas fa-id-card",
     vehicle_interact = "fas fa-car",
     locker = "fas fa-box",
+    blood_test = "fas fa-vial",
 }
 
 Config.FrameworkSettings = {
@@ -162,14 +164,14 @@ Config.Handcuffs = {
     resistSkillCheck = {
         length = 5,
         availableSteps = {'easy', 'medium'},
-        availableControls = {'w', 'a', 's', 'd'},
+        availableControls = {'e'},
     },
     lockpickItem = "bobby_pins", -- set to nil (not "nil") to disable lockpicking of cuffs.
     lockpickRemoveChance = 100, -- The chance to remove the lockpick when lockpicking, if set to 100 then it will always remove the lockpick.
     skillCheck = {
         length = 5,
         availableSteps = {'easy', 'medium'},
-        availableControls = {'w', 'a', 's', 'd'},
+        availableControls = {'e'},
     },
 }
 
@@ -197,9 +199,22 @@ Config.Grappler = {
 
 Config.Evidence = {
     enabled = true,
+    pickupCooldown = 0, -- The cooldown in seconds that the player will need to wait before picking up evidence.
+    evidenceRemove = 60 * 15, -- The duration in seconds that the evidence will be removed after. 0 = never remove (not reccomended).
+    gsrDuration = 60 * 15, -- The duration in seconds that the GSR will be tracked for. 60 * 1 = 1 minute.
+    waterDuration = 10, -- The duration in seconds that the GSR will need to be wiped off for when in water. 60 * 1 = 1 minute.
+    evidenceRemoveSkillcheck = {
+        length = 5,
+        availableSteps = {'easy', 'medium'},
+        availableControls = {'e'},
+    },
     cameraItem = {
         name = "evidence_camera", -- The name of the item to use for the camera.
         required = true, -- Only set this to true if the item is required to use the camera.
+    },
+    gsrItem = {
+        name = "gsr", -- The name of the item to use for the GSR.
+        required = true, -- Only set this to true if the item is required to use the GSR.
     },
     breathalyzerItem = {
         name = "breathalyzer", -- The name of the item to use for the breathalyzer.
@@ -208,6 +223,10 @@ Config.Evidence = {
     fingerprintScannerItem = {
         name = "fingerprint_scanner", -- The name of the item to use for the fingerprint scanner.
         required = true, -- Only set this to true if the item is required to use the fingerprint scanner.
+    },
+    bloodTestItem = {
+        name = "blood_test", -- The name of the item to use for the blood test.
+        required = true, -- Only set this to true if the item is required to use the blood test.
     },
     renderDistance = 25.0, -- The distance at which evidence will be rendered.
     reconstructRenderDistance = 100.0, -- The distance at which evidence will be rendered for the reconstructed scene.
@@ -457,7 +476,16 @@ Config.Frontdesk = {
         enabled = false,
     },
     applyForDepartment = {
-        enabled = false,
+        enabled = true, -- Config.Evidence must also be enabled.
+        fields = {
+            {type = "input", label = "Discord Username", placeholder = "Enter your Discord username", required = true},
+            {type = "input", label = "Phone Number", placeholder = "Enter your phone number", required = true},
+            {type = "input", label = "Address", placeholder = "Enter your address", required = true},
+            {type = "input", label = "Previous Experience", placeholder = "Enter your previous experience", required = true},
+            {type = "input", label = "What is a 10-80?", placeholder = "Enter your answer", required = true},
+            {type = "textarea", label = "Why do you want to join the department?", placeholder = "Enter your reason", required = true},
+            {type = "textarea", label = "If an officer was corrupt, what should you do?", placeholder = "Enter your answer", required = true},
+        }
     },
     fileReport = {
         enabled = false,

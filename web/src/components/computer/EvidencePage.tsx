@@ -49,6 +49,8 @@ export type Evidence = {
     bac?: number;
     name?: string;
     serial?: string;
+    result?: string;
+    results?: Record<string, number | string>;
 }
 
 export type EvidenceItems = {
@@ -204,6 +206,22 @@ export function SelectedEvidenceModal({ evidence, onClose, isModalVisible }: { e
                                     <div className="font-semibold text-sm text-white"><Translate id="serial" />:</div>
                                     <div className="text-xs text-white">{evidence.serial}</div>
                                 </div>
+                            )}
+                            {evidence.result && (
+                                <div className="flex flex-row items-center gap-2">
+                                    <div className="font-semibold text-sm text-white"><Translate id="evidence_result" />:</div>
+                                    <div className="text-xs text-white">{evidence.result}</div>
+                                </div>
+                            )}
+                            {evidence.results && (
+                                Object.keys(evidence.results).map((resultType: string, index: number) => {
+                                    return (
+                                        <div className="flex flex-row items-center gap-2">
+                                            <div className="font-semibold text-sm text-white"><Translate id={resultType} />:</div>
+                                            <div className="text-xs text-white">{evidence.results?.[resultType] || "-"}</div>
+                                        </div>
+                                    )
+                                })
                             )}
                         </div>
                     </div>

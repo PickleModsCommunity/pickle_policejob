@@ -130,3 +130,27 @@
     ['combinable'] = nil,
     ['description'] = "A pair of stab sticks for police officers to use for evidence."
 },
+['gsr'] = {
+    ['name'] = 'gsr',
+    ['label'] = 'GSR Scanner',
+    ['weight'] = 10,
+    ['type'] = 'item',
+    ['image'] = 'gsr.png',
+    ['unique'] = true,
+    ['useable'] = true,
+    ['shouldClose'] = true,
+    ['combinable'] = nil,
+    ['description'] = "A gunshot-residue scanner for police officers to use for evidence."
+},
+['blood_test'] = {
+    ['name'] = 'blood_test',
+    ['label'] = 'Blood Test',
+    ['weight'] = 10,
+    ['type'] = 'item',
+    ['image'] = 'blood_test.png',
+    ['unique'] = true,
+    ['useable'] = true,
+    ['shouldClose'] = true,
+    ['combinable'] = nil,
+    ['description'] = "A blood test for police officers to use for evidence."
+},

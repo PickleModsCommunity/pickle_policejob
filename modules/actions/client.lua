@@ -5,13 +5,15 @@ local IsMenuOpen = false
 local EquippedStabSticks = nil
 local EquippedBreathalyzer = nil
 local EquippedFingerprintScanner = nil
+local EquippedBloodTest = nil
+local EquippedGSRScanner = nil
 local StabSticks = {}
 local RenderedStabSticks = {}
 local ObjectPlacement = {}
 local ObjectPlacementInteractions = {}
 
 function IsAnythingEquipped()
-    return Handcuffs ~= nil or EquippedStabSticks ~= nil or EquippedBreathalyzer ~= nil or EquippedFingerprintScanner ~= nil
+    return Handcuffs ~= nil or EquippedStabSticks ~= nil or EquippedBreathalyzer ~= nil or EquippedFingerprintScanner ~= nil or EquippedGSRScanner ~= nil or EquippedBloodTest ~= nil
 end
 
 function GetEntityPlayer(entity)
@@ -96,6 +98,8 @@ function UnequipCurrentActions()
     UnequipStabSticks()
     UnequipBreathalyzer()
     UnequipFingerprintScanner()
+    UnequipGSRScanner()
+    UnequipBloodTest()
     if Config.Evidence.enabled then
         StopCameraLoop()
     end
@@ -429,6 +433,99 @@ function UnequipBreathalyzer()
     end)
 end
 
+-- Blood Test
+
+function EquipBloodTest()
+    if not IsPlayerOnDuty() then return ShowNotification(_L("not_on_duty")) end
+    if IsAnythingEquipped() then return ShowNotification(_L("already_equipped")) end
+    local result = lib.callback.await("pickle_policejob:actions:allowedToEquip", false, "blood_test")
+    if not result then return end
+    ShowNotification(_L("equipped_blood_test"))
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+    EquippedBloodTest = {}
+    EquippedBloodTest.entities = {} 
+    table.insert(EquippedBloodTest.entities, CreateProp(`prop_police_id_board`, coords.x, coords.y, coords.z, true, true, false))
+    table.insert(EquippedBloodTest.entities, CreateProp(`ch_prop_fingerprint_scanner_01e`, coords.x, coords.y, coords.z, true, true, false))
+    local boneIndex = GetPedBoneIndex(ped, 58868)
+    local coords, rot = vector3(0.12, 0.24, 0.0), vector3(5.0, 0.0, 70.0)
+    AttachEntityToEntity(EquippedBloodTest.entities[1], ped, boneIndex, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, true, false, false, false, 0, true)
+    AttachEntityToEntity(EquippedBloodTest.entities[2], EquippedBloodTest.entities[1], 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, true, false, false, false, 0, true)
+    SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true)
+    PlayAnim(ped, "mp_character_creation@customise@male_a", "loop", 2.0, -2.0, -1, 49, 0, false, false, false)
+    CreateThread(function()
+        local spriteDict, sprite = "darts", "dart_reticules"
+        while EquippedBloodTest do
+            DisableControlAction(0, 24, true) -- Left click
+            DisableControlAction(0, 25, true) -- Right click
+            RequestStreamedTextureDict(spriteDict, false)
+            if IsControlJustPressed(0, 202) then
+                UnequipBloodTest()
+            end
+            local hit, hitCoords, entity = GetDirectionCoords()
+            local hasTarget = false
+            local targetPlayer = GetEntityPlayer(entity)
+            if hit and targetPlayer and #(GetEntityCoords(ped) - hitCoords) < 1.5 then
+                hasTarget = true
+                if IsDisabledControlJustPressed(0, 24) then
+                    TriggerServerEvent("pickle_policejob:actions:requestBloodTest", GetPlayerServerId(targetPlayer))
+                end
+            end
+            DrawSprite(spriteDict, sprite, 0.5, 0.5, 0.015, 0.025, 180.0, (hasTarget and 127 or 255), (hasTarget and 127 or 255), 255, 255)
+            Wait(0)
+        end
+        ClearPedTasks(PlayerPedId())
+    end)
+end
+
+RegisterNetEvent("pickle_policejob:actions:requestBloodTest", function(requestId, result, targetId)
+    local serverId = GetPlayerServerId(PlayerId())
+    if serverId ~= requestId then 
+        local alert = lib.alertDialog({
+            header = _L("blood_test_request"),
+            content = _L("blood_test_request_content"),
+            centered = true,
+            cancel = true
+        })
+        if alert == "confirm" then
+            TriggerServerEvent("pickle_policejob:actions:grantBloodTestConsent", requestId)
+        end
+    else
+        if not result then
+            if GetResourceState("envi_addictions") == "started" then
+                result = exports.envi_addictions:BloodTest(targetId)
+            else
+                result = {}
+            end
+        end
+        local content = ""
+        for k,v in pairs(result) do
+            content = (content == "" and "" or "\n\n") .. _L(k) .. ": " .. v
+        end
+        content = content .. "\n\n" .. _L("blood_test_result_content")
+        local alert = lib.alertDialog({
+            header = _L("blood_test_result"),
+            content = content,
+            centered = true,
+            cancel = true
+        })
+        if alert == "confirm" then
+            TriggerServerEvent("pickle_policejob:evidence:addBloodTest", targetId, result)
+        end
+    end
+end)
+
+function UnequipBloodTest()
+    if not EquippedBloodTest then return end
+    for _, entity in ipairs(EquippedBloodTest.entities) do
+        DeleteEntity(entity)
+    end
+    EquippedBloodTest = nil
+    SetTimeout(10, function()
+        ClearPedTasks(PlayerPedId())
+    end)
+end
+
 -- Fingerprint Scanner
 
 function EquipFingerprintScanner()
@@ -505,6 +602,87 @@ function UnequipFingerprintScanner()
         DeleteEntity(entity)
     end
     EquippedFingerprintScanner = nil
+    SetTimeout(10, function()
+        ClearPedTasks(PlayerPedId())
+    end)
+end
+
+-- GSR Scanner
+
+function EquipGSRScanner()
+    if not IsPlayerOnDuty() then return ShowNotification(_L("not_on_duty")) end
+    if IsAnythingEquipped() then return ShowNotification(_L("already_equipped")) end
+    local result = lib.callback.await("pickle_policejob:actions:allowedToEquip", false, "gsr")
+    if not result then return end
+    ShowNotification(_L("equipped_gsr_scanner"))
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+    EquippedGSRScanner = {}
+    EquippedGSRScanner.entities = {} 
+    table.insert(EquippedGSRScanner.entities, CreateProp(`prop_police_id_board`, coords.x, coords.y, coords.z, true, true, false))
+    table.insert(EquippedGSRScanner.entities, CreateProp(`ch_prop_fingerprint_scanner_01e`, coords.x, coords.y, coords.z, true, true, false))
+    local boneIndex = GetPedBoneIndex(ped, 58868)
+    local coords, rot = vector3(0.12, 0.24, 0.0), vector3(5.0, 0.0, 70.0)
+    AttachEntityToEntity(EquippedGSRScanner.entities[1], ped, boneIndex, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, true, false, false, false, 0, true)
+    AttachEntityToEntity(EquippedGSRScanner.entities[2], EquippedGSRScanner.entities[1], 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, true, false, false, false, 0, true)
+    SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true)
+    PlayAnim(ped, "mp_character_creation@customise@male_a", "loop", 2.0, -2.0, -1, 49, 0, false, false, false)
+    CreateThread(function()
+        local spriteDict, sprite = "darts", "dart_reticules"
+        while EquippedGSRScanner do
+            DisableControlAction(0, 24, true) -- Left click
+            DisableControlAction(0, 25, true) -- Right click
+            RequestStreamedTextureDict(spriteDict, false)
+            if IsControlJustPressed(0, 202) then
+                UnequipGSRScanner()
+            end
+            local hit, hitCoords, entity = GetDirectionCoords()
+            local hasTarget = false
+            local targetPlayer = GetEntityPlayer(entity)
+            if hit and targetPlayer and #(GetEntityCoords(ped) - hitCoords) < 1.5 then
+                hasTarget = true
+                if IsDisabledControlJustPressed(0, 24) then
+                    TriggerServerEvent("pickle_policejob:actions:requestGSR", GetPlayerServerId(targetPlayer))
+                end
+            end
+            DrawSprite(spriteDict, sprite, 0.5, 0.5, 0.015, 0.025, 180.0, (hasTarget and 127 or 255), (hasTarget and 127 or 255), 255, 255)
+            Wait(0)
+        end
+        ClearPedTasks(PlayerPedId())
+    end)
+end
+
+RegisterNetEvent("pickle_policejob:actions:requestGSR", function(requestId, result, targetId)
+    local serverId = GetPlayerServerId(PlayerId())
+    if serverId ~= requestId then 
+        local alert = lib.alertDialog({
+            header = _L("gsr_scan_request"),
+            content = _L("gsr_scan_request_content"),
+            centered = true,
+            cancel = true
+        })
+        if alert == "confirm" then
+            TriggerServerEvent("pickle_policejob:actions:grantGSRConsent", requestId)
+        end
+    else
+        local alert = lib.alertDialog({
+            header = _L("gsr_scan_result", result and _L("positive") or _L("negative")),
+            content = _L("gsr_scan_result_content"),
+            centered = true,
+            cancel = true
+        })
+        if alert == "confirm" then
+            TriggerServerEvent("pickle_policejob:evidence:addGSR", targetId)
+        end
+    end
+end)
+
+function UnequipGSRScanner()
+    if not EquippedGSRScanner then return end
+    for _, entity in ipairs(EquippedGSRScanner.entities) do
+        DeleteEntity(entity)
+    end
+    EquippedGSRScanner = nil
     SetTimeout(10, function()
         ClearPedTasks(PlayerPedId())
     end)
@@ -880,6 +1058,24 @@ function OpenPoliceActionsMenu()
                 EquipFingerprintScanner()
             end,
         })
+        table.insert(options, {
+            title = _L("actions_gsr_scanner"),
+            description = _L("actions_gsr_scanner_description"),
+            icon = Config.TargetIcons.gsr_scanner,
+            onSelect = function()
+                IsMenuOpen = false
+                EquipGSRScanner()
+            end,
+        })
+        table.insert(options, {
+            title = _L("actions_blood_test"),
+            description = _L("actions_blood_test_description"),
+            icon = Config.TargetIcons.blood_test,
+            onSelect = function()
+                IsMenuOpen = false
+                EquipBloodTest()
+            end,
+        })
     end
     if Config.Fines.enabled then
         table.insert(options, {
@@ -1224,8 +1420,12 @@ RegisterNetEvent("pickle_policejob:actions:equipAction", function(action)
         EquipStabSticks()
     elseif action == "breathalyzer" then
         EquipBreathalyzer()
+    elseif action == "blood_test" then
+        EquipBloodTest()
     elseif action == "fingerprint_scanner" then
         EquipFingerprintScanner()
+    elseif action == "gsr" then
+        EquipGSRScanner()
     elseif action == "grappler" then
         StartGrapplerPlacement()
     elseif action == "evidence_camera" then
