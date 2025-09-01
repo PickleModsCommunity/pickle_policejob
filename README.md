@@ -1,12 +1,5 @@
 # pickle_policejob
 
-Thank you to the following who helped make this happen!
+Please follow the installation steps here: https://docs.picklemods.com/paid-resources/police-job/installation
 
-# NukePUG Designs
-Stab Sticks, Yellow Rope for Grappler
-
-# RogueThunder
-Grappler Model
-
-# FreePik
-Bodycam Logo
+Need help? Join the discord here: https://discord.gg/picklemods
