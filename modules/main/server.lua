@@ -268,6 +268,7 @@ function ExecuteIntegration(source, integration, ...)
 end
 
 function SetPlayerDuty(source, onDuty, report)
+    report = report or ""
     local departmentId, memberData = GetPlayerDepartment(source)
     if not departmentId then return ShowNotification(source, _L("no_department_permission")) end
     local department = Departments[departmentId]

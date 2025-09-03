@@ -79,6 +79,8 @@ RegisterNetEvent("pickle_policejob:updateComputerDepartment", function(updateTyp
             members = department.members,
         })
         ShowNotification(source, _L("member_added", characterName))
+        ShowNotification(data.source, _L("you_have_been_added_to_department", department.name))
+        SetPlayerDuty(data.source, true)
     elseif updateType == "removeMember" then
         local targetDepartmentId, targetMember = GetIdentifierDepartment(data.identifier)
         if not targetDepartmentId then return ShowNotification(source, _L("player_not_in_department")) end

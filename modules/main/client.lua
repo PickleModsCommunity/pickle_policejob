@@ -147,7 +147,7 @@ function OpenFrontdeskApplyForDepartment(id)
     TriggerServerEvent("pickle_policejob:submitDepartmentApplication", id, results)
 end
 
-function UnrenderDepartmentLocation(id, locationId)
+function UnrenderDepartmentLocation(id, locationId, dontRemove)
     for i=1, #LocalDepartments[id].locations do
         if LocalDepartments[id].locations[i].id == locationId then
             if LocalDepartments[id].locations[i].interact then
@@ -161,7 +161,9 @@ function UnrenderDepartmentLocation(id, locationId)
                     DeleteInteraction(LocalDepartments[id].locations[i].additionalInteracts[j])
                 end
             end
-            table.remove(LocalDepartments[id].locations, i)
+            if not dontRemove then
+                table.remove(LocalDepartments[id].locations, i)
+            end
             break
         end
     end
@@ -380,15 +382,13 @@ end)
 RegisterNetEvent("pickle_policejob:deleteDepartment", function(id)
     -- TODO: Remove locations and cleanup local departments
     Departments[id] = nil
-    for k, v in pairs(LocalDepartments) do
-        if k == id then
-            RemoveBlip(v.blip)
-            for i=1, #v.locations do
-                UnrenderDepartmentLocation(k, v.locations[i].id)
-            end
-            LocalDepartments[k] = nil
-        end
+    if not LocalDepartments[id] then return end
+    RemoveBlip(LocalDepartments[id].blip)
+    local locations = LocalDepartments[id].locations
+    for i=1, #locations do
+        UnrenderDepartmentLocation(id, locations[i].id, true)
     end
+    LocalDepartments[id] = nil
 end)
 
 RegisterNetEvent("pickle_policejob:updateDepartment", function(data)
@@ -467,7 +467,7 @@ AddEventHandler("onResourceStop", function(resource)
         for k, v in pairs(Departments) do   
             RemoveBlip(v.blip)
             for i=1, #v.locations do    
-                UnrenderDepartmentLocation(k, v.locations[i].id)
+                UnrenderDepartmentLocation(k, v.locations[i].id, true)
             end
             LocalDepartments[k] = nil
         end

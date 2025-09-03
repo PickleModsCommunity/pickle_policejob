@@ -96,12 +96,11 @@ end)
 RegisterNetEvent("pickle_policejob:actions:impoundVehicle", function(netId)
     local source = source
     if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
-    if not NetworkDoesNetworkIdExist(netId) then return ShowNotification(source, _L("no_vehicle_nearby")) end
     local vehicle = NetworkGetEntityFromNetworkId(netId)
     if not vehicle or not DoesEntityExist(vehicle) then return ShowNotification(source, _L("no_vehicle_nearby")) end
     ImpoundVehiclePlate(GetVehicleNumberPlateText(vehicle))
     ShowNotification(source, _L("vehicle_impounded", GetVehicleNumberPlateText(vehicle)))
-    DeleteVehicle(vehicle)
+    DeleteEntity(vehicle)
 end)
 
 RegisterNetEvent("pickle_policejob:actions:detainment", function(targetPlayer, data)

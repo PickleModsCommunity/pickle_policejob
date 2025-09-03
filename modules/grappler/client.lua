@@ -244,12 +244,18 @@ CreateThread(function()
                     if DoesEntityExist(vehicle) then
                         local grapplerCoords = GetOffsetFromEntityInWorldCoords(vehicle, grapplerData.grapplerOffset.x, grapplerData.grapplerOffset.y, grapplerData.grapplerOffset.z)
                         local distance = #(grapplerCoords - GetEntityCoords(PlayerPedId()))
-                        if distance < Config.Grappler.renderDistance then 
+                        if CurrentBodycam then 
                             shouldRender = true
-                        end
-                        if distance < closestDistance then
                             closestVehicle = vehicle
                             closestDistance = distance
+                        else
+                            if distance < Config.Grappler.renderDistance then 
+                                shouldRender = true
+                            end
+                            if distance < closestDistance then
+                                closestVehicle = vehicle
+                                closestDistance = distance
+                            end
                         end
                     end
                 end

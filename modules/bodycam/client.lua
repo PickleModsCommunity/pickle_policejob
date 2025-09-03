@@ -1,4 +1,4 @@
-local CurrentBodycam = nil
+CurrentBodycam = nil
 
 function DoesPlayerLocallyExist(target)
     for _, player in ipairs(GetActivePlayers()) do
