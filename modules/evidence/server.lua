@@ -8,6 +8,7 @@ local ExternalStatus = {
     Alcohol = {},
 }
 local GSRTracking = {}
+local AwaitedDNA = {}
 
 function EnsureEvidence(coords, evidenceType, data)
     data.label = _L(evidenceType)
@@ -103,6 +104,8 @@ end
 
 function GetPlayerDNA(source)
     if CachedDNA[source] then return CachedDNA[source] end
+    if AwaitedDNA[source] then return Citizen.Await(AwaitedDNA[source]) end
+    AwaitedDNA[source] = promise.new()
     local result = MySQL.query.await("SELECT * FROM pickle_police_dna WHERE identifier = ?", {
         GetIdentifier(source),
     })
@@ -124,6 +127,10 @@ function GetPlayerDNA(source)
         result = {{dna = dna}}
     end
     CachedDNA[source] = result[1].dna
+    if AwaitedDNA[source] then
+        AwaitedDNA[source]:resolve(result[1].dna)
+        AwaitedDNA[source] = nil
+    end
     return result[1].dna
 end
 
