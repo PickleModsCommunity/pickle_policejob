@@ -23,7 +23,7 @@ export function GetItemLabel({item} : {item: string}) {
 
 export function GetItemImage(item: string) {
   const { config } = useConfig();
-  return config.imageDirectory ? `${config.imageDirectory}/${item}.png` : `/nui/images/${item}.png`;
+  return config.imageDirectory ? `${config.imageDirectory}/${item}.${config.imageExtension || "png"}` : `/nui/images/${item}.${config.imageExtension || "png"}`;
 }
 
 export function DisplayCurrency({value} : {value: number}) {

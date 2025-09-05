@@ -35,8 +35,8 @@ function EquipHandcuffs()
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
     Handcuffs = {}
-    Handcuffs.prop = CreateProp(`m24_1_prop_m41_handcuffs_01a`, coords.x, coords.y, coords.z, true, true, false)
-    AttachEntityToEntity(Handcuffs.prop, ped, GetPedBoneIndex(ped, 57005), 0.22, -0.05, -0.02, 0.0, 0.0, 0.0, true, true, false, true, 1, true)
+    Handcuffs.prop = CreateProp(`ba_prop_battle_cuffs`, coords.x, coords.y, coords.z, true, true, false)
+    AttachEntityToEntity(Handcuffs.prop, ped, GetPedBoneIndex(ped, 57005), 0.22, -0.02, -0.02, 0.0, 0.0, 0.0, true, true, false, true, 1, true)
     SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true)
     CreateThread(function()
         local spriteDict, sprite = "darts", "dart_reticules"
@@ -71,7 +71,6 @@ function EquipHandcuffs()
                     TriggerServerEvent("pickle_policejob:actions:detainment", GetPlayerServerId(targetPlayer), {
                         eventType = "toggleHandcuffs",
                         cuffStyle = cuffStyle,
-
                     })
                 end
             end
@@ -1198,12 +1197,14 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(data)
                 IsCurrentlyHandcuffed = {}
                 local ped = PlayerPedId()
                 local targetPed = GetPlayerPed(GetPlayerFromServerId(data.source))
-                local targetOffset = GetOffsetFromEntityInWorldCoords(targetPed, 0.0, 1.0, -1.0)
-                SetEntityCoords(ped, targetOffset.x, targetOffset.y, targetOffset.z + 0.5, 0)
-                SetEntityHeading(ped, GetEntityHeading(targetPed))
+                local targetOffset = GetOffsetFromEntityInWorldCoords(targetPed, 0.0, (data.cuffStyle == "back" and 1.0 or 0.85), -1.0)
+                SetEntityCoords(ped, targetOffset.x, targetOffset.y, targetOffset.z + 0.75, 0)
+                SetEntityHeading(ped, GetEntityHeading(targetPed) + (data.cuffStyle == "back" and 0.0 or 180.0))
                 SetEnableHandcuffs(ped, true)
                 SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true) -- unarm player
-                PlayAnim(ped, "mp_arrest_paired", "crook_p2_back_left", 8.0, -8.0, 5500, 33, 1.0, false, false, false)
+                if data.cuffStyle == "back" then
+                    PlayAnim(ped, "mp_arrest_paired", "crook_p2_back_left", 8.0, -8.0, 5500, 33, 1.0, false, false, false)
+                end
                 CreateThread(function()
                     if not Config.Handcuffs.allowResist then return end
                     local success = StartSkillCheck(Config.Handcuffs.resistSkillCheck.length, Config.Handcuffs.resistSkillCheck.availableSteps, Config.Handcuffs.resistSkillCheck.availableControls)
@@ -1211,27 +1212,41 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(data)
                         TriggerServerEvent("pickle_policejob:actions:uncuffSelf")
                     end
                 end)
-                SetTimeout(5000, function()
+                SetTimeout(data.cuffStyle == "back" and 5000 or 0, function()
                     if not IsCurrentlyHandcuffed then return end
                     IsCurrentlyHandcuffed.prop = CreateProp(`ba_prop_battle_cuffs`, targetOffset.x, targetOffset.y, targetOffset.z + 0.5, true, true, false)
                     local boneIndex = GetPedBoneIndex(ped, 60309)
                     local coords, rot = vector3(-0.035, 0.06, 0.04), vector3(265.25, 153.30, 81.12)
+                    if data.cuffStyle ~= "back" then
+                        coords = vector3(-0.07, 0.0, 0.09)
+                        rot = vector3(0.0, 80.0, 0.0)  
+                    end
                     AttachEntityToEntity(IsCurrentlyHandcuffed.prop, ped, boneIndex, coords.x, coords.y, coords.z, rot.x, rot.y, rot.z, true, false, false, false, 0, true)
                     CreateThread(function()
+                        ClearPedTasks(ped)
                         while IsCurrentlyHandcuffed do
                             local ped = PlayerPedId()
-                            if not IsEntityPlayingAnim(ped, "mp_arresting", "idle", 3) then
-                                ClearPedTasks(ped)
-                                PlayAnim(ped, 'mp_arresting', 'idle', 8.0, -8, -1, 49, 0, 0, 0, 0)
+                            if data.cuffStyle == "back" then
+                                if not IsEntityPlayingAnim(ped, "mp_arresting", "idle", 3) then
+                                    ClearPedTasks(ped)
+                                    PlayAnim(ped, 'mp_arresting', 'idle', 8.0, -8, -1, 49, 0, 0, 0, 0)
+                                end
+                            else
+                                if not IsEntityPlayingAnim(ped, "anim@move_m@prisoner_cuffed", "idle", 3) then
+                                    ClearPedTasks(ped)
+                                    PlayAnim(ped, "anim@move_m@prisoner_cuffed", "idle", 1.0, -1.0, -1, 49, 1.0, false, false, false)
+                                end
                             end
                             DisableControlAction(0, 22, true) 
                             DisableControlAction(0, 23, true) 
                             DisableControlAction(0, 24, true)
                             DisableControlAction(0, 25, true) 
-                            DisableControlAction(0, 30, true) 
-                            DisableControlAction(0, 31, true) 
-                            DisableControlAction(0, 32, true) 
-                            DisableControlAction(0, 34, true) 
+                            if data.cuffStyle == "back" then
+                                DisableControlAction(0, 30, true) 
+                                DisableControlAction(0, 31, true) 
+                                DisableControlAction(0, 32, true) 
+                                DisableControlAction(0, 34, true) 
+                            end
                             DisableControlAction(0, 36, true) 
                             DisableControlAction(0, 44, true) 
                             DisableControlAction(0, 45, true) 
@@ -1256,7 +1271,11 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(data)
                 UnequipCurrentActions()
                 local ped = PlayerPedId()
                 FreezeEntityPosition(ped, true)
-                PlayAnim(ped, "mp_arrest_paired", "cop_p2_back_left", 8.0, -8,-1, 2, 0, 0, 0, 0)
+                if data.cuffStyle == "back" then
+                    PlayAnim(ped, "mp_arrest_paired", "cop_p2_back_left", 8.0, -8,-1, 2, 0, 0, 0, 0)
+                else
+                    PlayAnim(ped, 'mp_arresting', 'a_uncuff', 8.0, -8,-1, 2, 0, 0, 0, 0)
+                end
                 SetTimeout(3800, function()
                     ClearPedTasks(ped)
                     FreezeEntityPosition(ped, false)

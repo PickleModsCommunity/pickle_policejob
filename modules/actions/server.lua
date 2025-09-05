@@ -131,10 +131,6 @@ RegisterNetEvent("pickle_policejob:actions:detainment", function(targetPlayer, d
         DraggedPlayers[targetPlayer] = nil
         data.dragged = DraggedPlayers[targetPlayer]
     elseif data.eventType == "toggleVehicleSeat" then
-        if not HandcuffedPlayers[targetPlayer] then
-            ShowNotification(source, _L("player_not_handcuffed"))
-            return
-        end
         if DraggedPlayers[targetPlayer] then
             local cancelEvent = {eventType = "toggleDrag", dragged = false, source = DraggedPlayers[targetPlayer], target = targetPlayer}
             TriggerClientEvent("pickle_policejob:actions:detainment", DraggedPlayers[targetPlayer], cancelEvent)

@@ -434,6 +434,7 @@ RegisterNetEvent("pickle_policejob:initializePlayer", function()
                 disableWithdraw = Config.Finance.disableWithdraw,
                 evidenceEnabled = Config.Evidence.enabled,
                 imageDirectory = Config.ImageDirectory,
+                imageExtension = Config.ImageExtension,
                 identifier = player.identifier,
                 name = player.name,
                 locale = Language[Config.Language],

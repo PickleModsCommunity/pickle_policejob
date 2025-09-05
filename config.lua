@@ -5,6 +5,7 @@ Config.RenderDistance = 100.0
 Config.InteractDistance = 2.0
 Config.UseTarget = true -- This enables the use of the target system when available.
 Config.ImageDirectory = "nui://ox_inventory/web/images/"
+Config.ImageExtension = "png"
 Config.WeaponsAreItems = true -- This enables the use of weapons as items. If set to false, weapons will be treated as items and not as weapons.
 Config.TeleportEscortIntoSeat = false -- This enables the teleportation of the escort to the seat of the vehicle. Default animates entry / exit.
 Config.DefaultJob = { name = "unemployed", level = 0 } -- The job to set players to when they clock off-duty.
@@ -203,6 +204,9 @@ Config.Evidence = {
     evidenceRemove = 60 * 15, -- The duration in seconds that the evidence will be removed after. 0 = never remove (not reccomended).
     gsrDuration = 60 * 15, -- The duration in seconds that the GSR will be tracked for. 60 * 1 = 1 minute.
     waterDuration = 10, -- The duration in seconds that the GSR will need to be wiped off for when in water. 60 * 1 = 1 minute.
+    evidenceExclusionZones = { -- Areas that don't drop evidence.
+        {coords = vector3(401.0586, -1132.2800, 29.4586), radius = 10.0},
+    },
     evidenceRemoveSkillcheck = {
         length = 5,
         availableSteps = {'easy', 'medium'},

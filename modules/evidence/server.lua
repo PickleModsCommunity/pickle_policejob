@@ -39,6 +39,8 @@ function AddEvidence(coords, evidenceType, data)
     TriggerClientEvent("pickle_policejob:evidence:addEvidence", -1, id, data)
 end
 
+exports("AddEvidence", AddEvidence)
+
 function GetAnyValue(table, keys)
     if not table or type(table) ~= "table" then return end
     for _, key in pairs(keys) do
@@ -46,6 +48,15 @@ function GetAnyValue(table, keys)
             return table[key]
         end
     end
+end
+
+function CanCreateEvidence(coords)
+    for _, zone in pairs(Config.Evidence.evidenceExclusionZones or {}) do
+        if #(coords - zone.coords) < zone.radius then
+            return false
+        end
+    end
+    return true
 end
 
 function GetPlayerEvidence(source, isCreatingFile)
@@ -82,7 +93,7 @@ function GetPlayerEvidence(source, isCreatingFile)
                 {
                     type = "item",
                     label = item.label,
-                    image = item.image or (Config.ImageDirectory .. "/" .. item.name .. ".png"),
+                    image = item.image or (Config.ImageDirectory .. "/" .. item.name .. "." .. (Config.ImageExtension or "png")),
                     time = os.time(),
                     coords = coords,
                     heading = heading,
@@ -261,6 +272,7 @@ end)
 RegisterNetEvent("pickle_policejob:evidence:addShellCasing", function(data)
     local source = source
     if BulletTimeout[source] and BulletTimeout[source] > os.time() then return print("^1ERROR: BULLET TIMEOUT:^0", source) end
+    if not CanCreateEvidence(data.origin) then return end
     BulletTimeout[source] = os.time() + Config.Evidence.queueInterval
     GSRTracking[source] = os.time()
     TriggerClientEvent("pickle_policejob:evidence:setHasGSR", source, true)
@@ -286,6 +298,7 @@ end)
 
 RegisterNetEvent("pickle_policejob:evidence:addBlood", function()
     local source = source
+    if not CanCreateEvidence(GetEntityCoords(GetPlayerPed(source)) - vector3(0.0, 0.0, 1.0)) then return end
     AddEvidence(GetEntityCoords(GetPlayerPed(source)) - vector3(0.0, 0.0, 1.0), "blood", {
         identifier = GetPlayerDNA(source),
         time = os.time(),
@@ -524,6 +537,7 @@ end)
 
 AddEventHandler('explosionEvent', function(sender, ev)
     local coords = vector3(ev.posX, ev.posY, ev.posZ)
+    if not CanCreateEvidence(coords) then return end
     AddEvidence(coords, "fire", {
         explosionType = ev.explosionType,
         identifier = GetPlayerDNA(sender),

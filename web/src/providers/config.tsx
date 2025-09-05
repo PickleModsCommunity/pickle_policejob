@@ -12,6 +12,7 @@ export type Config = {
         name: string;
     }[];
     imageDirectory?: string;
+    imageExtension?: string;
     locale?: Record<string, string>;
     countryCode?: string;
     currency?: string;
@@ -61,6 +62,7 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const [config, setConfig] = useState<Config>({
         disableWithdraw: false,
         bailAndBounty: false,
+        imageExtension: "png",
         locale: {
             "page_homepage": "Homepage",
             "page_roster": "Roster",
