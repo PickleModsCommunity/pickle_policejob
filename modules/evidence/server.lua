@@ -146,9 +146,9 @@ function GetPlayerBAC(source)
     if GetResourceState("envi_addictions") == "started" then
         return (exports['envi-addictions']:Breathalyze(targetServerId) / 3) / 10
     end
-    if ExternalStatus and ExternalStatus.Alcohol[source] then return ExternalStatus.Alcohol[source] end
+    if ExternalStatus and ExternalStatus.Alcohol[source] then return ExternalStatus.Alcohol[source] or 0.0 end
     if GetPlayerStatus(source) then
-        return GetPlayerStatus(source).Alcohol
+        return GetPlayerStatus(source).Alcohol or 0.0
     end
     return 0.0
 end
@@ -157,9 +157,7 @@ function GetPlayerBloodTest(source)
     if GetResourceState("envi_addictions") == "started" then
         return nil
     end
-    return {
-        weed = 3
-    }
+    return {}
 end
 
 function GetPlayerGSR(source)

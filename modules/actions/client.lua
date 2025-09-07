@@ -399,6 +399,7 @@ function EquipBreathalyzer()
                                     if alert == "confirm" then
                                         TriggerServerEvent("pickle_policejob:evidence:addBAC", GetPlayerServerId(targetPlayer), result)
                                     end
+                                    UnequipBreathalyzer()
                                 end, GetPlayerServerId(targetPlayer))
                             end
                             timer = nil
@@ -500,6 +501,9 @@ RegisterNetEvent("pickle_policejob:actions:requestBloodTest", function(requestId
         local content = ""
         for k,v in pairs(result) do
             content = (content == "" and "" or "\n\n") .. _L(k) .. ": " .. v
+        end
+        if content == "" then
+            content = _L("blood_test_result_content_empty")
         end
         content = content .. "\n\n" .. _L("blood_test_result_content")
         local alert = lib.alertDialog({

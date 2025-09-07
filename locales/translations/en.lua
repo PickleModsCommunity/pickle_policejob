@@ -405,4 +405,5 @@ Language["en"] = {
     other = "Other",
     you_have_been_added_to_department = "You have been added to the %s.",
     vehicle_impounded = "You have impounded the vehicle \"%s\".",
+    blood_test_result_content_empty = "No results found.",
 }

@@ -73,7 +73,8 @@ local Statuses = {
 RegisterNetEvent("evidence:client:SetStatus", function(statusId, time)
     if not Statuses[statusId] then return end -- If the status is not in the list, return.
     if time > 0 then
-        if (CurrentStatus == nil or CurrentStatus[statusId] == nil) or (CurrentStatus[statusId] and CurrentStatus[statusId].time < 20) then
+        if not CurrentStatus then CurrentStatus = {} end
+        if (CurrentStatus[statusId] == nil) or (CurrentStatus[statusId] and CurrentStatus[statusId].time < 20) then
             CurrentStatus[statusId] = {text = Statuses[statusId], time = time}
             ShowNotification(CurrentStatus[statusId].text)
         end
