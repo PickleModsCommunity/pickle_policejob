@@ -4,9 +4,6 @@ local BulletTimeout = {}
 local Evidence = {}
 local VehiclePrints = {}
 local CachedDNA = {}
-local ExternalStatus = {
-    Alcohol = {},
-}
 local GSRTracking = {}
 local AwaitedDNA = {}
 
@@ -149,7 +146,7 @@ function GetPlayerBAC(source)
     if GetResourceState("envi_addictions") == "started" then
         return (exports['envi-addictions']:Breathalyze(targetServerId) / 3) / 10
     end
-    if ExternalStatus.Alcohol[source] then return ExternalStatus.Alcohol[source] end
+    if ExternalStatus and ExternalStatus.Alcohol[source] then return ExternalStatus.Alcohol[source] end
     if GetPlayerStatus(source) then
         return GetPlayerStatus(source).Alcohol
     end

@@ -1,7 +1,7 @@
 if GetResourceState('qb-core') ~= 'started' then return end
 
 QBCore = exports['qb-core']:GetCoreObject()
-
+ExternalStatus = { Alcohol = {} }
 function RegisterUsableItem(...)
     QBCore.Functions.CreateUseableItem(...)
 end
