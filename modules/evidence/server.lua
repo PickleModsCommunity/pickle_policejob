@@ -157,6 +157,9 @@ function GetPlayerBloodTest(source)
     if GetResourceState("envi_addictions") == "started" then
         return nil
     end
+    if Config.Integrations.bloodTest and Config.Integrations.bloodTest.server then
+        return Config.Integrations.bloodTest.server(source)
+    end
     return {}
 end
 

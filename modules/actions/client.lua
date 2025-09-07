@@ -391,7 +391,7 @@ function EquipBreathalyzer()
                                 Wait(150)
                                 lib.callback("pickle_policejob:evidence:getBAC", false, function(result)
                                     local alert = lib.alertDialog({
-                                        header = _L("breathalyzer_result", result),
+                                        header = _L("breathalyzer_result", result or 0.0),
                                         content = _L("breathalyzer_result_content"),
                                         centered = true,
                                         cancel = true
@@ -494,6 +494,8 @@ RegisterNetEvent("pickle_policejob:actions:requestBloodTest", function(requestId
         if not result then
             if GetResourceState("envi_addictions") == "started" then
                 result = exports.envi_addictions:BloodTest(targetId)
+            elseif Config.Integrations.bloodTest and Config.Integrations.bloodTest.client then
+                result = Config.Integrations.bloodTest.client(targetId)
             else
                 result = {}
             end

@@ -198,6 +198,11 @@ function RenderDepartmentLocation(id, locationId)
                 for i=1, #pedCfg.pedComponents do
                     SetPedComponentVariation(npc, pedCfg.pedComponents[i].id, pedCfg.pedComponents[i].drawable, pedCfg.pedComponents[i].texture, 0)
                 end
+                SetPedKeepTask(npc, true)
+                SetBlockingOfNonTemporaryEvents(npc, true)
+                SetPedFleeAttributes(npc, 0, false)
+                SetPedDiesWhenInjured(npc, false)
+                FreezeEntityPosition(npc, true)
             end
         end
         LocalDepartments[id].locations[#LocalDepartments[id].locations+1] = {
