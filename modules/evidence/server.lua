@@ -209,6 +209,9 @@ lib.callback.register("pickle_policejob:evidence:createFile", function(source, d
         json.encode(file.evidence),
     })
     file.id = result.insertId
+    if Config.Integrations.evidence.fileCreated then
+        Config.Integrations.evidence.fileCreated(source, file.id, file)
+    end
     ShowNotification(source, _L("file_created"))
     return file
 end)
@@ -325,17 +328,24 @@ RegisterNetEvent("pickle_policejob:evidence:saveEvidence", function(evidenceType
 end)
 
 RegisterNetEvent("pickle_policejob:evidence:updateFileDocument", function(id, content)
+    local source = source
+    local departmentId = GetPlayerDepartment(source)
+    if not departmentId then return print("^1ERROR: NOT AUTHORIZED:^0", id) end
     local result = MySQL.query.await("SELECT * FROM pickle_police_files WHERE id = ?", {
         id,
     })
     if not result[1] then return print("^1ERROR: FILE NOT FOUND:^0", id) end
     local file = result[1]
+    if file.departmentId ~= departmentId then return print("^1ERROR: NOT AUTHORIZED:^0", id) end
     file.document = json.decode(file.document)
     file.document.content = content
     MySQL.query("UPDATE pickle_police_files SET document = ? WHERE id = ?", {
         json.encode(file.document),
         id,
     })
+    if Config.Integrations.evidence.fileUpdated then
+        Config.Integrations.evidence.fileUpdated(source, id, file)
+    end
     SendComputerEvent("pickle_policejob:evidence:updateFile", {
         id = id,
         file = file,
@@ -378,6 +388,9 @@ RegisterNetEvent("pickle_policejob:evidence:importEvidence", function(id, import
         end
     end
     file.evidence = evidence
+    if Config.Integrations.evidence.fileUpdated then
+        Config.Integrations.evidence.fileUpdated(source, id, file)
+    end
     SendComputerEvent("pickle_policejob:evidence:updateFile", {
         id = id,
         file = file,
@@ -412,6 +425,9 @@ RegisterNetEvent("pickle_policejob:evidence:deleteEvidence", function(id, index)
         json.encode(file.evidence),
         id,
     })
+    if Config.Integrations.evidence.fileUpdated then
+        Config.Integrations.evidence.fileUpdated(source, id, file)
+    end
     SendComputerEvent("pickle_policejob:evidence:updateFile", {
         id = id,
         file = file,

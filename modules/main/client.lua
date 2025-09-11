@@ -99,11 +99,11 @@ function OpenFrontdesk(id, entityId)
                 description = _L("request_officer_description"),
                 icon = "phone",
                 onSelect = function()
-                    OpenFrontdeskRequestOfficerForm(id, entityId, data)
+                    OpenFrontdeskRequestOfficer(id)
                 end,
             }
         end
-        if Config.Frontdesk.applyForDepartment.enabled then
+        if not data.departmentId and Config.Frontdesk.applyForDepartment.enabled then
             options[#options+1] = {
                 title = _L("apply_for_department", Departments[id].label),
                 description = _L("apply_for_department_description"),
@@ -119,7 +119,7 @@ function OpenFrontdesk(id, entityId)
                 description = _L("file_report_description"),
                 icon = "clipboard-list",
                 onSelect = function()
-                    OpenFrontdeskFileReport(id, entityId, data)
+                    OpenFrontdeskFileReport(id)
                 end,
             }
         end
@@ -145,6 +145,22 @@ function OpenFrontdeskApplyForDepartment(id)
     local results = lib.inputDialog(_L("apply_for_department_title", department.label), Config.Frontdesk.applyForDepartment.fields)
     if not results then return end
     TriggerServerEvent("pickle_policejob:submitDepartmentApplication", id, results)
+end
+
+function OpenFrontdeskFileReport(id)
+    local department = Departments[id]
+    if not department then return end
+    local results = lib.inputDialog(_L("file_report_form_title"), Config.Frontdesk.fileReport.fields)
+    if not results then return end
+    TriggerServerEvent("pickle_policejob:submitReport", id, results)
+end
+
+function OpenFrontdeskRequestOfficer(id)
+    local department = Departments[id]
+    if not department then return end
+    local results = lib.inputDialog(_L("request_officer_form_title"), Config.Frontdesk.requestOfficer.fields)
+    if not results then return end
+    TriggerServerEvent("pickle_policejob:submitRequestOfficer", id, results)
 end
 
 function UnrenderDepartmentLocation(id, locationId, dontRemove)

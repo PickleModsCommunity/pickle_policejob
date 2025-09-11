@@ -252,6 +252,16 @@ RegisterNetEvent("pickle_policejob:actions:uncuffOther", function(targetId)
     })
 end)
 
+RegisterNetEvent("pickle_policejob:actions:jailPlayer", function(targetId, time)
+    local source = source
+    if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end
+    if not targetId or targetId < 1 or not time or time < 1 then return ShowNotification(source, _L("invalid_target_or_time")) end
+    if Config.Integrations.jail.jailPlayer then 
+        Config.Integrations.jail.jailPlayer(source, targetId, time)
+        ShowNotification(source, _L("player_jailed", GetPlayerCharacterName(targetId), time))
+    end
+end)
+
 if Config.Handcuffs.lockpickItem then
     RegisterUsableItem(Config.Handcuffs.lockpickItem, function(source)
         local source = source

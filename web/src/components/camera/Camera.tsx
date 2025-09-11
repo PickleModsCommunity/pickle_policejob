@@ -81,7 +81,12 @@ export default function Camera() {
       <div className={cn(
         "relative top-0 left-0 w-full h-full",
         show ? "opacity-100" : "opacity-0"
-      )} style={{ backgroundImage: 'url("/nui/images/camera_overlay.png")' }}>
+      )} style={{ 
+        backgroundImage: 'url("/nui/images/camera_overlay.png")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}>
         <div className={cn(
           "absolute bottom-[11rem] left-1/2 translate-x-[-50%] translate-y-0 h-[200px]",
           "flex flex-col items-center justify-center",

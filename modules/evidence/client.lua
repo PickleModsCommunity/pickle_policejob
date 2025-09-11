@@ -105,9 +105,13 @@ function EquipEvidenceCamera()
                 if IsControlJustPressed(0, 202) then
                     break
                 elseif IsDisabledControlJustPressed(0, 33) then
-                    TriggerServerEvent("pickle_policejob:evidence:saveEvidence", "camera", CAMERA_EVIDENCE)
-                    CAMERA_EVIDENCE = {}
-                    break
+                    if #CAMERA_EVIDENCE == 0 then 
+                        ShowNotification(_L("no_evidence_to_save")) 
+                    else
+                        TriggerServerEvent("pickle_policejob:evidence:saveEvidence", "camera", CAMERA_EVIDENCE)
+                        CAMERA_EVIDENCE = {}
+                        break
+                    end
                 elseif IsDisabledControlJustPressed(1, 51) then
                     enableInteract = false
                     CreateThread(function()

@@ -11,6 +11,12 @@ RegisterNetEvent("pickle_policejob:grappler:attach", function(vehicleNetId, targ
     GrapplerVehicles[vehicleNetId].targetNetId = targetNetId
     GrapplerVehicles[vehicleNetId].boneId = data.boneId
     TriggerClientEvent("pickle_policejob:grappler:attach", -1, NetworkGetNetworkIdFromEntity(vehicle), NetworkGetNetworkIdFromEntity(targetVehicle), GrapplerVehicles[vehicleNetId])
+    if not Config.Grappler.breakTimer or Config.Grappler.breakTimer <= 0 then return end
+    SetTimeout(Config.Grappler.breakTimer * 1000, function()
+        if not GrapplerVehicles[vehicleNetId] then return end
+        GrapplerVehicles[vehicleNetId] = nil
+        TriggerClientEvent("pickle_policejob:grappler:remove", -1, vehicleNetId)
+    end)
 end)
 
 RegisterNetEvent("pickle_policejob:grappler:toggleDeploy", function(vehicleNetId)

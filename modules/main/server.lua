@@ -1,4 +1,6 @@
 local RecentApplications = {}
+local RecentReports = {}
+local RecentRequestOfficers = {}
 
 function InitializeDepartment(id, data, dontSync)
     local department = {
@@ -360,7 +362,7 @@ function CanRankAccessEntry(departmentId, rankId, entryId, entryType)
                 return true
             end
         end
-        if rank.id == rankId then
+        if rank.rankId == rankId then
             break
         end
     end
@@ -392,10 +394,34 @@ function GetTotalCopsOnline()
     return total
 end
 
+function EnsurePlayerDuty(source)
+    local departmentId, memberData = GetPlayerDepartment(source)
+    if departmentId then
+        local department = Departments[departmentId]
+        local rank, rankIndex = GetDepartmentRank(departmentId, memberData.rankId)
+        local isDuty = IsPlayerOnDuty(source)
+        if GetPlayerJob(source) and department.job == GetPlayerJob(source).name then
+            SetPlayerDuty(source, true)
+        elseif isDuty then
+            SetPlayerDuty(source, false)
+        end
+    end
+end
+
 exports("GetTotalCopsOnline", GetTotalCopsOnline)
 
 function GenerateApplicationContent(results)
     local fields = Config.Frontdesk.applyForDepartment.fields
+    local content = ""
+    for i=1, #fields do
+        if not results[i] then results[i] = "No answer provided" end
+        content = content .. "<div><b>".. fields[i].label .. "</b>:</div><hr/><div>".. results[i] .. "</div>"
+    end
+    return content
+end
+
+function GenerateReportContent(results)
+    local fields = Config.Frontdesk.fileReport.fields
     local content = ""
     for i=1, #fields do
         if not results[i] then results[i] = "No answer provided" end
@@ -446,14 +472,7 @@ RegisterNetEvent("pickle_policejob:initializePlayer", function()
         while not Inventory.Ready do
             Wait(100)
         end
-        local departmentId, memberData = GetPlayerDepartment(source)
-        if departmentId then
-            local department = Departments[departmentId]
-            local rank, rankIndex = GetDepartmentRank(departmentId, memberData.rankId)
-            if GetPlayerJob(source) and department.job == GetPlayerJob(source).name then
-                SetPlayerDuty(source, true)
-            end
-        end
+        EnsurePlayerDuty(source)
         TriggerClientEvent("pickle_policejob:initializePlayer", source)
         TriggerClientEvent("pickle_policejob:setupInventory", source, Inventory.Items)
         TriggerClientEvent("pickle_policejob:initializeDepartment", source, Departments)
@@ -505,6 +524,74 @@ RegisterNetEvent("pickle_policejob:submitDepartmentApplication", function(id, re
         fileId = file.id,
     })
     ShowNotification(source, _L("application_submitted", file.id))
+end)
+
+RegisterNetEvent("pickle_policejob:submitReport", function(id, results)
+    local source = source
+    local department = GetDepartment(id)
+    if not department then return end
+    if RecentReports[source] then
+        for i=1, #RecentReports[source] do
+            if RecentReports[source][i] == id then
+                return ShowNotification(source, _L("already_filed_report"))
+            end
+        end
+    else
+        RecentReports[source] = {}
+    end
+    table.insert(RecentReports[source], id)
+    local file = {
+        name = _L("report_title", GetPlayerCharacterName(source)),
+        authorIdentifier = GetIdentifier(source),
+        datetime = os.time(),
+        document = {
+            header = {
+                title = toupper(department.label),
+                image = department.image,
+                leftInfo = {"<b>".. GetPlayerCharacterName(source) .. "</b>", "Los Santos, San Andreas"},
+                rightInfo = {"<b>".. _L("complaintant") .. "</b>", GetFormattedDate(os.time())},
+            },
+            subContent = {},
+            enableContent = true,
+            content = GenerateReportContent(results)
+        },
+        evidence = {},
+    }
+    local result = MySQL.query.await("INSERT INTO pickle_police_files (departmentId, name, authorIdentifier, datetime, document, evidence) VALUES (?, ?, ?, ?, ?, ?)", {
+        id,
+        file.name,
+        file.authorIdentifier,
+        file.datetime,
+        json.encode(file.document),
+        json.encode(file.evidence),
+    })
+    file.id = result.insertId
+    Inventory.AddItem(source, "police_report", 1, {
+        fileId = file.id,
+    })
+    ShowNotification(source, _L("report_submitted", file.id))
+end)
+
+RegisterNetEvent("pickle_policejob:submitRequestOfficer", function(id, results)
+    local source = source
+    local department = GetDepartment(id)
+    if not department then return end
+    if RecentRequestOfficers[source] then
+        if RecentRequestOfficers[source] > os.time() then
+            local timeLeft = RecentRequestOfficers[source] - os.time()
+            return ShowNotification(source, _L("request_officer_timeout", GetFormattedTime(timeLeft)))
+        end
+    else
+        RecentRequestOfficers[source] = os.time() + Config.Frontdesk.requestOfficer.timeout
+    end
+    for _, member in pairs(department.members) do
+        local source = GetSourceFromIdentifier(member.identifier)
+        if member.onDuty and source then
+            ShowNotification(source, _L("request_officer_requested"))
+        end
+    end
+    ShowNotification(source, _L("request_officer_submitted"))
+    ExecuteIntegration(source, "requestOfficer", id, results)
 end)
 
 AddEventHandler("playerDropped", function()

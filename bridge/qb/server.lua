@@ -177,6 +177,10 @@ function IsPlayerAdmin(source)
     return false
 end
 
+AddEventHandler('QBCore:Server:OnJobUpdate', function(source)
+    EnsurePlayerDuty(source)
+end)
+
 -- Evidence Status Support (For Breathalyzer)
 
 RegisterNetEvent("evidence:server:UpdateStatus", function(status)

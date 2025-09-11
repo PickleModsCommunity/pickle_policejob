@@ -23,6 +23,7 @@ lib.callback.register("pickle_policejob:openComputer", function(source)
     if not departmentId then return nil, _L("not_in_department") end
     local department = Departments[departmentId]
     if not department then return nil, "ERROR_DEPARTMENT_NOT_FOUND" end
+    if not IsPlayerOnDuty(source) then return nil, _L("not_on_duty") end
     IN_COMPUTER[source] = true
     return {
         department = department,

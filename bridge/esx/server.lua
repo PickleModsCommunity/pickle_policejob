@@ -200,6 +200,10 @@ function GetPlayerStatus(source)
     return {Alcohol = math.floor(bac * 100) / 100}
 end
 
+AddEventHandler('esx:setJob', function(source, job, lastJob)
+    EnsurePlayerDuty(source)
+end)
+
 -- Inventory Fallback
 
 CreateThread(function()
