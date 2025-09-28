@@ -910,6 +910,13 @@ end
 
 CreateThread(function()
     Wait(1000)
+    if Config.Integrations.police_actions.client_target then
+        Config.Integrations.police_actions.client_target()
+    end
+end)
+
+CreateThread(function()
+    Wait(1000)
     if Config.UseTarget then
         AddTargetModel(`npds_p_pb`, 1.0, {
             {

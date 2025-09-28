@@ -150,6 +150,14 @@ function SetPlayerJob(source, job, grade)
     xPlayer.setJob(job, grade)
 end
 
+function SetPlayerFrameworkDuty(source, onDuty)
+    local xPlayer = ESX.GetPlayerFromId(tonumber(source))
+    if not xPlayer then return end
+    local jobName, jobGrade = GetPlayerDepartmentJob(source)
+    if not jobName or (not onDuty and not Config.DefaultJob.usePrefixDuty) then return xPlayer.setJob("unemployed", 0) end
+    xPlayer.setJob((onDuty and "" or "off")..jobName, jobGrade)
+end
+
 function IsPlayerAdmin(source)
     local xPlayer = ESX.GetPlayerFromId(source)
     if not xPlayer then return false end

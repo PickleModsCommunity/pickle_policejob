@@ -170,6 +170,53 @@ function GetPlayerGSR(source)
     return false
 end
 
+function ConvertHTMLToPlaintext(html)
+    return html:gsub("<.->(.-)</.->", "%1"):gsub("<[^>]+>", ""):gsub("&nbsp;", " "):gsub("&amp;", "&"):gsub("&lt;", "<"):gsub("&gt;", ">"):gsub("&quot;", "\""):gsub("&#39;", "'")
+end
+
+function CreateFile(source, file)
+    local result = MySQL.query.await("INSERT INTO pickle_police_files (departmentId, name, authorIdentifier, datetime, document, evidence) VALUES (?, ?, ?, ?, ?, ?)", {
+        GetPlayerDepartment(source),
+        file.name,
+        file.authorIdentifier,
+        file.datetime,
+        json.encode(file.document),
+        json.encode(file.evidence),
+    })
+    file.id = result.insertId
+    if Config.Integrations.evidence.fileCreated then
+        Config.Integrations.evidence.fileCreated(source, file.id, file)
+    end
+    return file.id, file
+end
+
+exports("CreateFile", CreateFile)
+
+function UpdateFile(source, id, file)
+    local result = MySQL.query.await("UPDATE pickle_police_files SET document = ?, evidence = ? WHERE id = ?", {
+        json.encode(file.document),
+        json.encode(file.evidence),
+        id,
+    })
+    if Config.Integrations.evidence.fileUpdated then
+        Config.Integrations.evidence.fileUpdated(source, id, file)
+    end
+    return file.id, file
+end
+
+exports("UpdateFile", UpdateFile)
+
+function DeleteFile(source, id)
+    local result = MySQL.query.await("DELETE FROM pickle_police_files WHERE id = ?", {
+        id,
+    })
+    if Config.Integrations.evidence.fileDeleted then
+        Config.Integrations.evidence.fileDeleted(source, id)
+    end
+end
+
+exports("DeleteFile", DeleteFile)
+
 lib.callback.register("pickle_policejob:evidence:getFiles", function(source, search)
     local result
     if search == "" then
@@ -200,18 +247,7 @@ lib.callback.register("pickle_policejob:evidence:createFile", function(source, d
         document = data.document,
         evidence = data.evidence,
     }
-    local result = MySQL.query.await("INSERT INTO pickle_police_files (departmentId, name, authorIdentifier, datetime, document, evidence) VALUES (?, ?, ?, ?, ?, ?)", {
-        GetPlayerDepartment(source),
-        file.name,
-        file.authorIdentifier,
-        file.datetime,
-        json.encode(file.document),
-        json.encode(file.evidence),
-    })
-    file.id = result.insertId
-    if Config.Integrations.evidence.fileCreated then
-        Config.Integrations.evidence.fileCreated(source, file.id, file)
-    end
+    local _, file = CreateFile(source, file)
     ShowNotification(source, _L("file_created"))
     return file
 end)

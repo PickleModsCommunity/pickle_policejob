@@ -130,6 +130,16 @@ function GetPlayerDepartment(source)
     return nil
 end
 
+function GetPlayerDepartmentJob(source)
+    local departmentId, memberData = GetPlayerDepartment(source)
+    if not departmentId then return nil end
+    local department = Departments[departmentId]
+    if not department then return nil end
+    local rank, rankIndex = GetDepartmentRank(departmentId, memberData.rankId)
+    if not rank then return nil end
+    return department.job, rank.jobLevel
+end
+
 function GetIdentifierDepartment(identifier)
     for k, v in pairs(Departments) do
         for i=1, #v.members do
@@ -161,6 +171,8 @@ function AddDepartmentMoney(id, amount)
     })
 end
 
+exports("AddDepartmentMoney", AddDepartmentMoney)
+
 function RemoveDepartmentMoney(id, amount)
     local department = GetDepartment(id)
     if not department then return end
@@ -168,11 +180,15 @@ function RemoveDepartmentMoney(id, amount)
     UpdateDepartmentSQL(id, "money")
 end 
 
+exports("RemoveDepartmentMoney", RemoveDepartmentMoney)
+
 function GetDepartmentMoney(id)
     local department = GetDepartment(id)
     if not department then return 0 end
     return department.money
 end
+
+exports("GetDepartmentMoney", GetDepartmentMoney)
 
 function AddDepartmentTransaction(id, source, transactionType, amount, reason)
     local department = GetDepartment(id)
@@ -277,7 +293,7 @@ function SetPlayerDuty(source, onDuty, report)
     local rank, rankIndex = GetDepartmentRank(departmentId, memberData.rankId)
     if onDuty and not memberData.onDuty then
         memberData.onDuty = os.time()
-        SetPlayerJob(source, department.job, rank.jobLevel)
+        SetPlayerFrameworkDuty(source, true)
         ShowNotification(source, _L("duty_on"))
         ExecuteIntegration(source, "duty", departmentId, true)
         TriggerClientEvent("pickle_policejob:updateOnDuty", source, true)
@@ -296,7 +312,7 @@ function SetPlayerDuty(source, onDuty, report)
         if #memberData.recentDutyLogs > 10 then
             table.remove(memberData.recentDutyLogs)
         end
-        SetPlayerJob(source, Config.DefaultJob.name, Config.DefaultJob.level)
+        SetPlayerFrameworkDuty(source, false)
         ShowNotification(source, _L("duty_off"))
         UpdateDepartmentSQL(departmentId, "members")
         ExecuteIntegration(source, "duty", departmentId, false, report)

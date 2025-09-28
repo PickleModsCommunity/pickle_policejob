@@ -40,6 +40,9 @@ end
 
 Inventory.GetItemCount = function(source, name)
     local results = exports.ox_inventory:Search(source, "slots", name)
+    if type(results) == "boolean" then
+        return exports.ox_inventory:GetItemCount(source, name)
+    end
     local count = 0
     for i=1, #results do
         count = count + results[i].count

@@ -15,6 +15,28 @@ local RegisteredItems = {
     ["blood_test"] = Config.Evidence.bloodTestItem,
 }
 
+function ResetPlayerDetainment(source)
+    HandcuffedPlayers[source] = nil
+    DraggedPlayers[source] = nil
+    TriggerClientEvent("pickle_policejob:actions:detainment", source, {
+        eventType = "toggleHandcuffs",
+        cuffStyle = "back",
+        cuffed = false,
+        dragged = false,
+        source = 0,
+        target = source,
+        instant = true,
+    })
+    TriggerClientEvent("pickle_policejob:actions:detainment", source, {
+        eventType = "toggleDrag",
+        dragged = false,
+        cuffed = false,
+        source = 0,
+        target = source,
+        instant = true,
+    })
+end
+
 function CreateStabSticks(sticks)
     local id
     repeat

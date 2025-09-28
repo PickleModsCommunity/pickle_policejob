@@ -162,8 +162,15 @@ end
 
 function SetPlayerJob(source, job, grade)
     local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
+    if not xPlayer then return end
     xPlayer.Functions.SetJob(job, grade)
     xPlayer.Functions.SetJobDuty(true)
+end
+
+function SetPlayerFrameworkDuty(source, onDuty)
+    local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
+    if not xPlayer then return end
+    xPlayer.Functions.SetJobDuty(onDuty)
 end
 
 function IsPlayerAdmin(source)

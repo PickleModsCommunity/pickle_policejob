@@ -54,6 +54,10 @@ function Kill()
     SetEntityHealth(PlayerPedId(), 0)
 end
 
+RegisterNetEvent('police:client:SendToJail', function(time)
+    TriggerEvent("prison:client:Enter", time)
+end)
+
 RegisterNetEvent(GetCurrentResourceName()..":showNotification", function(text)
     ShowNotification(text)
 end)
