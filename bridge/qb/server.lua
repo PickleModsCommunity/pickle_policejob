@@ -184,8 +184,8 @@ function IsPlayerAdmin(source)
     return false
 end
 
-AddEventHandler('QBCore:Server:OnJobUpdate', function(source)
-    EnsurePlayerDuty(source)
+AddEventHandler('QBCore:Server:OnJobUpdate', function(source, job)
+    EnsurePlayerDuty(source, job.onduty, true)
 end)
 
 -- Evidence Status Support (For Breathalyzer)
