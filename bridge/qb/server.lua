@@ -185,12 +185,8 @@ function IsPlayerAdmin(source)
     return false
 end
 
-function GetPlayerStatus(source)
-    return {Alcohol = 0}
-end
-
-AddEventHandler('QBCore:Server:OnJobUpdate', function(source)
-    EnsurePlayerDuty(source)
+AddEventHandler('QBCore:Server:OnJobUpdate', function(source, job)
+    EnsurePlayerDuty(source, job.onduty, true)
 end)
 
 -- Evidence Status Support (For Breathalyzer)

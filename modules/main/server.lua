@@ -410,7 +410,8 @@ function GetTotalCopsOnline()
     return total
 end
 
-function EnsurePlayerDuty(source)
+function EnsurePlayerDuty(source, onDuty, checkDuty)
+    if checkDuty and not onDuty then return end
     local departmentId, memberData = GetPlayerDepartment(source)
     if departmentId then
         local department = Departments[departmentId]
