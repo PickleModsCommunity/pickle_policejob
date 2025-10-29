@@ -2,6 +2,7 @@ if GetResourceState('qb-core') ~= 'started' then return end
 
 QBCore = exports['qb-core']:GetCoreObject()
 ExternalStatus = { Alcohol = {} }
+
 function RegisterUsableItem(...)
     QBCore.Functions.CreateUseableItem(...)
 end
@@ -182,6 +183,10 @@ function IsPlayerAdmin(source)
         end
     end
     return false
+end
+
+function GetPlayerStatus(source)
+    return {Alcohol = 0}
 end
 
 AddEventHandler('QBCore:Server:OnJobUpdate', function(source)
