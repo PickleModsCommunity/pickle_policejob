@@ -171,6 +171,9 @@ end
 function SetPlayerFrameworkDuty(source, onDuty)
     local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
     if not xPlayer then return end
+    local jobName, jobGrade = GetPlayerDepartmentJob(source)
+    if not jobName then return xPlayer.Functions.SetJobDuty(false) end
+    xPlayer.Functions.SetJob(jobName, jobGrade)
     xPlayer.Functions.SetJobDuty(onDuty)
 end
 
@@ -190,7 +193,13 @@ function GetPlayerStatus(source)
 end
 
 AddEventHandler('QBCore:Server:OnJobUpdate', function(source, job)
-    EnsurePlayerDuty(source, job.onduty, true)
+    local jobName, jobGrade = GetPlayerDepartmentJob(source)
+    if not jobName then return end
+    if IsPlayerOnDuty(source) and (job.name ~= jobName or not job.onduty) then
+        SetPlayerDuty(false)
+    elseif not IsPlayerOnDuty(source) and (job.name == jobName and not job.onduty) then
+        SetPlayerDuty(true)
+    end
 end)
 
 -- Evidence Status Support (For Breathalyzer)
