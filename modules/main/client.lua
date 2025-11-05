@@ -172,6 +172,9 @@ function UnrenderDepartmentLocation(id, locationId, dontRemove)
             if LocalDepartments[id].locations[i].npc then
                 DeleteEntity(LocalDepartments[id].locations[i].npc)
             end
+            if LocalDepartments[id].locations[i].blip then
+                RemoveBlip(LocalDepartments[id].locations[i].blip)
+            end
             if LocalDepartments[id].locations[i].additionalInteracts then
                 for j=1, #LocalDepartments[id].locations[i].additionalInteracts do
                     DeleteInteraction(LocalDepartments[id].locations[i].additionalInteracts[j])
@@ -318,6 +321,32 @@ function RenderDepartmentLocation(id, locationId)
                 end)
             }
         }
+    elseif location.type == "blip" then
+        local coords = location.positions.point.coords
+        local blipCfg = Config.DepartmentBlip or {}
+        local sprite = tonumber(location.settings.blipSprite) or blipCfg.sprite or 1
+        local color = tonumber(location.settings.blipColor) or blipCfg.color or 0
+        local scale = blipCfg.scale or 1.0
+        local display = blipCfg.display or 4
+        local category = blipCfg.category or 40
+        local customLabel = (location.settings and location.settings.blipLabel) or nil
+        if customLabel == "" then customLabel = nil end
+        local label = customLabel or (Departments[id] and Departments[id].label or "Police Department")
+        local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
+        SetBlipSprite(blip, sprite)
+        SetBlipDisplay(blip, display)
+        SetBlipScale(blip, scale)
+        SetBlipColour(blip, color)
+        SetBlipAsShortRange(blip, true)
+        SetBlipCategory(blip, category)
+        AddTextEntry("BLIP_CAT_" .. category, _L("blip_department"))
+        BeginTextCommandSetBlipName("STRING")
+        AddTextComponentSubstringPlayerName(label)
+        EndTextCommandSetBlipName(blip)
+        LocalDepartments[id].locations[#LocalDepartments[id].locations+1] = {
+            id = locationId,
+            blip = blip,
+        }
     end
 end
 
@@ -329,7 +358,6 @@ end
 function EnsureDepartment(id)
     if LocalDepartments[id] then return end
     LocalDepartments[id] = {
-        blip = CreateDepartmentBlip(id),
         locations = {},
     }
     for i=1, #Departments[id].locations do
@@ -351,25 +379,7 @@ function GetDepartmentLocation(departmentId, locationId)
     end
 end
 
-function CreateDepartmentBlip(departmentId) 
-    local department = Departments[departmentId]
-    if not department then return end
-    local coords = department.location and department.location.coords or vector3(0.0, 0.0, 0.0)
-    local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
-    local blipCfg = Config.DepartmentBlip or {}
-    SetBlipSprite(blip, blipCfg.sprite or 1)
-    SetBlipDisplay(blip, blipCfg.display or 4)
-    SetBlipScale(blip, blipCfg.scale or 1.0)
-    SetBlipColour(blip, blipCfg.color or 0)
-    SetBlipAsShortRange(blip, true)
-    local category = blipCfg.category or 40
-    SetBlipCategory(blip, category)
-    AddTextEntry("BLIP_CAT_" .. category, _L("blip_department"))
-    BeginTextCommandSetBlipName("STRING")
-    AddTextComponentSubstringPlayerName(department.label)
-    EndTextCommandSetBlipName(blip)
-    return blip
-end
+-- Department-level blip removed in favor of per-location blips
 
 RegisterNUICallback("getPlayers", function(data, cb)
     lib.callback("pickle_policejob:getPlayers", false, function(players)
@@ -404,7 +414,6 @@ RegisterNetEvent("pickle_policejob:deleteDepartment", function(id)
     -- TODO: Remove locations and cleanup local departments
     Departments[id] = nil
     if not LocalDepartments[id] then return end
-    RemoveBlip(LocalDepartments[id].blip)
     local locations = LocalDepartments[id].locations
     for i=1, #locations do
         UnrenderDepartmentLocation(id, locations[i].id, true)
@@ -418,8 +427,6 @@ RegisterNetEvent("pickle_policejob:updateDepartment", function(data)
         EnsureDepartmentLocation(data.departmentId, data.location.id)
     elseif data.type == "updateDepartmentLocation" then
         Departments[data.departmentId].location = data.location
-        RemoveBlip(LocalDepartments[data.departmentId].blip)
-        LocalDepartments[data.departmentId].blip = CreateDepartmentBlip(data.departmentId)
     elseif data.type == "updateLocation" then
         local updatedLocation = false
         for i=1, #Departments[data.departmentId].locations do
@@ -486,12 +493,13 @@ end)
 
 AddEventHandler("onResourceStop", function(resource)
     if resource == GetCurrentResourceName() then
-        for k, v in pairs(Departments) do   
-            RemoveBlip(v.blip)
-            for i=1, #v.locations do    
-                UnrenderDepartmentLocation(k, v.locations[i].id, true)
+        for k, _ in pairs(Departments) do   
+            if LocalDepartments[k] then
+                for i=1, #LocalDepartments[k].locations do    
+                    UnrenderDepartmentLocation(k, LocalDepartments[k].locations[i].id, true)
+                end
+                LocalDepartments[k] = nil
             end
-            LocalDepartments[k] = nil
         end
     end
 end)

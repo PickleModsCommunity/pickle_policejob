@@ -23,6 +23,10 @@ LOCATION_TYPES = {
         locations = {},
         settings = {},
     },
+    ["blip"] = {
+        locations = {},
+        settings = {"blipLabel", "blipSprite", "blipColor"},
+    },
 }
 
 function SetManagementFocus(toggle)

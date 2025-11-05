@@ -235,6 +235,78 @@ function ManagementLocation({ location, onExit, onUpdate, onCreate, onDelete }: 
                         }
                         setSettings({ ...settings, [settingId]: value })
                     }} />}
+                    {(settingId == "blipSprite" || settingId == "blipColor") && (
+                        <input type="number" className="bg-background text-sm text-muted-foreground cursor-pointer transition-all duration-200 w-24" value={settings[settingId] ?? ""} onChange={(e) => {
+                            const value = e.target.value === "" ? "" : parseInt(e.target.value);
+                            if (!isCreating) {
+                                fetchNui("managementAction", {
+                                    action: "updateLocation",
+                                    data: {
+                                        departmentId: currentDepartmentId,
+                                        locationId: location.id,
+                                        location: {
+                                            ...location,
+                                            settings: {
+                                                ...settings,
+                                                [settingId]: value,
+                                            },
+                                        },
+                                    },
+                                })
+                            }
+                            else {
+                                fetchNui("setCurrentLocation", {
+                                    departmentId: currentDepartmentId,
+                                    location: {
+                                        id: -1,
+                                        type: type,
+                                        positions: positions,
+                                        settings: {
+                                            ...settings,
+                                            [settingId]: value,
+                                        },
+                                    },
+                                })
+                            }
+                            setSettings({ ...settings, [settingId]: value })
+                        }} />
+                    )}
+                    {settingId == "blipLabel" && (
+                        <input type="text" className="bg-background text-sm text-muted-foreground cursor-pointer transition-all duration-200 w-56" value={settings[settingId] ?? ""} onChange={(e) => {
+                            const value = e.target.value;
+                            if (!isCreating) {
+                                fetchNui("managementAction", {
+                                    action: "updateLocation",
+                                    data: {
+                                        departmentId: currentDepartmentId,
+                                        locationId: location.id,
+                                        location: {
+                                            ...location,
+                                            settings: {
+                                                ...settings,
+                                                [settingId]: value,
+                                            },
+                                        },
+                                    },
+                                })
+                            }
+                            else {
+                                fetchNui("setCurrentLocation", {
+                                    departmentId: currentDepartmentId,
+                                    location: {
+                                        id: -1,
+                                        type: type,
+                                        positions: positions,
+                                        settings: {
+                                            ...settings,
+                                            [settingId]: value,
+                                        },
+                                    },
+                                })
+                            }
+                            setSettings({ ...settings, [settingId]: value })
+                        }} />
+                    )}
                 </div>
             ))}
             {isCreating ? (
