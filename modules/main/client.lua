@@ -70,18 +70,18 @@ function OpenFrontdesk(id, entityId)
         local options = {}
         local menuId = "pickle_policejob:frontdesk"
         if data.departmentId and id == data.departmentId then
-            options[#options+1] = {
-                title = _L(data.memberData.onDuty and "toggle_offduty" or "toggle_onduty"),
-                description = data.memberData.onDuty and _L("toggle_offduty_description", GetFormattedTime(data.time - data.memberData.onDuty)) or _L("toggle_onduty_description"),
-                icon = data.memberData.onDuty and "stop" or "play",
-                onSelect = function()
-                    if data.memberData.onDuty then
-                        OpenFrontdeskOffdutyPrompt(id, entityId)
-                    else
-                        TriggerServerEvent("pickle_policejob:toggleDuty", id, entityId)
-                    end
-                end,
-            }
+            -- options[#options+1] = {
+            --     title = _L(data.memberData.onDuty and "toggle_offduty" or "toggle_onduty"),
+            --     description = data.memberData.onDuty and _L("toggle_offduty_description", GetFormattedTime(data.time - data.memberData.onDuty)) or _L("toggle_onduty_description"),
+            --     icon = data.memberData.onDuty and "stop" or "play",
+            --     onSelect = function()
+            --         if data.memberData.onDuty then
+            --             OpenFrontdeskOffdutyPrompt(id, entityId)
+            --         else
+            --             TriggerServerEvent("pickle_policejob:toggleDuty", id, entityId)
+            --         end
+            --     end,
+            -- }
             options[#options+1] = {
                 title = _L("view_duty_logs"),
                 description = _L("view_duty_logs_description"),

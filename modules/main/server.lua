@@ -1,6 +1,7 @@
 local RecentApplications = {}
 local RecentReports = {}
 local RecentRequestOfficers = {}
+local OndutyPlayers = {}
 
 function InitializeDepartment(id, data, dontSync)
     local department = {
@@ -50,15 +51,6 @@ function UpdateDepartmentSQL(id, columnId)
             location = json.encode(department.location),
             id = id,
         })
-    elseif columnId == "members" then
-        local members = {}
-        for i=1, #department.members do
-            table.insert(members, RemoveFields(department.members[i], {"onDuty"}))
-        end
-        MySQL.Async.execute("UPDATE pickle_police_departments SET members = @members WHERE id = @id", {
-            members = json.encode(members),
-            id = id,
-        })
     elseif columnId == "locations" then
         MySQL.Async.execute("UPDATE pickle_police_departments SET locations = @locations WHERE id = @id", {
             locations = json.encode(department.locations),
@@ -102,29 +94,36 @@ function GetDepartmentPermission(id, permission)
     return department.permissions[permission]
 end
 
-function GetDepartmentMember(id, source)
-    local department = GetDepartment(id)
-    local identifier
-    if type(source) == "string" and not tonumber(source) then
-        identifier = source
-    else
-        identifier = GetIdentifier(source)
-    end
-    if not department then return nil end
-    for i=1, #department.members do
-        if department.members[i].identifier == identifier then
-            return department.members[i], i, GetSourceFromIdentifier(identifier)
-        end
-    end
-end
+-- function GetDepartmentMember(id, source)
+--     local department = GetDepartment(id)
+--     local identifier
+--     if type(source) == "string" and not tonumber(source) then
+--         identifier = source
+--     else
+--         identifier = GetIdentifier(source)
+--     end
+--     if not department then return nil end
+--     for i=1, #department.members do
+--         if department.members[i].identifier == identifier then
+--             return department.members[i], i, GetSourceFromIdentifier(identifier)
+--         end
+--     end
+-- end
 
 function GetPlayerDepartment(source)
-    local identifier = GetIdentifier(source)
+    local job = GetPlayerJob(source)
+    local found = false
     for k, v in pairs(Departments) do
-        for i=1, #v.members do
-            if v.members[i].identifier == identifier then
-                return k, v.members[i]
-            end
+        if v.job == job.name then
+            return k, {
+                identifier = GetIdentifier(source),
+                name = GetPlayerCharacterName(source),
+                rankId = job.rank,
+                recentDutyLogs = {},
+                permissions = {},
+                onDutyTime = 0,
+                onDuty = 1,
+            }
         end
     end
     return nil
@@ -288,33 +287,14 @@ end
 function SetPlayerDuty(source, onDuty, report)
     report = report or ""
     local departmentId, memberData = GetPlayerDepartment(source)
-    if not departmentId then return ShowNotification(source, _L("no_department_permission")) end
-    local department = Departments[departmentId]
-    local rank, rankIndex = GetDepartmentRank(departmentId, memberData.rankId)
-    if onDuty and not memberData.onDuty then
-        memberData.onDuty = os.time()
-        SetPlayerFrameworkDuty(source, true)
+    if onDuty then
         ShowNotification(source, _L("duty_on"))
         ExecuteIntegration(source, "duty", departmentId, true)
         TriggerClientEvent("pickle_policejob:updateOnDuty", source, true)
-    elseif not onDuty and memberData.onDuty then
-        local duration = os.time() - memberData.onDuty
-        memberData.onDutyTime = (memberData.onDutyTime or 0) + duration
-        memberData.onDuty = nil
-        memberData.recentDutyLogs = memberData.recentDutyLogs or {}
-        table.insert(memberData.recentDutyLogs, 1, {
-            report = string.len(report) > 0 and report or nil,
-            finish = os.time(),
-            finishTimestamp = GetFormattedDate(os.time()),
-            startTimestamp = GetFormattedDate(os.time() - duration),
-            duration = duration
-        })
-        if #memberData.recentDutyLogs > 10 then
-            table.remove(memberData.recentDutyLogs)
-        end
-        SetPlayerFrameworkDuty(source, false)
+        OndutyPlayers[source] = departmentId
+    else
+        OndutyPlayers[source] = nil
         ShowNotification(source, _L("duty_off"))
-        UpdateDepartmentSQL(departmentId, "members")
         ExecuteIntegration(source, "duty", departmentId, false, report)
         TriggerClientEvent("pickle_policejob:updateOnDuty", source, false)
     end
@@ -367,19 +347,16 @@ end
 function CanRankAccessEntry(departmentId, rankId, entryId, entryType)
     local department = GetDepartment(departmentId)
     if not department then return false end
-    if department.ranks[1].rankId == rankId then
-        return true
-    end
-    for i=#department.ranks, 1, -1 do
-        local rank = department.ranks[i]
-        for i=1, #rank[entryType] do 
-            local target = rank[entryType][i]
-            if target == entryId then
-                return true
+    local job = Config.PoliceJobs[department.job]
+    if not job then return false end
+    for i=1, #job.ranks do
+        local rank = job.ranks[i]
+        if rank.rankId <= rankId then
+            for i=1, #rank[entryType] do 
+                if rank[entryType][i] == entryId or rank[entryType][i]:lower() == entryId:lower() then
+                    return true
+                end
             end
-        end
-        if rank.rankId == rankId then
-            break
         end
     end
     return false
@@ -410,18 +387,13 @@ function GetTotalCopsOnline()
     return total
 end
 
-function EnsurePlayerDuty(source, onDuty, checkDuty)
-    if checkDuty and not onDuty then return end
+function EnsurePlayerDuty(source, lastJob)
     local departmentId, memberData = GetPlayerDepartment(source)
+    print(source, departmentId)
     if departmentId then
-        local department = Departments[departmentId]
-        local rank, rankIndex = GetDepartmentRank(departmentId, memberData.rankId)
-        local isDuty = IsPlayerOnDuty(source)
-        if GetPlayerJob(source) and department.job == GetPlayerJob(source).name then
-            SetPlayerDuty(source, true)
-        elseif isDuty then
-            SetPlayerDuty(source, false)
-        end
+        SetPlayerDuty(source, true)
+    elseif OndutyPlayers[source] then
+        SetPlayerDuty(source, false)
     end
 end
 
@@ -717,12 +689,6 @@ MySQL.ready(function()
                     misc = EnsureDepartmentData("misc", json.decode(v.misc)),
                 }, true)
             end
-            CreateThread(function()
-                Wait(1000)
-                for _, player in pairs(GetPlayers()) do
-                    SetPlayerDuty(player, true)
-                end
-            end)
         end)
     end)
 end)

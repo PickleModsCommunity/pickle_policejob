@@ -266,11 +266,6 @@ function Computer({info}: {info: ComputerInfo}) {
 
     const programs = [
         {
-            id: "roster",
-            name: "page_roster",
-            image: department.image
-        },
-        {
             id: "files",
             name: "page_files",
             image: "/nui/images/files_icon.png",
@@ -281,12 +276,6 @@ function Computer({info}: {info: ComputerInfo}) {
             name: "page_file",
             image: "/nui/images/files_icon.png",
             hideShortcut: true,
-        },
-        {
-            id: "finance",
-            name: "page_finance",
-            image: "/nui/images/finance_icon.png",
-            hideShortcut: rankIndex !== 0,
         },
         {
             id: "bail",

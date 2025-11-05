@@ -39,40 +39,40 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
         if not department then return end
     end
     if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
-    if action == "setDepartmentLeader" then
-        local leaderRank = department.ranks[1]
-        local demoteRank = department.ranks[2]
-        local member = GetDepartmentMember(data.departmentId, data.source)
-        local targetIdentifier = GetIdentifier(data.source)
-        if member then
-            member.rankId = leaderRank.rankId
-        else
-            table.insert(department.members, {
-                identifier = targetIdentifier,
-                name = GetPlayerCharacterName(data.source),
-                rankId = leaderRank.rankId,
-                recentDutyLogs = {},
-                permissions = {},
-            })
-        end
-        for i=1, #department.members do
-            if department.members[i].identifier ~= targetIdentifier and department.members[i].rankId == leaderRank.rankId then
-                if demoteRank then
-                    department.members[i].rankId = demoteRank.rankId
-                else
-                    department.members[i] = nil
-                end
-            end
-        end
-        UpdateDepartmentSQL(data.departmentId, "members")
-        for k, v in pairs(InManagement) do
-            TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
-                type = "updateMembers",
-                departmentId = data.departmentId,
-                members = department.members,
-            })
-        end
-    elseif action == "updateLabel" then
+    -- if action == "setDepartmentLeader" then
+    --     local leaderRank = department.ranks[1]
+    --     local demoteRank = department.ranks[2]
+    --     local member = GetDepartmentMember(data.departmentId, data.source)
+    --     local targetIdentifier = GetIdentifier(data.source)
+    --     if member then
+    --         member.rankId = leaderRank.rankId
+    --     else
+    --         table.insert(department.members, {
+    --             identifier = targetIdentifier,
+    --             name = GetPlayerCharacterName(data.source),
+    --             rankId = leaderRank.rankId,
+    --             recentDutyLogs = {},
+    --             permissions = {},
+    --         })
+    --     end
+    --     for i=1, #department.members do
+    --         if department.members[i].identifier ~= targetIdentifier and department.members[i].rankId == leaderRank.rankId then
+    --             if demoteRank then
+    --                 department.members[i].rankId = demoteRank.rankId
+    --             else
+    --                 department.members[i] = nil
+    --             end
+    --         end
+    --     end
+    --     UpdateDepartmentSQL(data.departmentId, "members")
+    --     for k, v in pairs(InManagement) do
+    --         TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
+    --             type = "updateMembers",
+    --             departmentId = data.departmentId,
+    --             members = department.members,
+    --         })
+    --     end
+    if action == "updateLabel" then
         department.label = data.label
         UpdateDepartmentSQL(data.departmentId, "label")
         for k, v in pairs(InManagement) do

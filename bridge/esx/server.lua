@@ -141,7 +141,7 @@ end
 function GetPlayerJob(source)
     local xPlayer = ESX.GetPlayerFromId(tonumber(source))
     if not xPlayer then return "Unknown Job", "Unknown Grade" end
-    return {name = xPlayer.job.name, label = xPlayer.job.label, rank_label = xPlayer.job.grade_label}
+    return {name = xPlayer.job.name, label = xPlayer.job.label, rank_label = xPlayer.job.grade_label, rank = xPlayer.job.grade}
 end
 
 function SetPlayerJob(source, job, grade)
@@ -208,8 +208,8 @@ function GetPlayerStatus(source)
     return {Alcohol = math.floor(bac * 100) / 100}
 end
 
-AddEventHandler('esx:setJob', function(source, job, lastJob)
-    EnsurePlayerDuty(source)
+AddEventHandler('esx:setJob', function(playerSrc, job, lastJob)
+    EnsurePlayerDuty(playerSrc, lastJob)
 end)
 
 -- Inventory Fallback
