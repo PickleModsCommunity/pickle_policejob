@@ -288,39 +288,7 @@ function RenderDepartmentLocation(id, locationId)
                 OpenArmory(id, locationId)
             end)
         }
-    elseif location.type == "garage" then
-        local coords = location.positions.point.coords
-        local heading = location.positions.point.rotation.z
-        if location.settings.ped and location.settings.ped ~= "" then
-            coords = coords + vector3(0.0, 0.0, 1.0)
-        end
-        LocalDepartments[id].locations[#LocalDepartments[id].locations+1] = {   
-            id = locationId,
-            interact = CreateInteraction({
-                label = Config.PoliceGarageTypes[location.settings.garageType]?.label or "ERR_GARAGE_UNKNOWN_TYPE",
-                icon = Config.TargetIcons["garage"],
-                coords = coords,
-                heading = heading,
-                model = (location.settings.ped and location.settings.ped ~= "") and { modelType = "ped", hash = GetHashKey(location.settings.ped) } or nil,
-            }, function()
-                OpenVehicleSpawn(id, locationId)
-            end),
-            additionalInteracts = {
-                CreateInteraction({
-                    label = _L("return_vehicle"),
-                    coords = location.positions.vehicle_spawn.coords,
-                    heading = location.positions.vehicle_spawn.rotation.z,
-                    vehicleInteract = true,
-                    interactRadius = 4.0,
-                }, function()
-                    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-                    if not vehicle then return ShowNotification(_L("not_in_vehicle")) end
-                    TaskLeaveVehicle(PlayerPedId(), vehicle, 0)
-                    Wait(3000)
-                    DeleteEntity(vehicle)
-                end)
-            }
-        }
+    -- garage locations intentionally not rendered
     elseif location.type == "blip" then
         local coords = location.positions.point.coords
         local blipCfg = Config.DepartmentBlip or {}

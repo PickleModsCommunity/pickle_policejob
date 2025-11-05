@@ -596,7 +596,7 @@ function ManagementDepartment() {
                                             />
                                         )}
                                 </div>
-                                {locations.map((location) => (
+                                {locations.filter((location) => !!config.locationTypes[location.type]).map((location) => (
                                     <div 
                                         onMouseEnter={() => fetchNui("setHoveredLocation", {
                                             departmentId: currentDepartmentId,

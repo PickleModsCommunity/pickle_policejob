@@ -7,10 +7,6 @@ LOCATION_TYPES = {
         locations = {},
         settings = {"ped"},
     },
-    ["garage"] = {
-        locations = {"vehicle_preview", "vehicle_spawn"},
-        settings = {"ped", "garageType"},
-    },
     ["armory"] = {
         locations = {},
         settings = {"ped"},
