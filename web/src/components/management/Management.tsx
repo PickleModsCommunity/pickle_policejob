@@ -604,6 +604,65 @@ function ManagementDepartment() {
                                     </div>
                                 ))}
                         </div>
+                        <div className="font-semibold text-md"><Translate id="roster" />:</div>
+                        <hr/>
+                        <div className="flex flex-col gap-2 overflow-auto max-h-[300px] px-2">
+                            <div className="px-4 py-2 bg-secondary font-semibold cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-center gap-2" onClick={() => {
+                                openDialog({
+                                    title: <Translate id="add_member" />,
+                                    type: "select_player",
+                                    onSelect: (newPlayer: Player) => {
+                                        fetchNui("managementAction", {
+                                            action: "hireMember",
+                                            data: {
+                                                departmentId: currentDepartmentId,
+                                                source: newPlayer.source,
+                                            }
+                                        })
+                                        closeDialog()
+                                    }
+                                })
+                            }}>
+                                <Plus size={16} />
+                                <Translate id="add_member" />
+                            </div>
+                            {currentDepartment && currentDepartment.members
+                                .filter((member) => {
+                                    // Exclude the leader (member with rankId matching the first rank)
+                                    const leaderRankId = currentDepartment.ranks[0]?.rankId
+                                    return member.rankId !== leaderRankId
+                                })
+                                .map((member) => {
+                                    const rank = currentDepartment.ranks.find((r) => r.rankId === member.rankId)
+                                    return (
+                                        <div key={member.identifier} className="px-4 py-2 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200 flex flex-row items-center justify-between">
+                                            <div className="flex flex-col">
+                                                <div className="font-semibold">{member.name}</div>
+                                                <div className="text-sm text-muted-foreground">{rank?.label || "Unknown Rank"}</div>
+                                            </div>
+                                            <Button variant="outline" size="icon" onClick={(e) => {
+                                                e.stopPropagation()
+                                                openDialog({
+                                                    title: <Translate id="fire_member" />,
+                                                    type: "delete_department",
+                                                    onConfirm: () => {
+                                                        fetchNui("managementAction", {
+                                                            action: "fireMember",
+                                                            data: {
+                                                                departmentId: currentDepartmentId,
+                                                                identifier: member.identifier,
+                                                            }
+                                                        })
+                                                        closeDialog()
+                                                    }
+                                                })
+                                            }}>
+                                                <Trash size={16} className="text-red-500" />
+                                            </Button>
+                                        </div>
+                                    )
+                                })}
+                        </div>
                     </>
                 )}
             </div>

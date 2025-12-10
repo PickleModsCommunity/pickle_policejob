@@ -298,6 +298,57 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
             departmentId = departmentId,
             locationId = data.locationId,
         })
+    elseif action == "hireMember" then
+        local characterName = GetPlayerCharacterName(data.source)
+        if characterName == "ERR_UNK_NAME" then return ShowNotification(source, _L("player_not_found")) end
+        local targetDepartmentId, targetMember = GetPlayerDepartment(data.source)
+        if targetDepartmentId then return ShowNotification(source, _L("player_in_department")) end
+        local lowestRank = department.ranks[#department.ranks]
+        table.insert(department.members, {
+            identifier = GetIdentifier(data.source),
+            name = characterName,
+            rankId = lowestRank.rankId,
+            recentDutyLogs = {},
+            permissions = {},
+            onDutyTime = 0,
+        })
+        UpdateDepartmentSQL(data.departmentId, "members")
+        for k, v in pairs(InManagement) do
+            TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
+                type = "updateMembers",
+                departmentId = data.departmentId,
+                members = department.members,
+            })
+        end
+        ShowNotification(source, _L("member_added", characterName))
+        ShowNotification(data.source, _L("you_have_been_added_to_department", department.label))
+        SetPlayerDuty(data.source, true)
+    elseif action == "fireMember" then
+        local targetDepartmentId, targetMember = GetIdentifierDepartment(data.identifier)
+        if not targetDepartmentId then return ShowNotification(source, _L("player_not_in_department")) end
+        if targetDepartmentId ~= data.departmentId then return ShowNotification(source, _L("player_in_department")) end
+        local leaderRank = department.ranks[1]
+        if targetMember.rankId == leaderRank.rankId then return ShowNotification(source, _L("no_permission")) end
+        local targetId = GetSourceFromIdentifier(data.identifier)
+        if targetId then
+            SetPlayerDuty(targetId, false)
+            ShowNotification(targetId, _L("you_have_been_removed_from_department"))
+        end
+        for i=1, #department.members do
+            if department.members[i].identifier == data.identifier then
+                table.remove(department.members, i)
+                break
+            end
+        end
+        UpdateDepartmentSQL(data.departmentId, "members")
+        for k, v in pairs(InManagement) do
+            TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
+                type = "updateMembers",
+                departmentId = data.departmentId,
+                members = department.members,
+            })
+        end
+        ShowNotification(source, _L("member_removed", targetMember.name))
     end
     ConfigSV.WebhookHandler("management", {
         action = action,
