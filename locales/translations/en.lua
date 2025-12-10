@@ -358,6 +358,7 @@ Language["en"] = {
     no_driver_license = "The target does not have a driver's license.",
     blip_department = "Police Department",
     department_location = "Location",
+    show_blip = "Show Blip",
     funding_paid_reason = "State Funding",
     apply_for_department_title = "%s Application",
     already_applied_for_department = "You have already applied for this department.",

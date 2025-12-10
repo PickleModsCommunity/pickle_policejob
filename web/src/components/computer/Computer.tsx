@@ -51,6 +51,7 @@ export type Department = {
     locations: DepartmentLocation[];
     misc: {
         transactions: DepartmentTransactions[];
+        showBlip?: boolean;
     }
 }
 

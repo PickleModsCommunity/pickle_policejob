@@ -328,8 +328,12 @@ end
 
 function EnsureDepartment(id)
     if LocalDepartments[id] then return end
+    local showBlip = true
+    if Departments[id].misc and Departments[id].misc.showBlip ~= nil then
+        showBlip = Departments[id].misc.showBlip
+    end
     LocalDepartments[id] = {
-        blip = CreateDepartmentBlip(id),
+        blip = showBlip and CreateDepartmentBlip(id) or nil,
         locations = {},
     }
     for i=1, #Departments[id].locations do
@@ -404,7 +408,9 @@ RegisterNetEvent("pickle_policejob:deleteDepartment", function(id)
     -- TODO: Remove locations and cleanup local departments
     Departments[id] = nil
     if not LocalDepartments[id] then return end
-    RemoveBlip(LocalDepartments[id].blip)
+    if LocalDepartments[id].blip then
+        RemoveBlip(LocalDepartments[id].blip)
+    end
     local locations = LocalDepartments[id].locations
     for i=1, #locations do
         UnrenderDepartmentLocation(id, locations[i].id, true)
@@ -418,8 +424,27 @@ RegisterNetEvent("pickle_policejob:updateDepartment", function(data)
         EnsureDepartmentLocation(data.departmentId, data.location.id)
     elseif data.type == "updateDepartmentLocation" then
         Departments[data.departmentId].location = data.location
-        RemoveBlip(LocalDepartments[data.departmentId].blip)
-        LocalDepartments[data.departmentId].blip = CreateDepartmentBlip(data.departmentId)
+        if LocalDepartments[data.departmentId].blip then
+            RemoveBlip(LocalDepartments[data.departmentId].blip)
+        end
+        local showBlip = true
+        if Departments[data.departmentId].misc and Departments[data.departmentId].misc.showBlip ~= nil then
+            showBlip = Departments[data.departmentId].misc.showBlip
+        end
+        LocalDepartments[data.departmentId].blip = showBlip and CreateDepartmentBlip(data.departmentId) or nil
+    elseif data.type == "toggleBlip" then
+        Departments[data.departmentId].misc = Departments[data.departmentId].misc or {}
+        Departments[data.departmentId].misc.showBlip = data.showBlip
+        if LocalDepartments[data.departmentId] then
+            if LocalDepartments[data.departmentId].blip then
+                RemoveBlip(LocalDepartments[data.departmentId].blip)
+            end
+            if data.showBlip then
+                LocalDepartments[data.departmentId].blip = CreateDepartmentBlip(data.departmentId)
+            else
+                LocalDepartments[data.departmentId].blip = nil
+            end
+        end
     elseif data.type == "updateLocation" then
         local updatedLocation = false
         for i=1, #Departments[data.departmentId].locations do
@@ -486,12 +511,14 @@ end)
 
 AddEventHandler("onResourceStop", function(resource)
     if resource == GetCurrentResourceName() then
-        for k, v in pairs(Departments) do   
-            RemoveBlip(v.blip)
+        for k, v in pairs(LocalDepartments) do   
+            if v.blip then
+                RemoveBlip(v.blip)
+            end
             for i=1, #v.locations do    
                 UnrenderDepartmentLocation(k, v.locations[i].id, true)
             end
-            LocalDepartments[k] = nil
         end
+        LocalDepartments = {}
     end
 end)

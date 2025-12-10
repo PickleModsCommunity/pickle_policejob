@@ -272,12 +272,14 @@ function ManagementDepartment() {
     const [currentLocation, setCurrentLocation] = useState<DepartmentLocation | null>(null);
     const [locations, setLocations] = useState<DepartmentLocation[]>(currentDepartment?.locations || []);
     const [imageLoaded, setImageLoaded] = useState(false);
+    const [showBlip, setShowBlip] = useState<boolean>(currentDepartment?.misc?.showBlip !== false);
     useEffect(() => {
         if (!currentDepartment) return;
         setPlayer(GetDepartmentLeader(currentDepartment))
         setLocations(currentDepartment.locations)
         setJob(currentDepartment.job)
         setLocation(currentDepartment.location)
+        setShowBlip(currentDepartment.misc?.showBlip !== false)
     }, [departments])
     useEffect(() => {
         fetchNui("setCurrentLocation", {
@@ -468,6 +470,27 @@ function ManagementDepartment() {
                     </div>
                     <input type="text" className="bg-background text-sm text-muted-foreground cursor-pointer transition-all duration-200" placeholder="https://example.com/image.png" value={image} onChange={(e) => setImage(e.target.value)} />
                 </div>
+                {!creatingDepartment && (
+                    <div className="flex flex-row gap-2 items-center justify-between w-full">
+                        <div className="font-semibold text-md"><Translate id="show_blip" />:</div>
+                        <input 
+                            type="checkbox" 
+                            className="w-4 h-4 cursor-pointer" 
+                            checked={showBlip} 
+                            onChange={(e) => {
+                                const newValue = e.target.checked
+                                setShowBlip(newValue)
+                                fetchNui("managementAction", {
+                                    action: "toggleBlip",
+                                    data: {
+                                        departmentId: currentDepartmentId,
+                                        showBlip: newValue,
+                                    },
+                                })
+                            }} 
+                        />
+                    </div>
+                )}
                 {!creatingDepartment && (
                     <>
                         <div className="font-semibold text-md"><Translate id="locations" />:</div>
@@ -897,6 +920,19 @@ function Management({ defaultDepartments }: { defaultDepartments: Department[] }
                     return {
                         ...department,
                         location: data.location,
+                    }
+                }
+                return department;
+            }))
+        } else if (data.type === "toggleBlip") {
+            setDepartments(departments.map((department) => {
+                if (department.id === data.departmentId) {
+                    return {
+                        ...department,
+                        misc: {
+                            ...department.misc,
+                            showBlip: data.showBlip,
+                        },
                     }
                 }
                 return department;

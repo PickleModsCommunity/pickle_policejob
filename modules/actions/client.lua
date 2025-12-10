@@ -698,15 +698,11 @@ end
 function OpenPoliceJailMenu()
     local players = GetPlayersInArea()
     local players_list = {}
-    local prisons = {}
     for i=1, #players do
         local id = GetPlayerServerId(players[i])
         players_list[#players_list + 1] = {label = _L("jail_dialog_player", GetPlayerName(players[i]), id), value = id}
     end
-    for k,v in pairs(Config.Prisons) do 
-        prisons[#prisons + 1] = {label = v.label, value = k}
-    end
-    if #prisons < 1 or #players_list < 1 then return end
+    if #players_list < 1 then return end
     local input = lib.inputDialog(_L("jail_dialog_title"), {
         {type = 'select', label = _L("jail_dialog_prisoner"), default = players_list[1].value, required = true, options = players_list},
         {type = 'number', label = _L("jail_dialog_sentence"), default = 1, required = true, min = 1, max = Config.Jail.maxJailTime},

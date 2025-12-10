@@ -12,6 +12,7 @@ function GetManagementData()
             members = department.members,
             ranks = department.ranks,
             job = department.job,
+            misc = department.misc,
         }
     end
     return {
@@ -349,6 +350,22 @@ RegisterNetEvent("pickle_policejob:managementAction", function(action, data)
             })
         end
         ShowNotification(source, _L("member_removed", targetMember.name))
+    elseif action == "toggleBlip" then
+        if not department.misc then department.misc = {} end
+        department.misc.showBlip = data.showBlip
+        UpdateDepartmentSQL(data.departmentId, "misc")
+        for k, v in pairs(InManagement) do
+            TriggerClientEvent("pickle_policejob:updateManagement", tonumber(k), {
+                type = "toggleBlip",
+                departmentId = data.departmentId,
+                showBlip = data.showBlip,
+            })
+        end
+        TriggerClientEvent("pickle_policejob:updateDepartment", -1, {
+            type = "toggleBlip",
+            departmentId = data.departmentId,
+            showBlip = data.showBlip,
+        })
     end
     ConfigSV.WebhookHandler("management", {
         action = action,
