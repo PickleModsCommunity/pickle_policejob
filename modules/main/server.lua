@@ -483,6 +483,23 @@ RegisterNetEvent("pickle_policejob:toggleDuty", function(id, entityId, report)
     SetPlayerDuty(source, not memberData.onDuty, report)
 end)
 
+if Config.CommandClocking and Config.CommandClocking.enabled then
+    RegisterCommand(Config.CommandClocking.clockin, function(source, args, rawCommand)
+        local departmentId, memberData = GetPlayerDepartment(source)
+        if not departmentId then return ShowNotification(source, _L("no_department_permission")) end
+        if memberData.onDuty then return ShowNotification(source, _L("already_on_duty")) end
+        SetPlayerDuty(source, true)
+    end, false)
+
+    RegisterCommand(Config.CommandClocking.clockout, function(source, args, rawCommand)
+        local departmentId, memberData = GetPlayerDepartment(source)
+        if not departmentId then return ShowNotification(source, _L("no_department_permission")) end
+        if not memberData.onDuty then return ShowNotification(source, _L("not_on_duty")) end
+        local report = table.concat(args, " ") or ""
+        SetPlayerDuty(source, false, report)
+    end, false)
+end
+
 RegisterNetEvent("pickle_policejob:initializePlayer", function()
     local source = source
     CreateThread(function()

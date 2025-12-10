@@ -140,6 +140,7 @@ Language["en"] = {
     already_equipped = "You are already equipped with something, press Backspace / ESC to unequip.",
     equipped_handcuffs = "Equipped handcuffs: Left-click for front cuffs, Right-click for back cuffs.",
     not_on_duty = "You are not on duty as a law enforcement officer.",
+    already_on_duty = "You are already on duty.",
     already_cuffed = "This player is already cuffed.",
     player_detained = "You have detained this player.",
     stop_dragging_first = "You must stop dragging the player to do this.",
