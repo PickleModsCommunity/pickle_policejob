@@ -173,7 +173,10 @@ function SetPlayerFrameworkDuty(source, onDuty)
     if not xPlayer then return end
     local jobName, jobGrade = GetPlayerDepartmentJob(source)
     if not jobName then return xPlayer.Functions.SetJobDuty(false) end
-    xPlayer.Functions.SetJob(jobName, jobGrade)
+    if xPlayer.PlayerData.job.name ~= jobName then 
+        xPlayer.Functions.SetJob(jobName, jobGrade)
+    end
+    if onDuty == xPlayer.PlayerData.job.onduty then return end
     xPlayer.Functions.SetJobDuty(onDuty)
 end
 
@@ -194,12 +197,8 @@ end
 
 AddEventHandler('QBCore:Server:OnJobUpdate', function(source, job)
     local jobName, jobGrade = GetPlayerDepartmentJob(source)
-    if not jobName then return end
-    if IsPlayerOnDuty(source) and (job.name ~= jobName or not job.onduty) then
-        SetPlayerDuty(false)
-    elseif not IsPlayerOnDuty(source) and (job.name == jobName and not job.onduty) then
-        SetPlayerDuty(true)
-    end
+    if not jobName or job.name ~= jobName then return end
+    SetPlayerDuty(source, job.onduty)
 end)
 
 -- Evidence Status Support (For Breathalyzer)
