@@ -170,12 +170,13 @@ end
 
 function SetPlayerFrameworkDuty(source, onDuty)
     local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
-    if not xPlayer then return end
+    if not xPlayer or not xPlayer.PlayerData or not xPlayer.PlayerData.job then return end
     local jobName, jobGrade = GetPlayerDepartmentJob(source)
-    if not jobName then return xPlayer.Functions.SetJobDuty(false) end
-    if xPlayer.PlayerData.job.name ~= jobName then 
+    if not jobName then return end
+    if xPlayer.PlayerData.job.name ~= jobName then
         xPlayer.Functions.SetJob(jobName, jobGrade)
     end
+    if xPlayer.PlayerData.job.name ~= jobName then return end
     if onDuty == xPlayer.PlayerData.job.onduty then return end
     xPlayer.Functions.SetJobDuty(onDuty)
 end

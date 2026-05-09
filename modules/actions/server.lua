@@ -188,6 +188,11 @@ RegisterNetEvent("pickle_policejob:actions:deleteStabSticks", function(id)
     DeleteStabSticks(id)
 end)
 
+RegisterNetEvent("pickle_policejob:actions:stabStickHit", function(netId)
+    if not netId then return end
+    TriggerClientEvent("pickle_policejob:actions:stabStickHitSound", -1, netId)
+end)
+
 RegisterNetEvent("pickle_policejob:actions:placeObject", function(data)
     local source = source
     if not IsPlayerOnDuty(source) then return ShowNotification(source, _L("not_on_duty")) end

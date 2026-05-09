@@ -330,16 +330,40 @@ function StabStickGameProcess(id)
             end
         end
         if #targetableBones > 0 then
+            local poppedAny = false
             for i=1, #targetableBones do
                 local tireHealth = GetTyreHealth(vehicle, targetableBones[i].wheelIndex)
                 if tireHealth >= 1000 then
                     SetVehicleTyreBurst(vehicle, targetableBones[i].wheelIndex, false, Config.StabSticks.burstDamage)
+                    poppedAny = true
+                end
+            end
+            if poppedAny then
+                PlayStabStickPopSound(vehicle)
+                if NetworkGetEntityIsNetworked(vehicle) then
+                    TriggerServerEvent("pickle_policejob:actions:stabStickHit", VehToNet(vehicle))
                 end
             end
         end
         return true
     end
 end
+
+function PlayStabStickPopSound(vehicle)
+    local cfg = Config.StabSticks and Config.StabSticks.popSound
+    if not cfg or not cfg.soundName then return end
+    if not vehicle or vehicle == 0 or not DoesEntityExist(vehicle) then return end
+    local range = cfg.range or 25.0
+    local distance = #(GetEntityCoords(PlayerPedId()) - GetEntityCoords(vehicle))
+    if distance > range then return end
+    PlaySoundFromEntity(-1, cfg.soundName, vehicle, cfg.soundSet, false, 0)
+end
+
+RegisterNetEvent("pickle_policejob:actions:stabStickHitSound", function(netId)
+    local vehicle = NetworkGetEntityFromNetworkId(netId)
+    if not vehicle or vehicle == 0 then return end
+    PlayStabStickPopSound(vehicle)
+end)
 
 -- Breathalyzer
 

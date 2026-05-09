@@ -737,7 +737,7 @@ MySQL.ready(function()
             CreateThread(function()
                 Wait(1000)
                 for _, player in pairs(GetPlayers()) do
-                    SetPlayerDuty(player, true)
+                    EnsurePlayerDuty(tonumber(player), true, true)
                 end
             end)
         end)

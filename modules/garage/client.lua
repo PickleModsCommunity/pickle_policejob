@@ -40,6 +40,123 @@ function SaveModelTemplates(model, newTemplates)
     SetResourceKvp("pickle_policejob:templates", json.encode(templates))
 end
 
+function GetGarageEntryForModel(model)
+    for i = 1, #Config.PoliceGarage do
+        if Config.PoliceGarage[i].model == model then
+            return Config.PoliceGarage[i]
+        end
+    end
+    return nil
+end
+
+function CaptureVehicleMods(vehicle)
+    SetVehicleModKit(vehicle, 0)
+    local data = {
+        modKit = 0,
+        mods = {},
+        toggles = {},
+        wheelType = GetVehicleWheelType(vehicle),
+        windowTint = GetVehicleWindowTint(vehicle),
+        plateIndex = GetVehicleNumberPlateIndex(vehicle),
+        neon = {
+            left = IsVehicleNeonLightEnabled(vehicle, 0),
+            right = IsVehicleNeonLightEnabled(vehicle, 1),
+            front = IsVehicleNeonLightEnabled(vehicle, 2),
+            back = IsVehicleNeonLightEnabled(vehicle, 3),
+        },
+    }
+    for i = 0, 49 do
+        data.mods[tostring(i)] = GetVehicleMod(vehicle, i)
+    end
+    for _, idx in ipairs({17, 18, 19, 20, 21, 22}) do
+        data.toggles[tostring(idx)] = IsToggleModOn(vehicle, idx)
+    end
+    local nr, ng, nb = GetVehicleNeonLightsColour(vehicle)
+    data.neon.color = {nr, ng, nb}
+    local sr, sg, sb = GetVehicleTyreSmokeColor(vehicle)
+    data.tyreSmoke = {sr, sg, sb}
+    data.xenonColor = GetVehicleXenonLightsColor and GetVehicleXenonLightsColor(vehicle) or -1
+    return data
+end
+
+function ApplyVehicleMods(vehicle, data)
+    if not data then return end
+    SetVehicleModKit(vehicle, 0)
+    if data.wheelType ~= nil and data.wheelType >= 0 then
+        SetVehicleWheelType(vehicle, data.wheelType)
+    end
+    if data.mods then
+        for k, v in pairs(data.mods) do
+            local idx = tonumber(k)
+            if idx and v and v >= -1 then
+                SetVehicleMod(vehicle, idx, v, false)
+            end
+        end
+    end
+    if data.toggles then
+        for k, v in pairs(data.toggles) do
+            local idx = tonumber(k)
+            if idx then ToggleVehicleMod(vehicle, idx, v and true or false) end
+        end
+    end
+    if data.windowTint ~= nil and data.windowTint >= 0 then
+        SetVehicleWindowTint(vehicle, data.windowTint)
+    end
+    if data.plateIndex ~= nil and data.plateIndex >= 0 then
+        SetVehicleNumberPlateTextIndex(vehicle, data.plateIndex)
+    end
+    if data.neon then
+        SetVehicleNeonLightEnabled(vehicle, 0, data.neon.left and true or false)
+        SetVehicleNeonLightEnabled(vehicle, 1, data.neon.right and true or false)
+        SetVehicleNeonLightEnabled(vehicle, 2, data.neon.front and true or false)
+        SetVehicleNeonLightEnabled(vehicle, 3, data.neon.back and true or false)
+        if data.neon.color then
+            SetVehicleNeonLightsColour(vehicle, data.neon.color[1] or 255, data.neon.color[2] or 255, data.neon.color[3] or 255)
+        end
+    end
+    if data.tyreSmoke then
+        SetVehicleTyreSmokeColor(vehicle, data.tyreSmoke[1] or 255, data.tyreSmoke[2] or 255, data.tyreSmoke[3] or 255)
+    end
+    if data.xenonColor and data.xenonColor >= 0 and SetVehicleXenonLightsColor then
+        SetVehicleXenonLightsColor(vehicle, data.xenonColor)
+    end
+end
+
+function ApplyPerformanceMods(vehicle, vehicleConfig)
+    local perf = (vehicleConfig and vehicleConfig.performanceMods) or (Config.Garage and Config.Garage.PerformanceMods)
+    if not perf then return end
+    SetVehicleModKit(vehicle, 0)
+    for k, v in pairs(perf) do
+        if k == "turbo" then
+            ToggleVehicleMod(vehicle, 18, v and true or false)
+        elseif type(k) == "number" and v then
+            local level = v
+            if level == -1 then
+                local count = GetNumVehicleMods(vehicle, k)
+                level = (count and count > 0) and (count - 1) or 0
+            end
+            SetVehicleMod(vehicle, k, level, false)
+        end
+    end
+end
+
+function ApplyVehicleLivery(vehicle, livery)
+    SetVehicleModKit(vehicle, 0)
+    local liveryCount = GetVehicleLiveryCount(vehicle)
+    if liveryCount and liveryCount > 0 then
+        SetVehicleLivery(vehicle, livery)
+    else
+        SetVehicleMod(vehicle, 48, livery, false)
+    end
+end
+
+function GetVehicleTotalLiveryCount(vehicle)
+    local count = GetVehicleLiveryCount(vehicle)
+    if count and count > 0 then return count end
+    SetVehicleModKit(vehicle, 0)
+    return GetNumVehicleMods(vehicle, 48)
+end
+
 function GetVehicleExtras(vehicle)
     local model = GetEntityModel(vehicle)
     local extras = {}
@@ -107,13 +224,13 @@ function SelectGarageVehicle(index)
     }
     SetVehicleSiren(SelectedVehicle.entity, true)
     SetVehicleHasMutedSirens(SelectedVehicle.entity, true)
-    SetVehicleLivery(SelectedVehicle.entity, SelectedVehicle.livery - 1)
+    ApplyVehicleLivery(SelectedVehicle.entity, SelectedVehicle.livery - 1)
     SendNUIMessage({
         type = "selectVehicle",
         vehicleInfo = {
             index = index - 1,
             currentTemplate = nil,
-            liveryCount = GetVehicleLiveryCount(entity),
+            liveryCount = GetVehicleTotalLiveryCount(entity),
             livery = SelectedVehicle.livery,
             extras = SelectedVehicle.extras,
             colors = SelectedVehicle.colors,
@@ -190,14 +307,14 @@ RegisterNUICallback("changeLivery", function(data, cb)
     cb("ok")
     if not SelectedVehicle then return end
     local nextIndex = SelectedVehicle.livery + (data.left and -1 or 1)
-    local liveryCount = GetVehicleLiveryCount(SelectedVehicle.entity)
+    local liveryCount = GetVehicleTotalLiveryCount(SelectedVehicle.entity)
     if nextIndex < 1 then
         nextIndex = liveryCount > 0 and liveryCount or 1
     elseif liveryCount <= 1 or nextIndex > liveryCount then
         nextIndex = 1
     end
     SelectedVehicle.livery = nextIndex
-    SetVehicleLivery(SelectedVehicle.entity, SelectedVehicle.livery - 1)
+    ApplyVehicleLivery(SelectedVehicle.entity, SelectedVehicle.livery - 1)
     SendNUIMessage({
         type = "updateSelectedVehicle",
         vehicleInfo = {
@@ -261,6 +378,10 @@ RegisterNUICallback("takeVehicle", function(data, cb)
     local extras = SelectedVehicle.extras
     local colors = SelectedVehicle.colors
     local livery = SelectedVehicle.livery
+    local vehicleConfig = GetGarageEntryForModel(model)
+    local templateName = SelectedVehicle.currentTemplate
+    local templates = SelectedVehicle.templates or {}
+    local fullModData = (templateName and templates[templateName] and templates[templateName].fullMods) or nil
     lib.callback("pickle_policejob:takeVehicle", false, function(result, err)
         if not result then
             return ShowNotification(err)
@@ -275,7 +396,11 @@ RegisterNUICallback("takeVehicle", function(data, cb)
         SetEntityCoords(PlayerPedId(), spawn.coords.x, spawn.coords.y, spawn.coords.z)
         SetEntityHeading(PlayerPedId(), spawn.rotation.z)
         SetVehicleDirtLevel(vehicle, 0)
-        SetVehicleLivery(vehicle, livery - 1)
+        SetVehicleModKit(vehicle, 0)
+        if fullModData then
+            ApplyVehicleMods(vehicle, fullModData)
+        end
+        ApplyVehicleLivery(vehicle, livery - 1)
         for i=0, 25 do
             if extras[tostring(i)] ~= nil then
                 SetVehicleExtra(vehicle, i, extras[tostring(i)] and 0 or 1)
@@ -283,6 +408,7 @@ RegisterNUICallback("takeVehicle", function(data, cb)
         end
         SetVehicleColorData(vehicle, "primary", colors.primary)
         SetVehicleColorData(vehicle, "secondary", colors.secondary)
+        ApplyPerformanceMods(vehicle, vehicleConfig)
         SetPedIntoVehicle(PlayerPedId(), vehicle, -1)
         Wait(100)
         DoScreenFadeIn(1000)
@@ -297,7 +423,11 @@ RegisterNUICallback("selectTemplate", function(data, cb)
     SelectedVehicle.livery = templates[data.name].livery
     SelectedVehicle.extras = templates[data.name].extras
     SelectedVehicle.colors = templates[data.name].colors
-    SetVehicleLivery(SelectedVehicle.entity, SelectedVehicle.livery - 1)
+    SelectedVehicle.currentTemplate = data.name
+    if templates[data.name].fullMods then
+        ApplyVehicleMods(SelectedVehicle.entity, templates[data.name].fullMods)
+    end
+    ApplyVehicleLivery(SelectedVehicle.entity, SelectedVehicle.livery - 1)
     for i=0, 25 do
         if SelectedVehicle.extras[tostring(i)] ~= nil then
             SetVehicleExtra(SelectedVehicle.entity, i, SelectedVehicle.extras[tostring(i)] and 0 or 1)
@@ -320,10 +450,12 @@ RegisterNUICallback("saveTemplate", function(data, cb)
     cb("ok")
     if not SelectedVehicle then return end
     local templates = GetModelTemplates(SelectedVehicle.model)
+    local existingFullMods = templates[data.name] and templates[data.name].fullMods or nil
     templates[data.name] = {
         livery = data.template.livery,
         extras = data.template.extras,
         colors = data.template.colors,
+        fullMods = existingFullMods,
     }
     SaveModelTemplates(SelectedVehicle.model, templates)
     ShowNotification(_L("garage_template_saved", data.name))
@@ -358,3 +490,109 @@ AddEventHandler("onResourceStop", function(resource)
         CloseGarage()
     end
 end)
+
+function GetCurrentLoadoutVehicle()
+    local ped = PlayerPedId()
+    local vehicle = GetVehiclePedIsIn(ped, false)
+    if not vehicle or vehicle == 0 then return nil end
+    if GetPedInVehicleSeat(vehicle, -1) ~= ped then return nil end
+    local model = GetEntityModel(vehicle)
+    local entry = GetGarageEntryForModel(model)
+    if not entry then return nil end
+    return vehicle, model, entry
+end
+
+function SaveCurrentVehicleLoadout(name)
+    local vehicle, model = GetCurrentLoadoutVehicle()
+    if not vehicle then
+        return ShowNotification(_L("garage_loadout_must_be_in_seat") or "You must be in the driver seat of a customizable police vehicle.")
+    end
+    if not name or name == "" then return end
+    local templates = GetModelTemplates(model)
+    local existing = templates[name] or {}
+    local livery = (GetVehicleLivery(vehicle) or 0) + 1
+    if livery <= 0 then livery = 1 end
+    templates[name] = {
+        livery = existing.livery or livery,
+        extras = GetVehicleExtras(vehicle),
+        colors = {
+            primary = GetVehicleColorData(vehicle, "primary"),
+            secondary = GetVehicleColorData(vehicle, "secondary"),
+        },
+        fullMods = CaptureVehicleMods(vehicle),
+    }
+    SaveModelTemplates(model, templates)
+    ShowNotification(_L("garage_template_saved", name))
+end
+
+function DeleteVehicleLoadout(model, name)
+    local templates = GetModelTemplates(model)
+    if not templates[name] then
+        return ShowNotification(_L("garage_template_not_found", name))
+    end
+    templates[name] = nil
+    SaveModelTemplates(model, templates)
+    ShowNotification(_L("garage_template_deleted", name))
+end
+
+function OpenVehicleLoadoutMenu()
+    local vehicle, model, entry = GetCurrentLoadoutVehicle()
+    if not vehicle then
+        return ShowNotification(_L("garage_loadout_must_be_in_seat") or "You must be in the driver seat of a customizable police vehicle.")
+    end
+    local templates = GetModelTemplates(model)
+    local options = {
+        {
+            title = _L("garage_loadout_save_new") or "Save Current Loadout",
+            description = _L("garage_loadout_save_new_description") or "Capture every mod (call-sign roof parts, neon, wheels, plate, tints) on this vehicle into a named loadout.",
+            icon = "floppy-disk",
+            onSelect = function()
+                local input = lib.inputDialog(_L("garage_loadout_save_dialog_title") or "Save Vehicle Loadout", {
+                    {
+                        type = "input",
+                        label = _L("garage_loadout_save_dialog_name_label") or "Loadout Name",
+                        description = _L("garage_loadout_save_dialog_name_description") or "Existing names will be overwritten.",
+                        required = true,
+                        max = 32,
+                    },
+                })
+                if not input or not input[1] then return end
+                SaveCurrentVehicleLoadout(input[1])
+            end,
+        },
+    }
+    local hasAny = false
+    for name, _ in pairs(templates) do
+        hasAny = true
+        table.insert(options, {
+            title = name,
+            description = _L("garage_loadout_entry_description") or "Select to delete this loadout.",
+            icon = "trash",
+            onSelect = function()
+                local confirm = lib.alertDialog({
+                    header = _L("garage_loadout_delete_confirm_title") or "Delete Loadout",
+                    content = _L("garage_loadout_delete_confirm_body", name),
+                    centered = true,
+                    cancel = true,
+                })
+                if confirm == "confirm" then
+                    DeleteVehicleLoadout(model, name)
+                    OpenVehicleLoadoutMenu()
+                end
+            end,
+        })
+    end
+    if not hasAny then
+        table.insert(options, {
+            title = _L("garage_loadout_none_saved") or "No saved loadouts",
+            description = _L("garage_loadout_none_saved_description") or "Customize the vehicle, then use Save Current Loadout above.",
+            disabled = true,
+        })
+    end
+    lib.registerContext({
+        id = "pickle_policejob:garage:loadouts",
+        title = _L("garage_loadout_menu_title") or "Vehicle Loadouts",
+        options = options,
+    })
+    lib.showContext("pickle_policejob:garage:loadouts")
+end
