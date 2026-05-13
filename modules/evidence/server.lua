@@ -114,8 +114,14 @@ function GetPlayerDNA(source)
     if CachedDNA[source] then return CachedDNA[source] end
     if AwaitedDNA[source] then return Citizen.Await(AwaitedDNA[source]) end
     AwaitedDNA[source] = promise.new()
+    local identifier = GetIdentifier(source)
+    if not identifier or identifier == "" then
+        if AwaitedDNA[source] then AwaitedDNA[source]:resolve(nil); AwaitedDNA[source] = nil end
+        print(("[pickle_policejob] Skipping DNA lookup: no identifier for source %s"):format(tostring(source)))
+        return nil
+    end
     local result = MySQL.query.await("SELECT * FROM pickle_police_dna WHERE identifier = ?", {
-        GetIdentifier(source),
+        identifier,
     })
     if not result[1] then 
         local dna
@@ -129,7 +135,7 @@ function GetPlayerDNA(source)
             dna,
         })[1]
         MySQL.query("INSERT INTO pickle_police_dna (identifier, dna) VALUES (?, ?)", {
-            GetIdentifier(source),
+            identifier,
             dna,
         })
         result = {{dna = dna}}
@@ -617,5 +623,5 @@ end
 
 MySQL.ready(function()
     MySQL.query("CREATE TABLE IF NOT EXISTS pickle_police_files (id INT AUTO_INCREMENT PRIMARY KEY, departmentId INT, name VARCHAR(255), authorIdentifier VARCHAR(255), datetime INT, document LONGTEXT, evidence LONGTEXT)")
-    MySQL.query("CREATE TABLE IF NOT EXISTS pickle_police_dna (identifier VARCHAR(255) PRIMARY KEY, dna VARCHAR(255))")
+    MySQL.query("CREATE TABLE IF NOT EXISTS pickle_police_dna (identifier VARCHAR(255) NOT NULL PRIMARY KEY, dna VARCHAR(255) NOT NULL UNIQUE)")
 end)

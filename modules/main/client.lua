@@ -312,6 +312,15 @@ function RenderDepartmentLocation(id, locationId)
                 }, function()
                     local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
                     if not vehicle then return ShowNotification(_L("not_in_vehicle")) end
+                    if Config.Garage and Config.Garage.PersistVehicleMods and CaptureVehicleMods then
+                        local model = GetEntityModel(vehicle)
+                        if GetGarageEntryForModel and GetGarageEntryForModel(model) then
+                            local ok, mods = pcall(CaptureVehicleMods, vehicle)
+                            if ok and mods then
+                                TriggerServerEvent("pickle_policejob:saveVehicleMods", model, mods)
+                            end
+                        end
+                    end
                     TaskLeaveVehicle(PlayerPedId(), vehicle, 0)
                     Wait(3000)
                     DeleteEntity(vehicle)

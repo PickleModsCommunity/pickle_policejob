@@ -38,6 +38,43 @@ lib.callback.register('pickle_policejob:openGarage', function(source, garageType
     return GetDepartmentMemberGarage(source, garageType)
 end)
 
+lib.callback.register('pickle_policejob:getVehicleMods', function(source, model)
+    if not (Config.Garage and Config.Garage.PersistVehicleMods) then return nil end
+    if not source or not model then return nil end
+    local identifier = GetIdentifier(source)
+    if not identifier or identifier == "" then
+        print(("[pickle_policejob] Skipping vehicle mod fetch: no identifier for source %s"):format(tostring(source)))
+        return nil
+    end
+    local result = MySQL.query.await("SELECT mods FROM pickle_police_vehicle_mods WHERE identifier = ? AND model = ?", {
+        identifier, tostring(model),
+    })
+    if not result or not result[1] or not result[1].mods then return nil end
+    local ok, decoded = pcall(json.decode, result[1].mods)
+    if not ok then return nil end
+    return decoded
+end)
+
+RegisterNetEvent('pickle_policejob:saveVehicleMods', function(model, mods)
+    local source = source
+    if not (Config.Garage and Config.Garage.PersistVehicleMods) then return end
+    if not source or not model or type(mods) ~= "table" then return end
+    local identifier = GetIdentifier(source)
+    if not identifier or identifier == "" then
+        print(("[pickle_policejob] Skipping vehicle mod save: no identifier for source %s"):format(tostring(source)))
+        return
+    end
+    local encoded = json.encode(mods)
+    if not encoded then return end
+    MySQL.query("INSERT INTO pickle_police_vehicle_mods (identifier, model, mods) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE mods = VALUES(mods)", {
+        identifier, tostring(model), encoded,
+    })
+end)
+
+MySQL.ready(function()
+    MySQL.query("CREATE TABLE IF NOT EXISTS pickle_police_vehicle_mods (identifier VARCHAR(255) NOT NULL, model VARCHAR(64) NOT NULL, mods LONGTEXT NOT NULL, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (identifier, model))")
+end)
+
 lib.callback.register('pickle_policejob:takeVehicle', function(source, model, garageType)
     local departmentId, member = GetPlayerDepartment(source)
     if not departmentId or not member then return end

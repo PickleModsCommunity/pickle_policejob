@@ -400,6 +400,13 @@ RegisterNUICallback("takeVehicle", function(data, cb)
         if fullModData then
             ApplyVehicleMods(vehicle, fullModData)
         end
+        if Config.Garage and Config.Garage.PersistVehicleMods then
+            lib.callback("pickle_policejob:getVehicleMods", false, function(savedMods)
+                if savedMods and DoesEntityExist(vehicle) then
+                    ApplyVehicleMods(vehicle, savedMods)
+                end
+            end, model)
+        end
         ApplyVehicleLivery(vehicle, livery - 1)
         for i=0, 25 do
             if extras[tostring(i)] ~= nil then
