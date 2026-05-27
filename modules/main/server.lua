@@ -427,6 +427,20 @@ end
 
 exports("GetTotalCopsOnline", GetTotalCopsOnline)
 
+exports("GetDepartment", GetDepartment)
+exports("GetDepartmentPermission", GetDepartmentPermission)
+exports("GetDepartmentMember", GetDepartmentMember)
+exports("GetDepartmentRank", GetDepartmentRank)
+exports("GetDepartmentEntity", GetDepartmentEntity)
+exports("GetPlayerDepartment", GetPlayerDepartment)
+exports("GetPlayerDepartmentJob", GetPlayerDepartmentJob)
+exports("GetIdentifierDepartment", GetIdentifierDepartment)
+exports("IsPlayerOnDuty", IsPlayerOnDuty)
+exports("SetPlayerDuty", SetPlayerDuty)
+exports("IsPlayerDepartmentLeader", IsPlayerDepartmentLeader)
+exports("DoesPlayerHaveEntityPermission", DoesPlayerHaveEntityPermission)
+exports("AddDepartmentTransaction", AddDepartmentTransaction)
+
 function GenerateApplicationContent(results)
     local fields = Config.Frontdesk.applyForDepartment.fields
     local content = ""

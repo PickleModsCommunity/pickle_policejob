@@ -6,6 +6,17 @@ local PAGE_READY = false
 function IsPlayerOnDuty()
     return OnDuty
 end
+exports("IsPlayerOnDuty", IsPlayerOnDuty)
+
+function GetCurrentDepartment()
+    return CurrentDepartment
+end
+exports("GetCurrentDepartment", GetCurrentDepartment)
+
+function GetLocalDepartments()
+    return LocalDepartments
+end
+exports("GetLocalDepartments", GetLocalDepartments)
 
 function OpenFrontdeskOffdutyPrompt(id, entityId)
     local input = lib.inputDialog(_L("offduty_prompt_title"), {

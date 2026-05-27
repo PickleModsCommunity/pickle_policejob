@@ -117,7 +117,6 @@ function GetPlayerDNA(source)
     local identifier = GetIdentifier(source)
     if not identifier or identifier == "" then
         if AwaitedDNA[source] then AwaitedDNA[source]:resolve(nil); AwaitedDNA[source] = nil end
-        print(("[pickle_policejob] Skipping DNA lookup: no identifier for source %s"):format(tostring(source)))
         return nil
     end
     local result = MySQL.query.await("SELECT * FROM pickle_police_dna WHERE identifier = ?", {
@@ -222,6 +221,12 @@ function DeleteFile(source, id)
 end
 
 exports("DeleteFile", DeleteFile)
+
+exports("GetPlayerEvidence", GetPlayerEvidence)
+exports("GetPlayerDNA", GetPlayerDNA)
+exports("GetPlayerBAC", GetPlayerBAC)
+exports("GetPlayerBloodTest", GetPlayerBloodTest)
+exports("GetPlayerGSR", GetPlayerGSR)
 
 lib.callback.register("pickle_policejob:evidence:getFiles", function(source, search)
     local result

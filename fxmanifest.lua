@@ -2,7 +2,7 @@ fx_version "cerulean"
 game "gta5"
 author "Pickle Mods"
 description "The best police job in FiveM."
-version "v1.2.4"
+version "v1.2.5"
 
 data_file 'DLC_ITYP_REQUEST' 'npds_picklestirepunct.ytyp'
 data_file 'DLC_ITYP_REQUEST' 'grappler_props.ytyp'
