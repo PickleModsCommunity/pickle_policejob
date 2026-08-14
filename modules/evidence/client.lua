@@ -116,22 +116,27 @@ function EquipEvidenceCamera()
                     enableInteract = false
                     CreateThread(function()
                         local p = promise.new()
-                        exports['screenshot-basic']:requestScreenshotUpload(Config.Photos.url, Config.Photos.uploadProtocol, function(data)
-                            local resp = json.decode(data)
-                            local image = Config.Photos.ResponseHandler(resp)
-                            table.insert(CAMERA_EVIDENCE, {
-                                type = "photo",
-                                label = _L("photo"),
-                                image = image,
-                                coords = GetEntityCoords(playerPed),
-                                heading = GetEntityHeading(playerPed),
-                            })
-                            SendNUIMessage({
-                                type = "setCameraEvidence",
-                                evidence = CAMERA_EVIDENCE,
-                            })
-                            p:resolve(true)
-                        end)
+                        local token = lib.callback.await("pickle_policejob:evidence:getPhotoUploadToken", false)
+                        if token then
+                            local relayUrl = ("https://cfx-nui-%s/photo-upload/%s"):format(GetCurrentResourceName(), token)
+                            exports['screenshot-basic']:requestScreenshotUpload(relayUrl, "multipart", function(data)
+                                local imageUrl = lib.callback.await("pickle_policejob:evidence:awaitPhotoUrl", false, token)
+                                table.insert(CAMERA_EVIDENCE, {
+                                    type = "photo",
+                                    label = _L("photo"),
+                                    image = imageUrl,
+                                    coords = GetEntityCoords(playerPed),
+                                    heading = GetEntityHeading(playerPed),
+                                })
+                                SendNUIMessage({
+                                    type = "setCameraEvidence",
+                                    evidence = CAMERA_EVIDENCE,
+                                })
+                                p:resolve(true)
+                            end)
+                        else
+                            p:resolve(false)
+                        end
                         Citizen.Await(p)
                         enableInteract = true
                     end)
@@ -189,23 +194,13 @@ function EquipEvidenceCamera()
                             HIDE_EVIDENCE_MARKERS = true
                             CreateThread(function()
                                 Wait(100)
-                                exports['screenshot-basic']:requestScreenshotUpload(Config.Photos.url, Config.Photos.uploadProtocol, function(data)
-                                    local resp = json.decode(data)
-                                    local image = Config.Photos.ResponseHandler(resp)
-                                    if targetVisible then
-                                        local data = Evidence[targetVisible]
-                                        data.image = image
-                                        table.insert(CAMERA_EVIDENCE, data)
-                                        SendNUIMessage({
-                                            type = "setCameraEvidence",
-                                            evidence = CAMERA_EVIDENCE,
-                                        })
-                                        p:resolve(true)
-                                    else
-                                        lib.callback("pickle_policejob:evidence:getVehicleInfo", false, function(data)
-                                            data.type = "vehicle"
-                                            data.model = GetEntityModel(entity)
-                                            data.label = _L("vehicle")
+                                local token = lib.callback.await("pickle_policejob:evidence:getPhotoUploadToken", false)
+                                if token then
+                                    local relayUrl = ("https://cfx-nui-%s/photo-upload/%s"):format(GetCurrentResourceName(), token)
+                                    exports['screenshot-basic']:requestScreenshotUpload(relayUrl, "multipart", function(data)
+                                        local image = lib.callback.await("pickle_policejob:evidence:awaitPhotoUrl", false, token)
+                                        if targetVisible then
+                                            local data = Evidence[targetVisible]
                                             data.image = image
                                             table.insert(CAMERA_EVIDENCE, data)
                                             SendNUIMessage({
@@ -213,9 +208,24 @@ function EquipEvidenceCamera()
                                                 evidence = CAMERA_EVIDENCE,
                                             })
                                             p:resolve(true)
-                                        end, VehToNet(entity))
-                                    end
-                                end)
+                                        else
+                                            lib.callback("pickle_policejob:evidence:getVehicleInfo", false, function(data)
+                                                data.type = "vehicle"
+                                                data.model = GetEntityModel(entity)
+                                                data.label = _L("vehicle")
+                                                data.image = image
+                                                table.insert(CAMERA_EVIDENCE, data)
+                                                SendNUIMessage({
+                                                    type = "setCameraEvidence",
+                                                    evidence = CAMERA_EVIDENCE,
+                                                })
+                                                p:resolve(true)
+                                            end, VehToNet(entity))
+                                        end
+                                    end)
+                                else
+                                    p:resolve(false)
+                                end
                                 local success = Citizen.Await(p)
                                 HIDE_EVIDENCE_MARKERS = false
                                 if success and targetVisible then

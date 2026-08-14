@@ -7,6 +7,103 @@ local CachedDNA = {}
 local GSRTracking = {}
 local AwaitedDNA = {}
 
+-- Photo upload relay ---------------------------------------------------------
+-- Keeps ConfigSV.Photos.url (and any embedded API key) on the server.
+-- The client sends the raw image bytes here; the server forwards them to the
+-- configured upload endpoint and returns the resulting public URL.
+
+local PendingPhotoUploads = {} -- [token] = promise
+
+local function GenerateUploadToken()
+    local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    local token = ""
+    for i = 1, 32 do
+        local idx = math.random(1, #chars)
+        token = token .. chars:sub(idx, idx)
+    end
+    return token
+end
+
+-- HTTP handler: receives image bytes from screenshot-basic on the client,
+-- forwards them to the configured upload URL, and signals the waiting callback.
+SetHttpHandler(function(req, res)
+    if req.method ~= "POST" then
+        res.writeHead(405)
+        res.send("")
+        return
+    end
+
+    local token = req.path:match("^/photo%-upload/([%w]+)$")
+    if not token or not PendingPhotoUploads[token] then
+        res.writeHead(404)
+        res.send("")
+        return
+    end
+
+    local photos = ConfigSV.Photos
+    if not photos or photos.url == "FIVEMANAGE_UPLOAD_URL" then
+        res.writeHead(503)
+        res.send("")
+        PendingPhotoUploads[token]:resolve(nil)
+        PendingPhotoUploads[token] = nil
+        return
+    end
+
+    -- Collect request body
+    local body = ""
+    req.setDataHandler(function(chunk)
+        body = body .. chunk
+    end)
+
+    req.setEndHandler(function()
+        -- Re-upload to the real endpoint using the same content-type so that
+        -- FiveManage (or any multipart-accepting host) receives a valid request.
+        local contentType = (req.headers and req.headers["content-type"]) or "application/octet-stream"
+        PerformHttpRequest(photos.url, function(statusCode, respBody, respHeaders)
+            local imageUrl = nil
+            if respBody and respBody ~= "" then
+                local ok, decoded = pcall(json.decode, respBody)
+                if ok and decoded then
+                    imageUrl = photos.ResponseHandler(decoded)
+                end
+            end
+            if PendingPhotoUploads[token] then
+                PendingPhotoUploads[token]:resolve(imageUrl)
+                PendingPhotoUploads[token] = nil
+            end
+        end, "POST", body, {["Content-Type"] = contentType})
+
+        -- Tell screenshot-basic the relay accepted the upload
+        res.writeHead(200, {["Content-Type"] = "application/json"})
+        res.send(json.encode({success = true}))
+    end)
+end)
+
+-- Callback: client asks for a one-time upload token, then uses it with
+-- requestScreenshotUpload pointed at this resource's HTTP handler.
+lib.callback.register("pickle_policejob:evidence:getPhotoUploadToken", function(source)
+    if not IsPlayerOnDuty(source) then return nil end
+    local token = GenerateUploadToken()
+    PendingPhotoUploads[token] = promise.new()
+    -- Expire the token after 30 s to avoid leaks
+    SetTimeout(30000, function()
+        if PendingPhotoUploads[token] then
+            PendingPhotoUploads[token]:resolve(nil)
+            PendingPhotoUploads[token] = nil
+        end
+    end)
+    return token
+end)
+
+-- Callback: after screenshot-basic has POSTed to our relay, the client calls
+-- this to receive the final public image URL.
+lib.callback.register("pickle_policejob:evidence:awaitPhotoUrl", function(source, token)
+    local p = PendingPhotoUploads[token]
+    if not p then return nil end
+    return Citizen.Await(p)
+end)
+-- End photo upload relay -----------------------------------------------------
+
 function EnsureEvidence(coords, evidenceType, data)
     data.label = _L(evidenceType)
     data.type = evidenceType

@@ -1,4 +1,18 @@
 ConfigSV = {}
+
+-- Photo upload configuration (kept server-side to protect the API key)
+ConfigSV.Photos = {
+    -- FiveManage upload URL including your API key, e.g.:
+    -- "https://api.fivemanage.com/api/image?token=YOUR_API_KEY_HERE"
+    url = "FIVEMANAGE_UPLOAD_URL",
+    -- Upload protocol passed to screenshot-basic ("multipart" for FiveManage)
+    uploadProtocol = "multipart",
+    -- Parses the upload response and returns the public image URL
+    ResponseHandler = function(resp)
+        return resp and resp.url or nil
+    end,
+}
+
 ConfigSV.Webhooks = {
     ["computer"] = { 
         url = "WEBHOOK_URL",
